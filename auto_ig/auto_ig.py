@@ -102,7 +102,7 @@ class AutoIG:
             confirmed_signals = [x for x in signals if x.confirmed]
             used_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('score'), reverse=True)
 
-            print("SIGNALS:{} CONFIRMED:{} used:{}".format(len(signals),len(confirmed_signals),len(used_signals)))
+            logger.info("SIGNALS:{} CONFIRMED:{} used:{}".format(len(signals),len(confirmed_signals),len(used_signals)))
             if len(used_signals)>0:
                 round_val = 500.0
                 base = 1000.0
