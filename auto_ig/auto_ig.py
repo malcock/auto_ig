@@ -113,7 +113,7 @@ class AutoIG:
                 chosen_market = self.markets[chosen_signal.epic]
                 if chosen_market.spread < 4:
                     current_trades = [x for x in self.trades if x.market==chosen_market]
-                    if current_trades<1:
+                    if len(current_trades)<1:
                         logger.info("{} lets try make a trade".format(chosen_market.epic))
                         prediction = chosen_market.make_prediction(chosen_signal)
                         self.make_trade(1,chosen_market,prediction)
