@@ -1,0 +1,6 @@
+mixin form_input(label_text, name, type, value)
+    .form-group
+        label(for=name)=label_text
+        input.form-control(type=type, name=name, id=name, value=value)
+
+{% block layout %}{% endblock %}

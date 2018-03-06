@@ -1,0 +1,42 @@
+{% for trade in trade_list %}
+li.list-group-item.js-trade
+    .row.no-gutters
+        .col-6
+            h4 {{ trade.market.epic }} | {{ trade.deal_id }}
+        .col-6.text-right
+            h4 
+                {% if trade.profit_loss > 0 %}
+                span(style="color:navy") £{{ trade.profit_loss }}
+                {% elif trade.profit_loss < 0 %}
+                span(style="color:darkred") £{{ trade.profit_loss }}
+                {% else %}
+                span(style="color:green") £0
+                {% endif %}
+    .row.no-gutters
+        .col-4.row
+            .col-6.text-right
+                small Open Price
+            .col-6
+                {{ trade.open_level }}
+        .col-4.row
+            .col-6.text-right
+                small Prediction
+            .col-6
+                {{ trade.prediction.price_prediction }}
+        .col-4.row
+            .col-6.text-right
+                small Score
+            .col-6
+                {{ trade.prediction.score }}
+    .row
+        .col-12.logbox
+            ul.list-group.list-group-flush
+                {% for log in trade.status_log %}
+                li.list-group-item.row
+                    .col-4
+                        {{ log.timestamp }}
+                    .col-8
+                        {{ log.message }}
+                {% endfor %}
+    
+{% endfor %}

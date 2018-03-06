@@ -1,0 +1,63 @@
+.flashes {
+    list-style: none;
+    margin: 10px 0;
+    padding: 0;
+}
+.golive {
+    position: relative;
+    height:50px;
+    margin-bottom: 1rem;
+}
+.golive_chk {
+    
+    height: 0;
+	width: 0;
+	visibility: hidden;
+}
+.golive_lbl {
+    cursor: pointer;
+    padding-left: 120px;
+    height:50px;
+    line-height:50px;
+    user-select: none;
+}
+.golive_lbl > .card-subtitle {
+    line-height: 50px;
+    margin: 0;
+}
+.golive_lbl:before {
+    display:block;
+    position: absolute;
+    left:0;
+    top:0;
+    content:'';
+    width:100px;
+    height:50px;
+    border-radius: 25px;
+    background: #6c757d;
+    transition: all 0.25s ease-in-out;
+}
+.golive_lbl:after {
+    content:'';
+    width:40px;
+    height:40px;
+    position: absolute;
+    top:5px;
+    left: 5px;
+    background: #fff;
+    border-radius: 25px;
+    transition: all 0.25s ease-in-out;
+}
+
+.golive_chk:checked + .golive_lbl:before {
+    background: #007bff;
+}
+.golive_chk:checked + .golive_lbl:after {
+    left:55px;
+}
+.golive_lbl:active:after {
+    width: 60px;
+}
+.golive_chk:checked + .golive_lbl:active:after {
+    left:35px;
+}

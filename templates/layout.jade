@@ -1,0 +1,56 @@
+{% extends "mixins.jade" %}
+{% block layout %}
+doctype 5
+html
+    head
+        meta(charset="utf-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1, shrink-to-fit=no")
+
+        
+        link(rel="stylesheet", type="text/css", href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm", crossorigin="anonymous")
+        link(rel="stylesheet", type="text/css", href="{{ url_for('static', filename='style.css') }}")
+        title {{ title }}
+    body
+        header
+            nav.navbar.navbar-expand-lg.navbar-dark.bg-dark
+                .container
+                    a.navbar-brand(href="/") Web Faig
+                    button.navbar-toggler(type="button", data-toggle="collapse", data-target="#navbarCollapse", aria-controls="navbarCollapse", aria-expanded="false", aria-label="Toggle navigation")
+                        span.navbar-toggler-icon
+                    div.collapse.navbar-collapse#navbarCollapse
+                        ul.navbar-nav
+                            {% if not session.logged_in %}
+                            li.nav-item
+                                a.nav-link(href="{{url_for('login')}}") Login
+                            {% else %}
+                            li.nav-item
+                                a.nav-link(href="{{ url_for('settings_screen') }}") Settings  
+                            li.nav-item
+                                a.nav-link(href="{{ url_for('logout') }}") log out
+                            {% endif %}
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            .container
+                ul.flashes
+                    {% for category, message in messages %}
+                    li(class="alert alert-{{ category }} alert-dismissible fade show", role="alert")
+                        {{ message }}
+                        button(type="button", class="close", data-dismiss="alert", aria-label="Close")
+                            span(aria-hidden="true") &times;
+                    {% endfor %}
+            {% endif %}
+            {% endwith %}
+        main.container
+            h1 {{title}}
+            {% block body %}{% endblock %}
+
+
+        script(src="https://code.jquery.com/jquery-3.3.1.min.js", integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=", crossorigin="anonymous")
+        script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js", integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q", crossorigin="anonymous")
+        script(src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js", integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl", crossorigin="anonymous")
+        script(src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.11/handlebars.min.js" integrity="sha256-+JMHsXRyeTsws/tzbIh5YHQxRdKCuNjmvNcTFtY6DLc=", crossorigin="anonymous")
+        script(src="{{ url_for('static', filename='timeago.min.js') }}")
+        script(src="{{ url_for('static', filename='tinysort.min.js') }}")
+        script(src="{{ url_for('static', filename='script.js') }}")
+{% endblock %}

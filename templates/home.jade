@@ -1,0 +1,15 @@
+{% extends "layout.jade" %}
+- var title = "Web Faig"
+{% block body %}
+{% if account.balance %}
+h2 Account Balance: £{{ account.balance.balance }}
+{% endif %}
+.row
+    .col-12.col-md-6
+        {% include "includes/card-trades.jade" %}
+    .col-12.col-md-6
+        {% include "includes/card-markets.jade" %}
+
+p {{ trade }}
+p {{ start_time }}
+{% endblock %}

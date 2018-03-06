@@ -1,0 +1,346 @@
+import logging
+import time
+import datetime
+import math
+import json
+import operator
+import sys
+import requests
+from functools import reduce
+
+import os
+
+from Cryptodome.Cipher import AES
+
+from .lightstreamer import LSClient, Subscription
+from .market import Market
+from .trade import Trade
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('faig_debug.log')
+fh.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
+
+
+class AutoIG:
+    """Handles authentication and coordination of IG"""
+
+    def __init__(self):
+        self.authenticated_headers = {}
+        self.markets = {}
+        self.trades = []
+        self.max_concurrent_trades = 3
+        self.lightstream = {}
+        self.key = ""
+
+    def make_trade(self, size, market, prediction, json_data = None):
+        """Make a new trade"""
+        logger.info("making a trade")
+        t = Trade(size, market,prediction, json_data)
+        self.trades.append(t)
+        return t
+
+    def process(self,epic_ids):
+        """Do the process"""
+        
+        self.update_markets(epic_ids)
+
+
+        # first - are there any saved trades?
+        try:
+            path = "trades/open"
+            trades_on_file = [name for name in os.listdir(path) if name.endswith(".json")]
+            logger.info("number of trades found: {}, trades in memory: {}".format(len(trades_on_file),len(self.trades)))
+            if len(self.trades)<len(trades_on_file):
+                logger.info("trades on file dispairity")
+                for name in trades_on_file:
+                    fh = open(os.path.join(path,name),"r")
+                    json_trade = json.load(fh)
+                    logger.info("loaded file: " + name)
+                    if json_trade['market'] in self.markets:
+                        self.make_trade(1,self.markets[json_trade['market']],json_trade['prediction'],json_trade)
+            elif len(self.trades)>len(trades_on_file):
+                # try to clean up trades list
+                logger.info("trying to clean up trades list")
+                set_trades = {}
+                for t in self.trades:
+                    set_trades[t.deal_id] = t
+
+                self.trades  = list(set_trades.values())
+                            
+
+        except Exception as e:
+            logger.error(e)
+
+        
+        for m in self.markets.values():
+            if m.get_update_cost("MINUTE_5",50)>0:
+                m.update_prices("MINUTE_5",50)
+            if m.get_update_cost("MINUTE",30)>0:
+                m.update_prices("MINUTE",30)
+            
+            price_len = len(m.prices["MINUTE_5"])
+            # # only want to analyse the last 5 points - everything before is probably irrelevant now
+            for p in range(price_len-5,price_len):
+                m.analyse_candle("MINUTE_5", p)
+
+        open_lightstreamer = False
+
+        # lets try to open a trade i guess?
+        if len(self.trades)<self.max_concurrent_trades:
+            # create a list of confirmed signals
+            signals = reduce(operator.concat,[x.signals for x in self.markets.values()])
+            confirmed_signals = [x for x in signals if x.confirmed]
+            used_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('score'), reverse=True)
+
+            print("SIGNALS:{} CONFIRMED:{} used:{}".format(len(signals),len(confirmed_signals),len(used_signals)))
+            if len(used_signals)>0:
+                round_val = 500.0
+                base = 1000.0
+                trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
+                logger.info("proposed bet size: {}".format(trade_size))
+                chosen_signal = used_signals[0]
+                chosen_signal.unused = False
+                chosen_market = self.markets[chosen_signal.epic]
+                if chosen_market.spread < 3:
+                    current_trades = [x for x in self.trades if x.market==chosen_market]
+                    if current_trades<1:
+                        prediction = chosen_market.make_prediction(chosen_signal)
+                        self.make_trade(1,chosen_market,prediction)
+                    else:
+                        logger.info("{} trade already open on this market".format(chosen_market.epic))
+                        for t in current_trades:
+                            if chosen_signal.action != t.prediction['direction_to_trade']:
+                                logger.info("{} opposing signal {} found - need to improve this".format(chosen_market.epic,chosen_signal.action))
+                                t.close_trade()
+                            else:
+                                logger.info("{} signal reenforced {}".format(chosen_market.epic,chosen_signal.action))
+                else:
+                    logger.info("{} spread too wide {}".format(chosen_market.epic,chosen_market.spread))
+        
+        if not isinstance(self.lightstream, LSClient):
+            open_lightstreamer = True
+
+        # either no lightstreamer object was found, or the epics have changed
+        if open_lightstreamer:
+            epic_list = self.markets.keys()
+            if len(epic_list)==0:
+                return False, "No epics to open lightstream with, weird huh"
+            if isinstance(self.lightstream, LSClient):
+                self.lightstream.unsubscribe_all()
+            else:
+                try:
+                    headers = self.authenticate()
+                    password = "CST-" + str(headers['CST']) + "|XST-" + str(headers['X-SECURITY-TOKEN'])
+                    logger.info(self.lightstreamerEndpoint)
+                    logger.info(self.api_user)
+                    logger.info(password)
+                    self.lightstream = LSClient(self.lightstreamerEndpoint,"",self.api_user,password)
+                    logger.info("attempting to connect to lightstream")
+
+                    self.lightstream.connect()
+                    logger.info("connect?")
+                except Exception as e:
+                    logger.info("Unable to connect to Lightstreamer Server - clearing headers")
+                    logger.info(e)
+                    self.authenticated_headers = {}
+                    self.lightstream = {}
+                    self.lightstreamerEndpoint = ""
+
+                    return False, "Failed to open lighstreamer: {}".format(e)
+
+            # assuming here that we've got a lighstream connection so we can subscribe now
+            
+            epic_ids_time = ["CHART:" + s + ":1MINUTE" for s in epic_list]
+            logger.info(epic_ids_time)
+            live_charts = Subscription(mode="MERGE", items=epic_ids_time, fields="LTV,UTM,OFR_OPEN,OFR_HIGH,OFR_LOW,OFR_CLOSE,BID_OPEN,BID_HIGH,BID_LOW,BID_CLOSE,CONS_END,CONS_TICK_COUNT".split(","),adapter="DEFAULT")
+            live_charts.addlistener(self.live_update)
+            self.live_charts_key = self.lightstream.subscribe(live_charts)
+
+
+
+        return True, "hello"
+
+    def live_update(self,data):
+        # get the epic
+        epic = data['name'].split(":")[1]
+        if epic in self.markets:
+            self.markets[epic].set_latest_price(data['values'])
+            market_trades = [x for x in self.trades if x.market.epic==epic]
+            
+            for t in market_trades:
+                if not t.update():
+                    self.trades.remove(t)
+        
+        # fh = open("updizzle.txt",'a')
+        # fh.write(data)
+    
+    def update_markets(self, epic_ids):
+        logger.info("getting all markets data")
+        for chunk in list(self.chunks(epic_ids,50)):
+
+            base_url = self.api_url + '/markets?epics=' + ','.join(chunk)
+            auth_r = requests.get(base_url, headers=self.authenticate())
+            if auth_r.ok:
+                res = json.loads(auth_r.text)
+                epics_data = res["marketDetails"]
+                for epic in epics_data:
+                    epic_id = epic['instrument']['epic']
+                    if not epic_id in self.markets:
+                        self.markets[epic_id] = Market(epic_id,self,epic)
+                    else:
+                        self.markets[epic_id].update_market(epic)
+            else:
+                return False, "Couldn't get market data: {} {}".format(auth_r.status_code,auth_r.content)
+
+
+            
+    def chunks(self, l, n):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
+
+
+    def initialise(self, is_live, settings):
+        self.settings = settings.copy()
+        if is_live:
+            self.api_url = 'https://api.ig.com/gateway/deal'
+            self.api_key = settings['api_key']
+            self.api_user = settings['api_user']
+            self.api_pass = settings['api_pass']
+        else:
+            self.api_url = 'https://demo-api.ig.com/gateway/deal'
+            self.api_key = settings['demo_api_key']
+            self.api_user = settings['demo_api_user']
+            self.api_pass = settings['demo_api_pass']
+
+        logger.info(self.api_url)
+        logger.info(self.api_key)
+        logger.info(self.api_user)
+        logger.info(self.api_pass)
+
+    def login(self):
+        """login to IG"""
+        base_url = self.api_url + "/accounts"
+        try:
+            logger.info("logging in...")
+            auth_r = requests.get(base_url, headers=self.authenticate())
+            d = json.loads(auth_r.text)
+
+            for i in d['accounts']:
+                if str(i['accountType']) == "SPREADBET":
+                    logger.info ("Spreadbet Account ID is : " + str(i['accountId']))
+                    spreadbet_acc_id = str(i['accountId'])
+                    self.account = i
+
+            base_url = self.api_url + "/session"
+            data = {"accountId":spreadbet_acc_id,"defaultAccount": "True"}
+            logger.info("making sure right account selected...")
+            auth_r = requests.put(base_url, data=json.dumps(data), headers=self.authenticate())
+
+
+            return True
+        except Exception as err:
+            logger.info("login failed - check credentials")
+            logger.info(err)
+            return False
+
+    def authenticate(self):
+        """Authenticate with IG"""
+        if 'CST' in self.authenticated_headers:
+            return self.authenticated_headers
+        else:
+            logger.info("generating new headers")
+            data = {"identifier":self.api_user, "password":self.api_pass}
+            headers = {'Content-Type':'application/json; charset=utf-8',
+                'Accept':'application/json; charset=utf-8',
+                'X-IG-API-KEY':self.api_key,
+                'Version':'2'}
+            
+            base_url = self.api_url + "/session"
+            # logger.info(base_url)
+            # rep = requests.get(REAL_OR_NO_REAL + "/session",data=json.dumps(data),headers=headers)
+
+            rep = requests.post(base_url,data=json.dumps(data), headers=headers)
+
+            if rep.status_code == 200:
+
+                self.account = json.loads(rep.text)
+                logger.info(self.account)
+                self.lightstreamerEndpoint = self.account['lightstreamerEndpoint']
+                headers_json = dict(rep.headers)
+
+                headers =  {'Content-Type':'application/json; charset=utf-8',
+                            'Accept':'application/json; charset=utf-8',
+                            'X-IG-API-KEY':self.api_key,
+                            'CST':headers_json["CST"],
+                            'X-SECURITY-TOKEN':headers_json["X-SECURITY-TOKEN"]}
+                
+                self.authenticated_headers = headers
+
+                return self.authenticated_headers
+            else:
+                logger.info("auth failed: " + str(rep.status_code) + " " + rep.reason)
+
+
+
+    ##################################################
+    ############# FILE SAVE / ENCRYPTION #############
+    ##################################################
+    def save_file(self, data, filename, is_bytes=False):
+        """Save a file"""
+        mode = "wb" if is_bytes else "w"
+        f = open(filename, mode)
+        f.write(data)
+        f.close()
+
+    def read_file(self, filename, is_bytes=False):
+        """Read a file"""
+        mode = "rb" if is_bytes else "r"
+        f = open(filename, mode)
+        data = f.read()
+        f.close()
+        return data
+
+    def save_json(self, json_data, filename, encrypted=False):
+        """Saves dict to a file as json, optionally with encryption"""
+        save_data = json.dumps(json_data)
+        logger.info(save_data)
+        is_bytes = False
+        if encrypted:
+            cipher = AES.new(self.key, AES.MODE_EAX)
+            ciphertext, tag = cipher.encrypt_and_digest(save_data.encode('utf8'))
+            file_out = open(filename, "wb")
+            [ file_out.write(x) for x in (cipher.nonce, tag, ciphertext) ]
+            is_bytes = True
+        else:
+            self.save_file(save_data, filename, is_bytes)
+
+    def load_json(self, filename, encrypted=False):
+        """Load json from a file into a dict optionally with decryption"""
+        try:
+            json_str = self.read_file(filename, encrypted)
+            if encrypted:
+                file_in = open(filename, "rb")
+                nonce, tag, ciphertext = [ file_in.read(x) for x in (16, 16, -1) ]
+
+                # let's assume that the key is somehow available again
+                cipher = AES.new(self.key, AES.MODE_EAX, nonce)
+                json_str = cipher.decrypt_and_verify(ciphertext, tag)
+                # json_str = decrypt( self.KEY, json_str)
+            return json.loads(json_str)
+        except IOError:
+            
+            # no file found, but just return None - let calling code handle that
+            return None
+
+    

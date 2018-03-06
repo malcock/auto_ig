@@ -1,0 +1,33 @@
+{% extends "includes/card.jade" %}
+- var card_title = "Markets"
+- var card_id = "market_data"
+{% block card_body %}
+ul.list-group.list-group-flush.js-sort
+    {% for epic in epic_list %}
+    li.list-group-item.js-market(data-epic="{{ epic }}"){{ epic }}
+    {% endfor %}
+
+script.js-card(type="text/x-handlebars-template")
+    .row.no-gutters
+        .col-3
+            h4 {{ "{{ epic }}" }}
+        .col-9
+            .row.no-gutters
+                .col-4
+                    .row.no-gutters
+                        .col-3.text-right
+                            small Buy
+                        .col-1
+                        .col-8 {{ "{{ offer }}" }}
+                    .row.no-gutters
+                        .col-3.text-right
+                            small Sell
+                        .col-1
+                        .col-8 {{ "{{ bid }}" }}
+                .col-4.text-left
+                    small Spread
+                    h4.js-sortby {{ "{{ spread }}" }}
+                .col-4
+                    {{ "{{ percentage_change }}"}}%
+                    {{ "{{ net_change }}" }}
+{% endblock %}

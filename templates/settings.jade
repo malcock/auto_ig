@@ -1,0 +1,41 @@
+{% extends "layout.jade" %}
+
+- var title = "Settings"
+
+{% block body %}
+form(action="{{ url_for('settings_screen') }}", method="post")
+    .card.mb-3
+        .card-body
+            h3.card-title Login Information
+            +form_input("Username", "username", "input", settings.username)
+            +form_input("Change Password", "password", "password", "")
+            +form_input("Confirm Password", "password_confirm", "password", "")
+    .card.mb-3
+        .card-body
+            h3.card-title API Info
+            .golive
+                {% if settings.api_live %}
+                input.golive_chk(type="checkbox", id="api_live", name="api_live", checked="checked")
+                {% else %}
+                input.golive_chk(type="checkbox", id="api_live", name="api_live")
+                {% endif %}
+                label.golive_lbl(for="api_live") 
+                    h4.card-subtitle Go live!
+                
+            .container
+                .row
+                    .col-sm
+                        
+                        .cell.small-6
+                            h5.card-subtitle.mb-2.text-muted Live
+                            +form_input("API User", "api_user", "input", settings.api_user)
+                            +form_input("API Password", "api_pass", "password", settings.api_pass)
+                            +form_input("API Key", "api_key", "input", settings.api_key)
+                    .col-sm
+                        .cell.small-6
+                            h5.card-subtitle.mb-2.text-muted Demo
+                            +form_input("Demo API User", "demo_api_user", "input", settings.demo_api_user)
+                            +form_input("Demo API Password", "demo_api_pass", "password", settings.demo_api_pass)
+                            +form_input("Demo API Key", "demo_api_key", "input", settings.demo_api_key)
+    button.btn.btn-primary(type="submit") Save Settings
+{% endblock %}
