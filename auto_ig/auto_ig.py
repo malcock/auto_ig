@@ -95,7 +95,7 @@ class AutoIG:
 
         open_lightstreamer = False
 
-        # lets try to open a trade i guess?
+        # lets try to open a trade i guess? change
         if len(self.trades)<self.max_concurrent_trades:
             # create a list of confirmed signals
             signals = reduce(operator.concat,[x.signals for x in self.markets.values()])
