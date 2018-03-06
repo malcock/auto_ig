@@ -1,7 +1,9 @@
+--find-links wheelhouse
+pycryptodomex==3.4.8
 Flask==0.12.1
 numpy==1.13.3
 python-dateutil==2.6.1
 requests==2.18.4
 urllib3==1.22
-pycryptodomex==3.4.8
+
 pyjade==4.0.0
