@@ -111,7 +111,7 @@ class AutoIG:
                 chosen_signal = used_signals[0]
                 chosen_signal.unused = False
                 chosen_market = self.markets[chosen_signal.epic]
-                if chosen_market.spread < 3:
+                if chosen_market.spread < 4:
                     current_trades = [x for x in self.trades if x.market==chosen_market]
                     if current_trades<1:
                         prediction = chosen_market.make_prediction(chosen_signal)
