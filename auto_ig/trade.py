@@ -130,6 +130,16 @@ class Trade:
             # STOP LOSS CHECKING
             stoploss = float(self.prediction['stoploss'])
 
+            # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
+            print(self.opened_time)
+            timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+            print(timeopen)
+            # logger.info(timeopen.seconds)
+            if timeopen.seconds/60>120:
+                if not self.overtime:
+                    self.overtime = True
+                    self.prediction['limit_distance'] = float(self.prediction['atr_low'])/2
+                    self.log_status("ORDER OPEN 2 HOURS OVERTIME - HALVING LIMIT")
             
 
             if float(self.pip_diff) < -stoploss:
@@ -264,7 +274,13 @@ class Trade:
             logger.info(auth_r.status_code)
             logger.info(auth_r.reason)
             logger.info(auth_r.text)
-            
+
+    def assess_close(self,signal):
+        """checks to see whether it's a good idea to use the given signal to close the deal"""
+        if self.pip_diff<0.2:
+            return
+
+        self.close_trade()            
 
     def update_from_json(self, json_data):
         try:
@@ -276,6 +292,7 @@ class Trade:
         except Exception as e:
             open_t = None
 
+        
 
         self.size_value = json_data['size_value']
         self.prediction = json_data['prediction']
@@ -283,7 +300,13 @@ class Trade:
         self.state = json_data['state']
         self.created_time = datetime.datetime.strptime(json_data['created_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
         self.expiry_time = datetime.datetime.strptime(json_data['expiry_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
-        
+
+        # some temp error fixing
+        if open_t is None:
+            open_t = self.created_time
+
+        self.opened_time = open_t
+        self.closed_time = close_t
         
         self.rsi_init = json_data['rsi_init']
         self.rsi_max = json_data['rsi_max']

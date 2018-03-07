@@ -96,37 +96,41 @@ class AutoIG:
         open_lightstreamer = False
 
         # lets try to open a trade i guess? change
-        if len(self.trades)<self.max_concurrent_trades:
-            # create a list of confirmed signals
-            signals = reduce(operator.concat,[x.signals for x in self.markets.values()])
-            confirmed_signals = [x for x in signals if x.confirmed]
-            used_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('score'), reverse=True)
+        
+        # create a list of confirmed signals
+        signals = reduce(operator.concat,[x.signals for x in self.markets.values()])
+        confirmed_signals = [x for x in signals if x.confirmed]
+        unused_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('score'), reverse=True)
 
-            logger.info("SIGNALS:{} CONFIRMED:{} used:{}".format(len(signals),len(confirmed_signals),len(used_signals)))
-            if len(used_signals)>0:
-                round_val = 500.0
-                base = 1000.0
-                trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
-                logger.info("proposed bet size: {}".format(trade_size))
-                chosen_signal = used_signals[0]
-                chosen_signal.unused = False
-                chosen_market = self.markets[chosen_signal.epic]
-                if chosen_market.spread < 4:
-                    current_trades = [x for x in self.trades if x.market==chosen_market]
-                    if len(current_trades)<1:
-                        logger.info("{} lets try make a trade".format(chosen_market.epic))
+        logger.info("SIGNALS:{} CONFIRMED:{} UNUSED:{}".format(len(signals),len(confirmed_signals),len(unused_signals)))
+        if len(unused_signals)>0:
+            round_val = 500.0
+            base = 1000.0
+            trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
+            logger.info("proposed bet size: {}".format(trade_size))
+            chosen_signal = unused_signals[0]
+            
+            chosen_market = self.markets[chosen_signal.epic]
+            if chosen_market.spread < 4:
+                current_trades = [x for x in self.trades if x.market==chosen_market]
+                if len(current_trades)==0:
+
+                    if len(self.trades)<self.max_concurrent_trades:
+                        chosen_signal.unused = False
+                        logger.info("{} lets try open a position".format(chosen_market.epic))
                         prediction = chosen_market.make_prediction(chosen_signal)
                         self.make_trade(1,chosen_market,prediction)
-                    else:
-                        logger.info("{} trade already open on this market".format(chosen_market.epic))
-                        for t in current_trades:
-                            if chosen_signal.action != t.prediction['direction_to_trade']:
-                                logger.info("{} opposing signal {} found - need to improve this".format(chosen_market.epic,chosen_signal.action))
-                                t.close_trade()
-                            else:
-                                logger.info("{} signal reenforced {}".format(chosen_market.epic,chosen_signal.action))
                 else:
-                    logger.info("{} spread too wide {}".format(chosen_market.epic,chosen_market.spread))
+                    chosen_signal.unused = False
+                    logger.info("{} trade already open on this market".format(chosen_market.epic))
+                    for t in current_trades:
+                        if chosen_signal.action != t.prediction['direction_to_trade']:
+                            logger.info("{} opposing signal {} found - need to improve this".format(chosen_market.epic,chosen_signal.action))
+                            t.assess_close(chosen_signal)
+                        else:
+                            logger.info("{} signal reenforced {}".format(chosen_market.epic,chosen_signal.action))
+            else:
+                logger.info("{} spread too wide {}".format(chosen_market.epic,chosen_market.spread))
         
         if not isinstance(self.lightstream, LSClient):
             open_lightstreamer = True
