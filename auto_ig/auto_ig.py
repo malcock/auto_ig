@@ -138,7 +138,7 @@ class AutoIG:
                                 prediction = market.make_prediction(signal)
                                 self.make_trade(1,market,prediction)
                             else:
-                                logger.info("Trades full - can't open more")
+                                logger.info("Trades full - can't open more now:{}, max:{}".format(len(self.trades),self.max_concurrent_trades))
                         else:
                             # trades in market already
                             
