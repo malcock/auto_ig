@@ -151,7 +151,7 @@ class Trade:
                     base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
                     auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
                     if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                        logger.info(self.market.epic + " checked 400")
+                        self.status_log("Can't find trade - closed in IG?")
                         self.state = TradeState.CLOSED
 
                 self.loop_counter=0

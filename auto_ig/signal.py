@@ -20,7 +20,7 @@ logger.addHandler(ch)
 
 class Signal:
     
-    def __init__(self, epic, resolution, snapshotTime, action, signalType, confirmation_price = None):
+    def __init__(self, epic, resolution, snapshotTime, action, signalType, comment = "", confirmation_price = None):
         """Create a signal object stores it's state to confirm buy or sell signals
             resolution = what res was this signal discovered at?
             snapshot = when this signal was generated on the price list
@@ -43,15 +43,17 @@ class Signal:
 
         self.active = True
         self.unused = True
+        self.comment = comment
 
         self.score = 1 #need to think of how to properly grade different signals - probably upon being confirmed?
-
+        timeout_multiplier = 4
         if self.type == "HAMMER":
             self.score = 0.75
         elif self.type == "CROSSOVER":
             self.score = 1
+            # timeout_multiplier=0.5
 
-        # work out the exiry time for this signal - 3 times resolution, plus 3mins
+        # work out the exiry time for this signal - depending on type, plus 2mins
         seconds_per_unit = 0
         if "MINUTE" in resolution:
             seconds_per_unit = 60
@@ -63,7 +65,7 @@ class Signal:
         if "_" in resolution:
             multiplier = int(resolution.split("_")[1])
             seconds_per_unit *= multiplier
-        seconds_per_unit = (seconds_per_unit * 3) + 180
+        seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 120
 
         self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S") + datetime.timedelta(seconds = seconds_per_unit)
         self.expiry_time = self.expiry_time.replace(tzinfo=datetime.timezone.utc)
@@ -85,15 +87,14 @@ class Signal:
                 if self.action=="BUY":
                     if last_price > self.confirmation_price:
                         self.confirmed = True
-                        self.active = False
                 else:
                     if last_price < self.confirmation_price:
                         self.confirmed = True
-                        self.active = False
 
             
             if self.confirmed:
                 logger.info("SIGNAL CONFIRMED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
+                self.active = False
                 # do something to rescore this based on something - like multiple signals being confirmed at once?
 
      

@@ -95,7 +95,7 @@ def show_signals():
     signals = auto_ig.get_signals()
     output = "<ul>"
     for signal in signals:
-        output += "<li>{} - {}: {}({}) OK:{}, CONFIRM AT:{} UNUSED:{}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused)
+        output += "<li>{} - {}: {}({}) OK:{}, CONFIRM AT:{} UNUSED:{}, comment: {}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused, signal.comment)
     
     output += "</ul>"
 

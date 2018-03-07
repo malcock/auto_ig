@@ -37,6 +37,10 @@ class Market:
         
         self.load_prices()
         self.update_market(market_data)
+        try:
+            self.current_rsi = float(self.prices['MINUTE'][-1]["rsi"])
+        except Exception:
+            self.current_rsi = 0
 
     def update_market(self, obj = None):
         if obj is None:
@@ -79,14 +83,15 @@ class Market:
             "direction_to_compare" : DIRECTION_TO_COMPARE,
             "atr_low" : low_range,
             "atr_max" : max_range,
-            "stoploss" : min(max_range,50),
-            "limit_distance" : 12,
+            "stoploss" : min(max_range,20),
+            "limit_distance" : 13,
             "support" : support,
             "resistance" : resistance,
             "signal" : {
                 "snapshot_time":signal.snapshot_time,
                 "type" : signal.type,
-                "action" : signal.action
+                "action" : signal.action,
+                "comment" : signal.comment
             }
         }
 
@@ -138,13 +143,12 @@ class Market:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
                 i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp), None)
                 if i==None:
-                    
                     self.prices['MINUTE'].append(current_price)
-
                     if minNum in "05":
                         previous_5 = self.prices["MINUTE"][-6:]
                         open_price = previous_5[0]['openPrice']
                         close_price = previous_5[-1]['openPrice']
+                        previous_5 = previous_5[:5]
                         vol = sum([x['lastTradedVolume'] for x in previous_5])
                         ask_low = min([x['lowPrice']['ask'] for x in previous_5])
                         ask_high = max([x['highPrice']['ask'] for x in previous_5])
@@ -159,11 +163,11 @@ class Market:
                             "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
                         
-                        i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp), None)
-                        if i==None:
-                            self.prices["MINUTE_5"].append(new_5_min)
-                        else:
-                            self.prices["MINUTE_5"][i] = new_5_min
+                        # i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp), None)
+                        # if i==None:
+                        self.prices["MINUTE_5"].append(new_5_min)
+                        # else:
+                        #     self.prices["MINUTE_5"][i] = new_5_min
 
                         if len(self.prices['MINUTE_5']) > 50:
                             del self.prices['MINUTE_5'][0]
@@ -178,9 +182,11 @@ class Market:
 
                         price_len = len(self.prices['MINUTE_5'])
                         # only want to analyse the last 30 price points (reduce to 10 later)
-                        for p in range(price_len-2,price_len):
+
+                        for p in range(price_len-3,price_len):
                             self.analyse_candle('MINUTE_5', p)
                         
+                    
                     self.save_prices()
                     
                 else:
@@ -303,6 +309,26 @@ class Market:
         point['movement'] = close_price - open_price
 
         self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
+        self.detect_crossover(resolution,index)
+
+    def detect_crossover(self, resolution, index):
+        """Detect a crossover of the ema_8 and ema_20 data"""
+        now_diff = self.prices[resolution][index]['ema_8'] - self.prices[resolution][index]['ema_20']
+        prev_diff = self.prices[resolution][index-1]['ema_8'] - self.prices[resolution][index-1]['ema_20']
+        
+        position = None
+        if now_diff>0 and prev_diff<0:
+            position = "BUY"
+        
+        if now_diff<0 and prev_diff>0:
+            position = "SELL"
+
+        if position is None:
+            return
+
+        comment = "prev:{}, now: {}".format(prev_diff,now_diff)
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",comment)
+        
 
     def detect_hammer(self, resolution, index, high_price, low_price, open_price, close_price):
         """Detect a hammer candlestick"""
@@ -342,13 +368,19 @@ class Market:
                 else:
                     confirmation_price = body_bottom - (big_shadow*size)
 
-                
-                self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",round(confirmation_price,2))
+                comment = "o:{}, c:{}, h:{}, l:{}".format(open_price,close_price,high_price,low_price)
+                self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",comment,round(confirmation_price,2))
 
-    def add_signal(self,resolution, snapshot_time, position, signal_type, confirmation_price ):
+    def add_signal(self,resolution, snapshot_time, position, signal_type, comment = "", confirmation_price = None ):
         matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type)]
+        # remove any previous crossover signals - new one superceeds them
+        if signal_type=="CROSSOVER":
+            for signal in matching_signals:
+                self.signals.remove(signal)
+            matching_signals = []
+
         if len(matching_signals)==0:
-            self.signals.append(Signal(self.epic,resolution,snapshot_time,position,signal_type, confirmation_price))
+            self.signals.append(Signal(self.epic,resolution,snapshot_time,position,signal_type, comment, confirmation_price))
 
     # ********* Indicator calculations ***********
     def calculate_trend(self, prices):
