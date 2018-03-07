@@ -86,7 +86,14 @@ def index():
     # markets = faig.get_markets(globals()['EPIC_IDS'])
     best_markets = ""
 
+@app.route("/reset-log")
+def reset_log():
+    """reset the log file"""
+    fh = open("faig_debug.log","w")
+    fh.write("")
+    fh.close()
 
+    return "log file deleted"
 
     return render_template("home.jade", epic_list = globals()['EPIC_IDS'], account = auto_ig.account, trade = best_markets, start_time = START_TIME, title = platform.python_version())
 @app.route('/signals')
