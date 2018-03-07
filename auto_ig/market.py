@@ -150,16 +150,20 @@ class Market:
                         ask_high = max([x['highPrice']['ask'] for x in previous_5])
                         bid_low = min([x['lowPrice']['bid'] for x in previous_5])
                         bid_high = max([x['highPrice']['bid'] for x in previous_5])
-
+                        timestamp_5 = (datetime.datetime.fromtimestamp(int(values['UTM'])/1000) - datetime.timedelta(minutes=5)).strftime("%Y:%m:%d-%H:%M:00")
                         new_5_min = {
-                            "snapshotTime": timestamp, 
+                            "snapshotTime": timestamp_5, 
                             "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "lastTraded": None}, 
                             "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "lastTraded": None }, 
                             "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "lastTraded": None}, 
                             "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
                         
-                        self.prices["MINUTE_5"].append(new_5_min)
+                        i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp), None)
+                        if i==None:
+                            self.prices["MINUTE_5"].append(new_5_min)
+                        else:
+                            self.prices["MINUTE_5"][i] = new_5_min
 
                         if len(self.prices['MINUTE_5']) > 50:
                             del self.prices['MINUTE_5'][0]
@@ -187,24 +191,12 @@ class Market:
                     
                 self.calculate_rsi('MINUTE')
 
-                
-                # minutes = np.asarray([x['closePrice']['bid'] for x in self.prices['MINUTE']])
-                # if len(minutes)>0:
-                #     # logger.info("set_latest_price rsi")
-                #     self.rsi['MINUTE'] = self.calculate_rsi(minutes)
-                #     self.trends['MINUTE'] = self.calculate_trend(minutes)
-                #     self.trends["HALF"] = self.calculate_trend(minutes[-15:])
 
                 self.current_rsi = float(self.prices['MINUTE'][-1]["rsi"])
             else:
                 self.prices['MINUTE'] = []
         except Exception:
             pass
-            # logger.info(e)
-            # logger.info("vals: {}".format(values))
-        
-        # if len(self.signals)>0:
-        #     logger.info("{} signals: {}".format(self.epic,len(self.signals)))
 
         # if signal.update returns False, remove from list
         for s in self.signals:
