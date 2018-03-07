@@ -51,7 +51,7 @@ class Signal:
         elif self.type == "CROSSOVER":
             self.score = 1
 
-        # work out the exiry time for this signal - 4 times resolution, plus 2mins
+        # work out the exiry time for this signal - 3 times resolution, plus 3mins
         seconds_per_unit = 0
         if "MINUTE" in resolution:
             seconds_per_unit = 60
@@ -63,7 +63,7 @@ class Signal:
         if "_" in resolution:
             multiplier = int(resolution.split("_")[1])
             seconds_per_unit *= multiplier
-        seconds_per_unit = (seconds_per_unit * 4) + 120
+        seconds_per_unit = (seconds_per_unit * 3) + 180
 
         self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S") + datetime.timedelta(seconds = seconds_per_unit)
         self.expiry_time = self.expiry_time.replace(tzinfo=datetime.timezone.utc)
