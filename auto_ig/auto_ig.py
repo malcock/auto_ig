@@ -139,7 +139,7 @@ class AutoIG:
                                 logger.info("Trades full - can't open more")
                         else:
                             # trades in market already
-                            signal.unused = False
+                            
                             logger.info("{} trade already open on this market".format(market.epic))
                             for t in current_trades:
                                 if signal.action == t.prediction['direction_to_trade']:
@@ -147,6 +147,7 @@ class AutoIG:
                                 else:
                                     logger.info("{} opposing signal {} found - need to improve this".format(market.epic,signal.action))
                                     t.assess_close(signal)
+                                    signal.unused = False
                     else:
                         signal.unused = False
                         logger.info("{} spread too wide {}, ignoring signal".format(market.epic,market.spread))
