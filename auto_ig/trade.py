@@ -79,7 +79,7 @@ class Trade:
         self.save_trade()
 
     def update(self):
-
+        
         if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
             # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
             self.log_status("Trade {}".format(TradeState(self.state).name))
@@ -130,14 +130,6 @@ class Trade:
             # STOP LOSS CHECKING
             stoploss = float(self.prediction['stoploss'])
 
-            # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
-            timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
-            # logger.info(timeopen.seconds)
-            if timeopen.seconds/60>120:
-                if not self.overtime:
-                    self.overtime = True
-                    self.prediction['limit_distance'] = float(self.prediction['atr_low'])/2
-                    self.log_status("ORDER OPEN 2 HOURS OVERTIME - HALVING LIMIT")
             
 
             if float(self.pip_diff) < -stoploss:
@@ -147,6 +139,7 @@ class Trade:
 
             self.loop_counter+=1
             if self.loop_counter>10:
+                logger.info("saving")
                 if self.state == TradeState.OPEN:
                     base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
                     auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
