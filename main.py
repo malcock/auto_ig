@@ -85,6 +85,7 @@ def index():
     # this feels a bit retarded now, but maybe i'll want to concurrently run some on live and demo mode
     # markets = faig.get_markets(globals()['EPIC_IDS'])
     best_markets = ""
+    return render_template("home.jade", epic_list = globals()['EPIC_IDS'], account = auto_ig.account, trade = best_markets, start_time = START_TIME, title = platform.python_version())
 
 @app.route("/reset-log")
 def reset_log():
@@ -95,7 +96,7 @@ def reset_log():
 
     return "log file deleted"
 
-    return render_template("home.jade", epic_list = globals()['EPIC_IDS'], account = auto_ig.account, trade = best_markets, start_time = START_TIME, title = platform.python_version())
+    
 @app.route('/signals')
 def show_signals():
     """outputs signals into a list or something"""
