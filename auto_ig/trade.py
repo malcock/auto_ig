@@ -149,7 +149,6 @@ class Trade:
 
             self.loop_counter+=1
             if self.loop_counter>10:
-                logger.info("saving")
                 if self.state == TradeState.OPEN:
                     base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
                     auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
