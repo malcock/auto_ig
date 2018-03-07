@@ -49,6 +49,13 @@ class AutoIG:
         self.trades.append(t)
         return t
 
+    def get_signals(self):
+        try:
+            signals = sorted(reduce(operator.concat,[x.signals for x in self.markets.values()]), key=operator.attrgetter('snapshot_time'))
+        except Exception:
+            signals = []
+        return signals
+
     def process(self,epic_ids):
         """Do the process"""
         
@@ -120,6 +127,8 @@ class AutoIG:
                         logger.info("{} lets try open a position".format(chosen_market.epic))
                         prediction = chosen_market.make_prediction(chosen_signal)
                         self.make_trade(1,chosen_market,prediction)
+                    else:
+                        logger.info("Trades full - can't open more")
                 else:
                     chosen_signal.unused = False
                     logger.info("{} trade already open on this market".format(chosen_market.epic))

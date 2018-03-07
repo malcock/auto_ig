@@ -82,7 +82,12 @@ class Market:
             "stoploss" : min(max_range,50),
             "limit_distance" : 12,
             "support" : support,
-            "resistance" : resistance
+            "resistance" : resistance,
+            "signal" : {
+                "snapshot_time":signal.snapshot_time,
+                "type" : signal.type,
+                "action" : signal.action
+            }
         }
 
         return prediction_object
@@ -311,6 +316,8 @@ class Market:
         """Detect a hammer candlestick"""
         point = self.prices[resolution][index]
         size = high_price - low_price
+        if size ==0:
+            return
         body_top = max(open_price, close_price)
         body_bottom = min(open_price, close_price)
         body_size = body_top - body_bottom
@@ -344,7 +351,7 @@ class Market:
                     confirmation_price = body_bottom - (big_shadow*size)
 
                 
-                self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",confirmation_price)
+                self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",round(confirmation_price,2))
 
     def add_signal(self,resolution, snapshot_time, position, signal_type, confirmation_price ):
         matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type)]

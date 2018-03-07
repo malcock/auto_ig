@@ -89,6 +89,17 @@ def index():
 
 
     return render_template("home.jade", epic_list = globals()['EPIC_IDS'], account = auto_ig.account, trade = best_markets, start_time = START_TIME, title = platform.python_version())
+@app.route('/signals')
+def show_signals():
+    """outputs signals into a list or something"""
+    signals = auto_ig.get_signals()
+    output = "<ul>"
+    for signal in signals:
+        output += "<li>{} - {}: {}({}) OK:{}, CONFIRM AT:{} UNUSED:{}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused)
+    
+    output += "</ul>"
+
+    return output
 
 
 @app.route('/login', methods = ['GET', 'POST'])

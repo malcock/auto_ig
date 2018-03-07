@@ -131,9 +131,7 @@ class Trade:
             stoploss = float(self.prediction['stoploss'])
 
             # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
-            print(self.opened_time)
             timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
-            print(timeopen)
             # logger.info(timeopen.seconds)
             if timeopen.seconds/60>120:
                 if not self.overtime:
