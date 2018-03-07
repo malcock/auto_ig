@@ -122,7 +122,9 @@ class AutoIG:
             top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
 
             for market in top_markets:
-                market_signals = [x for x in unused_signals if x.epic]
+                logger.info("looking in {}".format(market.epic))
+                market_signals = [x for x in unused_signals if x.epic==market.epic]
+                logger.info("{} signals found for market".format(len(market_signals)))
                 for signal in market_signals:
                     # only try spread on market is tight enough
                     if market.spread<5:
@@ -143,9 +145,9 @@ class AutoIG:
                             logger.info("{} trade already open on this market".format(market.epic))
                             for t in current_trades:
                                 if signal.action == t.prediction['direction_to_trade']:
-                                    logger.info("{} signal reenforced {}".format(market.epic,signal.action))
+                                    t.log_status("{} signal reenforced {}".format(market.epic,signal.action))
                                 else:
-                                    logger.info("{} opposing signal {} found - need to improve this".format(market.epic,signal.action))
+                                    t.log_status("{} opposing signal {} found - need to improve this".format(market.epic,signal.action))
                                     t.assess_close(signal)
                                     signal.unused = False
                     else:

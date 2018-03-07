@@ -276,7 +276,8 @@ class Trade:
         """checks to see whether it's a good idea to use the given signal to close the deal"""
         if self.pip_diff<0.2:
             return
-
+        if self.pip_diff < self.prediction['limit_distance']:
+            return
         self.close_trade()            
 
     def update_from_json(self, json_data):
