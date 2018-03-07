@@ -130,6 +130,16 @@ class Trade:
             # STOP LOSS CHECKING
             stoploss = float(self.prediction['stoploss'])
 
+            # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
+            timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+            # logger.info(timeopen.seconds)
+            if timeopen.seconds/60>120:
+                if not self.overtime:
+                    self.overtime = True
+                    self.prediction['limit_distance'] = float(self.prediction['atr_low'])/2
+                    self.log_status("ORDER OPEN 2 HOURS OVERTIME - HALVING LIMIT")
+            
+
             if float(self.pip_diff) < -stoploss:
                 # price diff has dropped below artifical stop loss! ABORT!
                 self.log_status("TRADE HIT ARTIFICIAL STOPLOSS - ABORTING!")
