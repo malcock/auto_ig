@@ -137,7 +137,7 @@ def logout():
 def get_prices(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
-    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd_histogram \r\n"
+    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd,macd_signal, macd_histogram \r\n"
     for p in prices:
         output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
