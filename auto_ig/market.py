@@ -165,10 +165,10 @@ class Market:
             
             if "MINUTE_5" in self.prices:
                 last_5_min = int(5 * math.floor(float(minNum)/5))
-                timestamp_5 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%Y:%m:%d-%H:{}:00".format(last_5_min))
-                
+                last_5_min = 5
+                timestamp_5 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_5_min))
                 # get all elements from MINUTE list since last 5min mark
-                i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp), None)
+                i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp_5), None)
                 mins = self.prices['MINUTE'][i:]
                 open_price = mins[0]
                 close_price = mins[-1]
