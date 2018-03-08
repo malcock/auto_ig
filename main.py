@@ -133,6 +133,24 @@ def logout():
     flash('You were logged out','info')
     return redirect(url_for('index'))
 
+@app.route('/prices/<epic>/<res>')
+def get_prices(epic,res):
+
+    prices = auto_ig.markets[epic].prices[res]
+    output = "timestamp, low, open, close, high, rsi, ema_8, ema_20 \r\n"
+    for p in prices:
+        output+="{}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
+                                                        p['lowPrice']['bid'],
+                                                        p['openPrice']['bid'],
+                                                        p['closePrice']['bid'],
+                                                        p['highPrice']['bid'],
+                                                        p['rsi'],
+                                                        p['ema_8'],
+                                                        p['ema_20'])
+    
+    return output
+
+
 @app.route('/settings', methods = ['GET', 'POST'])
 def settings_screen():
     """Show the settings screen"""
