@@ -150,6 +150,11 @@ def get_prices(epic,res):
     
     return output
 
+@app.route("/prices/clear")
+def clear_prices():
+    for m in auto_ig.markets:
+        m.prices = {}
+        m.save_prices()
 
 @app.route('/settings', methods = ['GET', 'POST'])
 def settings_screen():
