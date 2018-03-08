@@ -84,8 +84,8 @@ class Market:
             "direction_to_compare" : DIRECTION_TO_COMPARE,
             "atr_low" : low_range,
             "atr_max" : max_range,
-            "stoploss" : min(max_range,20),
-            "limit_distance" : 13,
+            "stoploss" : min(max_range,30),
+            "limit_distance" : 12,
             "support" : support,
             "resistance" : resistance,
             "signal" : {
@@ -165,7 +165,6 @@ class Market:
             
             if "MINUTE_5" in self.prices:
                 last_5_min = int(5 * math.floor(float(minNum)/5))
-                last_5_min = 5
                 timestamp_5 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_5_min))
                 # get all elements from MINUTE list since last 5min mark
                 i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp_5), None)

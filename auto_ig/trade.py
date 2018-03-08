@@ -328,47 +328,50 @@ class Trade:
             open_t = self.opened_time.strftime("%Y:%m:%d-%H:%M:%S")
         except Exception as e:
             open_t = None
+        try:
+            save_object = {
+                "last_saved" : datetime.datetime.now(datetime.timezone.utc).strftime("%Y:%m:%d-%H:%M:%S"),
+                "size_value" : self.size_value,
+                "prediction" : self.prediction,
+                "deal_id" : self.deal_id,
+                "market" : self.market.epic,
+                "state" : self.state,
+                "created_time" : self.created_time.strftime("%Y:%m:%d-%H:%M:%S"),
+                "expiry_time" : self.expiry_time.strftime("%Y:%m:%d-%H:%M:%S"),
+                "opened_time" : open_t,
+                "closed_time" : close_t,
+                "rsi_init" : self.rsi_init,
+                "rsi_max" : self.rsi_max,
+                "rsi_min" : self.rsi_min,
+                "open_level" : self.open_level,
+                "pip_diff" : round(self.pip_diff,2),
+                "pip_max" : self.pip_max,
+                "profit_loss" : round(self.profit_loss,2),
+                "trailing_level":self.trailing_level,
+                "trailing_stop":self.trailing_stop,
+                "status_log" : self.status_log
+            }
+            filename = self.created_time.strftime("%Y-%m-%d-%H-%M-%S") + "---" + self.market.epic + ".json"
+            filepath = "trades/open/" 
+            
+            if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
+                # delete the old open file
+                try:
+                    os.remove(filepath + filename)
+                except OSError:
+                    pass
+                filepath = "trades/closed/"
+                if self.state == TradeState.FAILED:
+                    filepath = "trades/failed/"
 
-        save_object = {
-            "last_saved" : datetime.datetime.now(datetime.timezone.utc).strftime("%Y:%m:%d-%H:%M:%S"),
-            "size_value" : self.size_value,
-            "prediction" : self.prediction,
-            "deal_id" : self.deal_id,
-            "market" : self.market.epic,
-            "state" : self.state,
-            "created_time" : self.created_time.strftime("%Y:%m:%d-%H:%M:%S"),
-            "expiry_time" : self.expiry_time.strftime("%Y:%m:%d-%H:%M:%S"),
-            "opened_time" : open_t,
-            "closed_time" : close_t,
-            "rsi_init" : self.rsi_init,
-            "rsi_max" : self.rsi_max,
-            "rsi_min" : self.rsi_min,
-            "open_level" : self.open_level,
-            "pip_diff" : round(self.pip_diff,2),
-            "pip_max" : self.pip_max,
-            "profit_loss" : round(self.profit_loss,2),
-            "trailing_level":self.trailing_level,
-            "trailing_stop":self.trailing_stop,
-            "status_log" : self.status_log
-        }
-        filename = self.created_time.strftime("%Y-%m-%d-%H-%M-%S") + "---" + self.market.epic + ".json"
-        filepath = "trades/open/" 
-        
-        if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
-            # delete the old open file
-            try:
-                os.remove(filepath + filename)
-            except OSError:
-                pass
-            filepath = "trades/closed/"
-            if self.state == TradeState.FAILED:
-                filepath = "trades/failed/"
+            if not os.path.exists(filepath):
+                os.makedirs(filepath)
 
-        if not os.path.exists(filepath):
-            os.makedirs(filepath)
+            fh = open(filepath + filename,"w")
+            json.dump(save_object,fh)
+            fh.close()
 
-        fh = open(filepath + filename,"w")
-        json.dump(save_object,fh)
-        fh.close()
-
-        self.json_obj = save_object
+            self.json_obj = save_object
+        except Exception as e:
+            logger.info("Couldn't save trade for some reason")
+            logger.info(e)
