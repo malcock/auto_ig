@@ -1,5 +1,5 @@
 import logging
-import os
+import os, sys
 import datetime
 import json
 import math
@@ -146,6 +146,50 @@ class Market:
                 if i==None:
                     self.prices['MINUTE'].append(current_price)
 
+                    if "MINUTE_5" in self.prices:
+                        last_5_min = int(5 * math.floor(float(minNum)/5))
+                        timestamp_5 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_5_min))
+                        # get all elements from MINUTE list since last 5min mark
+                        i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp_5), None)
+                        mins = self.prices['MINUTE'][i:]
+                        open_price = mins[0]['openPrice']
+                        close_price = mins[-1]['closePrice']
+                        vol = sum([x['lastTradedVolume'] for x in mins])
+                        ask_low = min([x['lowPrice']['ask'] for x in mins])
+                        ask_high = max([x['highPrice']['ask'] for x in mins])
+                        bid_low = min([x['lowPrice']['bid'] for x in mins])
+                        bid_high = max([x['highPrice']['bid'] for x in mins])
+                        new_5_min = {
+                            "snapshotTime": timestamp_5, 
+                            "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "lastTraded": None}, 
+                            "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "lastTraded": None }, 
+                            "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "lastTraded": None}, 
+                            "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
+                            "lastTradedVolume": int(vol)}
+
+                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_5), None)
+                        if i==None:
+                            self.prices["MINUTE_5"].append(new_5_min)
+                        else:
+                            self.prices["MINUTE_5"][i] = new_5_min
+
+                        if len(self.prices['MINUTE_5']) > 50:
+                            del self.prices['MINUTE_5'][0]
+
+                        self.calculate_rsi('MINUTE_5')
+
+                        self.exponential_average('MINUTE_5',8)
+                        self.exponential_average('MINUTE_5',20)
+
+                        self.exponential_average('MINUTE',8)
+                        self.exponential_average('MINUTE',20)
+
+                        price_len = len(self.prices['MINUTE_5'])
+                        # only want to analyse the last 30 price points (reduce to 10 later)
+
+                        for p in range(price_len-3,price_len):
+                            self.analyse_candle('MINUTE_5', p)
+
                     self.save_prices()
                     
                 else:
@@ -163,52 +207,13 @@ class Market:
             else:
                 self.prices['MINUTE'] = []
             
-            if "MINUTE_5" in self.prices:
-                last_5_min = int(5 * math.floor(float(minNum)/5))
-                timestamp_5 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_5_min))
-                # get all elements from MINUTE list since last 5min mark
-                i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp_5), None)
-                mins = self.prices['MINUTE'][i:]
-                open_price = mins[0]
-                close_price = mins[-1]
-                vol = sum([x['lastTradedVolume'] for x in mins])
-                ask_low = min([x['lowPrice']['ask'] for x in mins])
-                ask_high = max([x['highPrice']['ask'] for x in mins])
-                bid_low = min([x['lowPrice']['bid'] for x in mins])
-                bid_high = max([x['highPrice']['bid'] for x in mins])
-                new_5_min = {
-                    "snapshotTime": timestamp_5, 
-                    "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "lastTraded": None}, 
-                    "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "lastTraded": None }, 
-                    "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "lastTraded": None}, 
-                    "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
-                    "lastTradedVolume": int(vol)}
-                
-                i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_5), None)
-                if i==None:
-                    self.prices["MINUTE_5"].append(new_5_min)
-                else:
-                    self.prices["MINUTE_5"][i] = new_5_min
-
-                if len(self.prices['MINUTE_5']) > 50:
-                    del self.prices['MINUTE_5'][0]
-
-                self.calculate_rsi('MINUTE_5')
-
-                self.exponential_average('MINUTE_5',8)
-                self.exponential_average('MINUTE_5',20)
-
-                self.exponential_average('MINUTE',8)
-                self.exponential_average('MINUTE',20)
-
-                price_len = len(self.prices['MINUTE_5'])
-                # only want to analyse the last 30 price points (reduce to 10 later)
-
-                for p in range(price_len-3,price_len):
-                    self.analyse_candle('MINUTE_5', p)
+            
 
                 
-        except Exception:
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
             pass
 
         # if signal.update returns False, remove from list
