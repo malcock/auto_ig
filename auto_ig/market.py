@@ -185,7 +185,7 @@ class Market:
                     "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
                     "lastTradedVolume": int(vol)}
                 
-                i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
+                i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_5), None)
                 if i==None:
                     self.prices["MINUTE_5"].append(new_5_min)
                 else:
