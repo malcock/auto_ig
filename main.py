@@ -144,9 +144,9 @@ def get_prices(epic,res):
                                                         p['openPrice']['bid'],
                                                         p['closePrice']['bid'],
                                                         p['highPrice']['bid'],
-                                                        p['rsi'],
-                                                        p['ema_8'],
-                                                        p['ema_20'])
+                                                        p.get('rsi',0),
+                                                        p.get('ema_8',0),
+                                                        p.get('ema_20',0))
     
     return output
 
