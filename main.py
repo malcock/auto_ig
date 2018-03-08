@@ -152,7 +152,7 @@ def get_prices(epic,res):
 
 @app.route('/clear-prices')
 def clear_prices():
-    for m in auto_ig.markets:
+    for m in auto_ig.markets.values():
         m.prices = {}
         m.save_prices()
     
