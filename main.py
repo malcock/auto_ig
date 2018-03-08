@@ -155,6 +155,8 @@ def clear_prices():
     for m in auto_ig.markets:
         m.prices = {}
         m.save_prices()
+    
+    return "Price data cleared"
 
 @app.route('/settings', methods = ['GET', 'POST'])
 def settings_screen():
