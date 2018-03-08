@@ -3,6 +3,7 @@ import os, sys
 import datetime
 import json
 import math
+import operator
 import requests
 import numpy as np
 
@@ -178,11 +179,13 @@ class Market:
 
                         self.calculate_rsi('MINUTE_5')
 
-                        self.exponential_average('MINUTE_5',8)
-                        self.exponential_average('MINUTE_5',20)
+                        self.exponential_average('MINUTE_5',12)
+                        self.exponential_average('MINUTE_5',26)
+                        self.calculate_macd('MINUTE_5')
 
-                        self.exponential_average('MINUTE',8)
-                        self.exponential_average('MINUTE',20)
+                        self.exponential_average('MINUTE',12)
+                        self.exponential_average('MINUTE',26)
+                        self.calculate_macd('MINUTE')
 
                         price_len = len(self.prices['MINUTE_5'])
                         # only want to analyse the last 30 price points (reduce to 10 later)
@@ -299,8 +302,9 @@ class Market:
         # whether we updated prices or not, lets recalculate our rsi and emas
         self.calculate_rsi(resolution)
 
-        self.exponential_average(resolution,8)
-        self.exponential_average(resolution,20)
+        self.exponential_average(resolution,12)
+        self.exponential_average(resolution,26)
+        self.calculate_macd(resolution)
 
         # price_len = len(self.prices[resolution])
         # # only want to analyse the last 30 price points (reduce to 10 later)
@@ -320,13 +324,63 @@ class Market:
         close_price = float(point['closePrice']['bid'])
         point['movement'] = close_price - open_price
 
-        self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
-        self.detect_crossover(resolution,index)
+        # self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
+        # self.detect_crossover(resolution,index)
+        self.detect_macd(resolution,index)
+
+    def detect_macd(self, resolution, index):
+        """Detects a good macd signal based on the following
+            - 10 strong men vs 10 weak men 
+            - preceeding histo 10 lines significantly bigger than the 10 before
+            - average of the strong 10 should be over 1.9
+            """
+        # if index is too high, it aint gonna work, quit now
+        if index<20:
+            return
+
+        now = self.prices[resolution][index]['macd_histogram']
+        prev = self.prices[resolution][index-1]['macd_histogram']
+
+        # figure out of theres a cross over
+        if now > 0 and prev < 0:
+            position = "BUY"
+        elif now < 0 and prev > 0:
+            position = "SELL"
+        else:
+            # no cross over, don't continue - we may want to expand this later for predicting 
+            return
+        
+        is_strong = True
+        # check for 10 strong and 10 weak men
+        strong_men = [abs(x['macd_histogram']) for x in self.prices[resolution][index-10:index]]
+        strongest = max(strong_men)
+        if strongest<2:
+            is_strong = False
+
+        weak_men = [abs(x['macd_histogram']) for x in self.prices[resolution][index-20:index-10]]
+        
+        average_strong = sum(strong_men) / float(len(strong_men))
+        average_weak = sum(weak_men) / float(len(weak_men))
+
+        logger.info("{} {} - strong {} weak {}".format(self.epic,self.prices[resolution][index]['snapshotTime'],average_strong,average_weak))
+
+        if is_strong:
+            # strong signal!
+            if average_strong > average_weak*1.8:
+                self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {}".format(position))
+        else:
+            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {}".format(position))
+
+
+        
+
+        
+        
 
     def detect_crossover(self, resolution, index):
-        """Detect a crossover of the ema_8 and ema_20 data"""
-        now_diff = self.prices[resolution][index]['ema_8'] - self.prices[resolution][index]['ema_20']
-        prev_diff = self.prices[resolution][index-1]['ema_8'] - self.prices[resolution][index-1]['ema_20']
+        """Detect a crossover of the ema_12 and ema_26 data"""
+        now_diff = self.prices[resolution][index]['ema_12'] - self.prices[resolution][index]['ema_26']
+        prev_diff = self.prices[resolution][index-1]['ema_12'] - self.prices[resolution][index-1]['ema_26']
         
         position = None
         if now_diff>0 and prev_diff<0:
@@ -359,7 +413,7 @@ class Market:
         if (body_percent<0.40 and big_shadow>small_shadow*1.25):
             # possible hammer detected, decide initial signal position
             position = "BUY"
-            if point['ema_8'] > point['ema_20']:
+            if point['ema_12'] > point['ema_26']:
                 position = "SELL"
             
             # now check backwards to see if it's part of a trend
@@ -368,7 +422,7 @@ class Market:
             for p in trend_check:
  
                 p_position = "BUY"
-                if p['ema_8'] > p['ema_20']:
+                if p['ema_12'] > p['ema_26']:
                     p_position = "SELL"
                 if position != p_position:
                     trend_ok = False
@@ -384,6 +438,7 @@ class Market:
                 self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",comment,round(confirmation_price,2))
 
     def add_signal(self,resolution, snapshot_time, position, signal_type, comment = "", confirmation_price = None ):
+        """Add a signal to the market"""
         matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type)]
         # remove any previous crossover signals - new one superceeds them
         if signal_type=="CROSSOVER":
@@ -416,6 +471,16 @@ class Market:
             
             total/=len(prices)
         return total
+
+    def calculate_macd(self, resolution):
+        fast = [x['ema_12'] for x in self.prices[resolution]]
+        slow = [x['ema_26'] for x in self.prices[resolution]]
+        macd = list(map(operator.sub,fast,slow))
+        self.exponential_average(resolution,9,macd,"macd_signal")
+        for i in range(0,len(self.prices[resolution])):
+            self.prices[resolution][i]['macd'] = macd[i]
+            self.prices[resolution][i]['macd_histogram'] = self.prices[resolution][i]['macd'] - self.prices[resolution][i]['macd_signal']
+            
 
     def calculate_rsi(self, resolution, n=14):
         """Calculate the RSI"""
@@ -452,16 +517,37 @@ class Market:
 
         return rsi
 
+    def numpy_ewma_vectorized_v2(self, data, window):
 
-    def exponential_average(self, resolution, window):
-        values = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
+        alpha = 2 /(window + 1.0)
+        alpha_rev = 1-alpha
+        n = data.shape[0]
 
-        weights = np.exp(np.linspace(-1.,0.,window))
-        weights /= weights.sum()
+        pows = alpha_rev**(np.arange(n+1))
 
-        a = np.convolve(values, weights) [:len(values)]
-        a[:window]=a[window]
-        name = "ema_{}".format(window)
+        scale_arr = 1/pows[:-1]
+        offset = data[0]*pows[1:]
+        pw0 = alpha*alpha_rev**(n-1)
+
+        mult = data*pw0*scale_arr
+        cumsums = mult.cumsum()
+        out = offset + cumsums*scale_arr[::-1]
+        return out
+
+
+    def exponential_average(self, resolution, window, values= None, name = None):
+        if values is None:
+            values = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
+        else:
+            values = np.asarray(values)
+        a = self.numpy_ewma_vectorized_v2(values,window)
+        # weights = np.exp(np.linspace(1.,0.,window))
+        # weights /= weights.sum()
+
+        # a = np.convolve(values, weights) [:len(values)]
+        # a[:window]=a[window]
+        if name is None:
+            name = "ema_{}".format(window)
         # add the ema data to the saved price data
         for i in range(0,len(values)):
             if i < window:

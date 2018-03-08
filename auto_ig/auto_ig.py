@@ -51,7 +51,7 @@ class AutoIG:
 
     def get_signals(self):
         try:
-            signals = sorted(reduce(operator.concat,[x.signals for x in self.markets.values()]), key=operator.attrgetter('snapshot_time'))
+            signals = sorted(reduce(operator.concat,[x.signals for x in self.markets.values()]), key=operator.attrgetter('snapshot_time'), reverse=True)
         except Exception:
             signals = []
         return signals
@@ -94,7 +94,7 @@ class AutoIG:
                 m.update_prices("MINUTE_5",50)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
                 price_len = len(m.prices["MINUTE_5"])
-                for p in range(price_len-4,price_len):
+                for p in range(price_len,price_len):
                     m.analyse_candle("MINUTE_5", p)    
             if m.get_update_cost("MINUTE",30)>0:
                 m.update_prices("MINUTE",30)
@@ -107,7 +107,7 @@ class AutoIG:
         # lets try to open a trade i guess? change
         
         # create a list of confirmed signals
-        signals = reduce(operator.concat,[x.signals for x in self.markets.values()])
+        signals = self.get_signals()
         confirmed_signals = [x for x in signals if x.confirmed]
         unused_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('score'), reverse=True)
 
@@ -130,8 +130,8 @@ class AutoIG:
                     if market.spread<5:
                         # check if this market already has trades open
                         current_trades = [x for x in self.trades if x.market==market]
-                        if len(current_trades)==0:
-                            # if we've got less than max open, lets try and open one now
+                        if len(current_trades)==0 and signal.score>2:
+                            # if we've got less than max open, lets try and open one now (if it's strong!)
                             if len(self.trades)<self.max_concurrent_trades:
                                 signal.unused = False
                                 logger.info("{} lets try open a position".format(market.epic))
@@ -147,7 +147,7 @@ class AutoIG:
                                 if signal.action == t.prediction['direction_to_trade']:
                                     t.log_status("{} signal reenforced {}".format(market.epic,signal.action))
                                 else:
-                                    t.log_status("{} opposing signal {} found - need to improve this".format(market.epic,signal.action))
+                                    
                                     t.assess_close(signal)
                                     signal.unused = False
                     else:

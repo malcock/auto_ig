@@ -115,11 +115,11 @@ class Trade:
                 self.pip_max = self.pip_diff
 
             
-            self.trailing_level = max(1.1,self.pip_max-4)
+            self.trailing_level = max(1.1,self.pip_max-5)
 
-            if float(self.pip_diff) > float(self.prediction['limit_distance']) and self.trailing_stop==False:
-                self.trailing_stop = True
-                self.log_status("Trailing stop threshold passed at {}".format(self.profit_loss))
+            # if float(self.pip_diff) > float(self.prediction['limit_distance']) and self.trailing_stop==False:
+            #     self.trailing_stop = True
+            #     self.log_status("Trailing stop threshold passed at {}".format(self.profit_loss))
                 
             if self.trailing_stop:
                 if self.pip_diff<self.trailing_level:
@@ -271,6 +271,12 @@ class Trade:
             logger.info(auth_r.status_code)
             logger.info(auth_r.reason)
             logger.info(auth_r.text)
+            # something retarded has happened, but we can't find the deal so consider it closed
+            if "No position found for AccountId" in auth_r.text:
+                self.closed_time = datetime.datetime.now(datetime.timezone.utc)
+                self.state = TradeState.CLOSED
+                self.save_trade()
+            
 
     def assess_close(self,signal):
         """checks to see whether it's a good idea to use the given signal to close the deal"""
@@ -278,6 +284,9 @@ class Trade:
             return
         if self.pip_diff < self.prediction['limit_distance']:
             return
+
+        self.log_status("{} opposing signal {} found - activate trailing stoploss".format(self.market.epic,signal.action))
+        self.trailing_stop = True
         self.close_trade()            
 
     def update_from_json(self, json_data):

@@ -137,17 +137,41 @@ def logout():
 def get_prices(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
-    output = "timestamp, low, open, close, high, rsi, ema_8, ema_20 \r\n"
+    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd_histogram \r\n"
     for p in prices:
-        output+="{}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
+        output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
                                                         p['openPrice']['bid'],
                                                         p['closePrice']['bid'],
                                                         p['highPrice']['bid'],
                                                         p.get('rsi',0),
-                                                        p.get('ema_8',0),
-                                                        p.get('ema_20',0))
+                                                        p.get('ema_12',0),
+                                                        p.get('ema_26',0),
+                                                        p['macd'],
+                                                        p['macd_signal'],
+                                                        p['macd_histogram'])
     
+    return output
+
+@app.route('/prices/<epic>/<res>/table')
+def get_prices_table(epic,res):
+
+    prices = auto_ig.markets[epic].prices[res]
+    output = "<table>"
+    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>ema_12</td> <td>ema_26</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td></tr> \r\n"
+    for p in prices:
+        output+="<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td></tr> \r\n".format(p['snapshotTime'],
+                                                        p['lowPrice']['bid'],
+                                                        p['openPrice']['bid'],
+                                                        p['closePrice']['bid'],
+                                                        p['highPrice']['bid'],
+                                                        p.get('rsi',0),
+                                                        p.get('ema_12',0),
+                                                        p.get('ema_26',0),
+                                                        p['macd'],
+                                                        p['macd_signal'],
+                                                        p['macd_histogram'])
+    output +="</table>"
     return output
 
 @app.route('/clear-prices')

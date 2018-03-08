@@ -46,12 +46,15 @@ class Signal:
         self.comment = comment
 
         self.score = 1 #need to think of how to properly grade different signals - probably upon being confirmed?
-        timeout_multiplier = 3
+        timeout_multiplier = 4
         if self.type == "HAMMER":
             self.score = 0.75
         elif self.type == "CROSSOVER":
             self.score = 1
-            timeout_multiplier=4
+        elif self.type == "MACD_WEAK":
+            self.score = 2
+        elif self.type == "MACD_STRONG":
+            self.score = 4
 
         # work out the exiry time for this signal - depending on type, plus 2mins
         seconds_per_unit = 0
