@@ -374,7 +374,7 @@ class Market:
             confirmation_price = self.bid + 5
             if position=="SHORT":
                 confirmation_price = self.offer - 3
-            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {}".format(position),confirmation_price=confirmation_price)
+            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {} confirms at {}".format(position,confirmation_price),confirmation_price=confirmation_price)
 
 
         
