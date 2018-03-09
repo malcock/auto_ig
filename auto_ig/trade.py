@@ -145,17 +145,18 @@ class Trade:
                 self.log_status("TRADE HIT ARTIFICIAL STOPLOSS - ABORTING!")
                 self.close_trade()
 
-            self.loop_counter+=1
-            if self.loop_counter>10:
-                if self.state == TradeState.OPEN:
-                    base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
-                    auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
-                    if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                        self.status_log("Can't find trade - closed in IG?")
-                        self.state = TradeState.CLOSED
+        
+        self.loop_counter+=1
+        if self.loop_counter>10:
+            if self.state == TradeState.OPEN:
+                base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
+                auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
+                if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                    self.status_log("Can't find trade - closed in IG?")
+                    self.state = TradeState.CLOSED
 
-                self.loop_counter=0
-                self.save_trade()
+            self.loop_counter=0
+            self.save_trade()
         
         return True
 

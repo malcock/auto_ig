@@ -80,7 +80,7 @@ class Signal:
             logger.info("SIGNAL EXPIRED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
             return False
         
-        # only check until it's been confirmed to cpu usage
+        # only check until it's been confirmed to conserve cpu usage
         if self.active:
             prices = market.prices[self.resolution]
             i = next((index for (index, d) in enumerate(prices) if d["snapshotTime"] == self.snapshot_time), None)

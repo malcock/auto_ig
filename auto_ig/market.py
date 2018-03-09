@@ -315,6 +315,8 @@ class Market:
 
         self.save_prices()
 
+        return self.prices[resolution]
+
     # ********* Candlestick detection ************
     def analyse_candle(self, resolution, index):
         point = self.prices[resolution][index]
