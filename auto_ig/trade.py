@@ -80,6 +80,18 @@ class Trade:
 
     def update(self):
         try:
+            self.loop_counter+=1
+            if self.loop_counter>10:
+                if self.state == TradeState.OPEN:
+                    base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
+                    auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
+                    if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                        self.status_log("Can't find trade - closed in IG?")
+                        self.state = TradeState.CLOSED
+
+                self.loop_counter=0
+                self.save_trade()
+                
             if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
                 # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
                 self.log_status("Trade {}".format(TradeState(self.state).name))
@@ -146,17 +158,7 @@ class Trade:
                     self.close_trade()
 
             
-            self.loop_counter+=1
-            if self.loop_counter>10:
-                if self.state == TradeState.OPEN:
-                    base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
-                    auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
-                    if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                        self.status_log("Can't find trade - closed in IG?")
-                        self.state = TradeState.CLOSED
-
-                self.loop_counter=0
-                self.save_trade()
+            
             
             return True
         except Exception as e:
