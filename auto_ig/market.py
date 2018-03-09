@@ -371,7 +371,10 @@ class Market:
             if average_strong > average_weak*1.8:
                 self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {}".format(position))
         else:
-            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {}".format(position))
+            confirmation_price = self.bid + 5
+            if position=="SHORT":
+                confirmation_price = self.offer - 3
+            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {}".format(position),confirmation_price=confirmation_price)
 
 
         

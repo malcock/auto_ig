@@ -53,6 +53,7 @@ class Signal:
             self.score = 1
         elif self.type == "MACD_WEAK":
             self.score = 2
+            self.confirmed = True
         elif self.type == "MACD_STRONG":
             self.score = 4
 
@@ -100,5 +101,11 @@ class Signal:
                 self.active = False
                 # do something to rescore this based on something - like multiple signals being confirmed at once?
 
-     
+        if self.type == "MACD_WEAK":
+            if self.action == "BUY":
+                if self.confirmation_price<market.bid:
+                    self.score = 4
+            else:
+                if self.confirmation_price>market.offer:
+                    self.score = 4
         return True
