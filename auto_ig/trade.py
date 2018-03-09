@@ -1,6 +1,6 @@
 import logging
 import time as systime
-import os
+import os,sys
 import datetime
 import requests
 import json
@@ -79,86 +79,91 @@ class Trade:
         self.save_trade()
 
     def update(self):
-        
-        if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
-            # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
-            self.log_status("Trade {}".format(TradeState(self.state).name))
-            self.save_trade()
-            return False
+        try:
+            if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
+                # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
+                self.log_status("Trade {}".format(TradeState(self.state).name))
+                self.save_trade()
+                return False
 
-        elif self.state == TradeState.WAITING:
-            if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
-                self.log_status("Error occured while waiting for this trade to be accepted")
-                self.state = TradeState.FAILED
+            elif self.state == TradeState.WAITING:
+                if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
+                    self.log_status("Error occured while waiting for this trade to be accepted")
+                    self.state = TradeState.FAILED
 
-            self.open_trade()
+                self.open_trade()
 
-        elif self.state == TradeState.PENDING:
-            if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
-                self.log_status("Error occured while waiting for this trade to be accepted")
-                self.state = TradeState.FAILED
+            elif self.state == TradeState.PENDING:
+                if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
+                    self.log_status("Error occured while waiting for this trade to be accepted")
+                    self.state = TradeState.FAILED
 
-        elif self.state == TradeState.OPEN:
-            
-            if self.prediction['direction_to_trade'] == "SELL":
-                self.pip_diff = float(self.open_level) - float(self.market.offer)
-            else:
-                self.pip_diff = float(self.market.bid) - float(self.open_level)
-
-            self.rsi_max = max(self.rsi_max,self.market.current_rsi)
-            self.rsi_min = min(self.rsi_min,self.market.current_rsi)
-            
-            self.profit_loss = self.size_value * self.pip_diff
-
-            # trade_logger.info("{}:{}".format(self.market.epic,self.profit_loss))
-            if self.pip_diff > self.pip_max:
-                self.pip_max = self.pip_diff
-
-            
-            self.trailing_level = max(1.1,self.pip_max-5)
-
-            # if float(self.pip_diff) > float(self.prediction['limit_distance']) and self.trailing_stop==False:
-            #     self.trailing_stop = True
-            #     self.log_status("Trailing stop threshold passed at {}".format(self.profit_loss))
+            elif self.state == TradeState.OPEN:
                 
-            if self.trailing_stop:
-                if self.pip_diff<self.trailing_level:
-                    self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
+                if self.prediction['direction_to_trade'] == "SELL":
+                    self.pip_diff = float(self.open_level) - float(self.market.offer)
+                else:
+                    self.pip_diff = float(self.market.bid) - float(self.open_level)
+
+                self.rsi_max = max(self.rsi_max,self.market.current_rsi)
+                self.rsi_min = min(self.rsi_min,self.market.current_rsi)
+                
+                self.profit_loss = self.size_value * self.pip_diff
+
+                # trade_logger.info("{}:{}".format(self.market.epic,self.profit_loss))
+                if self.pip_diff > self.pip_max:
+                    self.pip_max = self.pip_diff
+
+                
+                self.trailing_level = max(1.1,self.pip_max-5)
+
+                # if float(self.pip_diff) > float(self.prediction['limit_distance']) and self.trailing_stop==False:
+                #     self.trailing_stop = True
+                #     self.log_status("Trailing stop threshold passed at {}".format(self.profit_loss))
+                    
+                if self.trailing_stop:
+                    if self.pip_diff<self.trailing_level:
+                        self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
+                        self.close_trade()
+
+
+                # STOP LOSS CHECKING
+                stoploss = float(self.prediction['stoploss'])
+
+                # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
+                timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+                # logger.info(timeopen.seconds)
+                if timeopen.seconds/60>120:
+                    if not self.overtime:
+                        self.overtime = True
+                        self.prediction['limit_distance'] = float(self.prediction['atr_low'])/2
+                        self.log_status("ORDER OPEN 2 HOURS OVERTIME - HALVING LIMIT")
+                
+
+                if float(self.pip_diff) < -stoploss:
+                    # price diff has dropped below artifical stop loss! ABORT!
+                    self.log_status("TRADE HIT ARTIFICIAL STOPLOSS - ABORTING!")
                     self.close_trade()
 
-
-            # STOP LOSS CHECKING
-            stoploss = float(self.prediction['stoploss'])
-
-            # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
-            timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
-            # logger.info(timeopen.seconds)
-            if timeopen.seconds/60>120:
-                if not self.overtime:
-                    self.overtime = True
-                    self.prediction['limit_distance'] = float(self.prediction['atr_low'])/2
-                    self.log_status("ORDER OPEN 2 HOURS OVERTIME - HALVING LIMIT")
             
+            self.loop_counter+=1
+            if self.loop_counter>10:
+                if self.state == TradeState.OPEN:
+                    base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
+                    auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
+                    if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                        self.status_log("Can't find trade - closed in IG?")
+                        self.state = TradeState.CLOSED
 
-            if float(self.pip_diff) < -stoploss:
-                # price diff has dropped below artifical stop loss! ABORT!
-                self.log_status("TRADE HIT ARTIFICIAL STOPLOSS - ABORTING!")
-                self.close_trade()
-
-        
-        self.loop_counter+=1
-        if self.loop_counter>10:
-            if self.state == TradeState.OPEN:
-                base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
-                auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
-                if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                    self.status_log("Can't find trade - closed in IG?")
-                    self.state = TradeState.CLOSED
-
-            self.loop_counter=0
-            self.save_trade()
-        
-        return True
+                self.loop_counter=0
+                self.save_trade()
+            
+            return True
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
+            pass
 
 
     def open_trade(self):
