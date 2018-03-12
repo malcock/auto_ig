@@ -144,14 +144,14 @@ def get_prices(epic,res):
                                                         p['openPrice']['bid'],
                                                         p['closePrice']['bid'],
                                                         p['highPrice']['bid'],
-                                                        p.get('rsi',0),
-                                                        p.get('ema_12',0),
-                                                        p.get('ema_26',0),
-                                                        p.get('macd',0),
-                                                        p.get('macd_signal',0),
-                                                        p.get('macd_histogram',0),
-                                                        p.get('high_trail',0),
-                                                        p.get('low_trail',0))
+                                                        p.get('rsi',''),
+                                                        p.get('ema_12',''),
+                                                        p.get('ema_26',''),
+                                                        p.get('macd',''),
+                                                        p.get('macd_signal',''),
+                                                        p.get('macd_histogram',''),
+                                                        p.get('high_trail',''),
+                                                        p.get('low_trail',''))
     
     return output
 
