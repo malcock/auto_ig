@@ -59,6 +59,7 @@ class Trade:
             self.trailing_level = 0
             self.trailing_stop = False
             self.stop_distance = 150
+            self.bad_intervals = 0 #if this reaches x, close the trade 
             
             self.state = TradeState.WAITING
             
@@ -77,6 +78,48 @@ class Trade:
         logger.info("{}: {}: '{}'".format(self.market.epic, datetime.datetime.now(datetime.timezone.utc).strftime("%Y:%m:%d-%H:%M:%S"),message))
         self.status_log.append({"timestamp":datetime.datetime.now(datetime.timezone.utc).strftime("%Y:%m:%d-%H:%M:%S"), "message":message})
         self.save_trade()
+    
+    def update_interval(self, resolution):
+        """Run every *resolution* to check on what's going on to check for trades that are going south"""
+        last_interval = self.market.prices[resolution][-2]
+        prev_interval = self.market.prices[resolution][-3]
+
+        self.rsi_max = max(self.rsi_max,prev_interval['rsi'])
+        self.rsi_min = min(self.rsi_min,prev_interval['rsi'])
+
+        if self.pip_diff < 0:
+            # negative, monitor for declining conditions
+
+            if self.prediction['direction_to_trade'] == "SELL":
+                price_diff = prev_interval['ema_12'] - last_interval['ema_12']
+                
+            else:
+                price_diff = last_interval['ema_12'] - prev_interval['ema_12']
+                
+
+            if price_diff>0:
+                return
+            
+            # check if the price has dropped, despite market momentum against it
+            if self.prediction['direction_to_trade'] == "BUY" and last_interval['macd_histogram'] > 0:
+                self.bad_intervals+=1
+
+            if self.prediction['direction_to_trade'] == "SELL" and last_interval['macd_histogram'] < 0:
+                self.bad_intervals+=1
+
+            
+                
+            # check against macd histo
+            
+        else:
+            # positive - monitor for maxed RSI exit points
+            pass
+
+
+        
+
+
+        
 
     def update(self):
         try:
@@ -303,9 +346,10 @@ class Trade:
         # if self.pip_diff < self.prediction['limit_distance']:
         #     return
 
-        self.log_status("{} opposing signal {} found - activate trailing stoploss".format(self.market.epic,signal.action))
+        self.log_status("{} opposing signal {} found - activate trailing stoploss. Old max {}".format(self.market.epic,signal.action, self.pip_max))
+        self.pip_max = self.pip_diff
         self.trailing_stop = True
-   
+    
 
     def update_from_json(self, json_data):
         try:
