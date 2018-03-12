@@ -305,7 +305,7 @@ class Trade:
 
         self.log_status("{} opposing signal {} found - activate trailing stoploss".format(self.market.epic,signal.action))
         self.trailing_stop = True
-        self.close_trade()            
+   
 
     def update_from_json(self, json_data):
         try:
