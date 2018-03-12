@@ -178,16 +178,16 @@ class Market:
                             del self.prices['MINUTE_5'][0]
 
                         self.calculate_rsi('MINUTE_5')
+                        
 
-                        self.exponential_average('MINUTE_5',12)
-                        self.exponential_average('MINUTE_5',26)
                         self.calculate_macd('MINUTE_5')
+                        self.calculate_trailing('MINUTE_5')
+                        self.calculate_trailing('MINUTE')
 
-                        self.exponential_average('MINUTE',12)
-                        self.exponential_average('MINUTE',26)
                         self.calculate_macd('MINUTE')
 
                         price_len = len(self.prices['MINUTE_5'])
+                        self.calculate_trailing('MINUTE_5')
                         # only want to analyse the last 30 price points (reduce to 10 later)
 
                         for p in range(price_len-3,price_len):
@@ -202,6 +202,7 @@ class Market:
                     del self.prices['MINUTE'][0]
                     
                 self.calculate_rsi('MINUTE')
+                
 
                 self.current_rsi = float(self.prices['MINUTE'][-1]["rsi"])
 
@@ -301,10 +302,10 @@ class Market:
 
         # whether we updated prices or not, lets recalculate our rsi and emas
         self.calculate_rsi(resolution)
-
-        self.exponential_average(resolution,12)
-        self.exponential_average(resolution,26)
+        
         self.calculate_macd(resolution)
+
+        self.calculate_trailing(resolution)
 
         # price_len = len(self.prices[resolution])
         # # only want to analyse the last 30 price points (reduce to 10 later)
@@ -328,7 +329,47 @@ class Market:
 
         # self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
         # self.detect_crossover(resolution,index)
-        self.detect_macd(resolution,index)
+        self.detect_macd_2(resolution,index)
+
+    def detect_macd_2(self, resolution, index):
+        """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
+        if index<20:
+            return
+        
+
+        now = self.prices[resolution][index]['macd_histogram']
+        prev = self.prices[resolution][index-1]['macd_histogram']
+
+        # figure out of theres a cross over
+        if now > 0 and prev < 0:
+            position = "BUY"
+        elif now < 0 and prev > 0:
+            position = "SELL"
+        else:
+            # no cross over, don't continue - we may want to expand this later for predicting 
+            return
+
+        is_strong = False
+        last_rsi = [x['rsi'] for x in self.prices[resolution][index-6:index]]
+        if position == "BUY":
+            prev_rsi = min(last_rsi)
+
+            if 28 < prev_rsi < 40:
+                is_strong = True
+
+        else:
+            prev_rsi = max(last_rsi)
+
+            if 59 < prev_rsi < 72:
+                is_strong = True
+
+        
+        if is_strong:
+            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {} RSI {}".format(position, prev_rsi))
+        else:
+            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {} RSI {}".format(position,prev_rsi))
+
+
 
     def detect_macd(self, resolution, index):
         """Detects a good macd signal based on the following
@@ -478,6 +519,8 @@ class Market:
         return total
 
     def calculate_macd(self, resolution):
+        self.exponential_average(resolution,12)
+        self.exponential_average(resolution,26)
         fast = [x['ema_12'] for x in self.prices[resolution]]
         slow = [x['ema_26'] for x in self.prices[resolution]]
         macd = list(map(operator.sub,fast,slow))
@@ -486,6 +529,69 @@ class Market:
             self.prices[resolution][i]['macd'] = macd[i]
             self.prices[resolution][i]['macd_histogram'] = self.prices[resolution][i]['macd'] - self.prices[resolution][i]['macd_signal']
             
+    def calculate_trailing(self, resolution):
+        # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
+        # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
+        price_len = len(self.prices[resolution])
+
+        high_data = list(self.get_ordered_prices("highPrice","ask",[resolution]))
+        low_data = list(self.get_ordered_prices("lowPrice","bid",[resolution]))
+
+        high_data_compile = []
+        low_data_compile = []
+
+        for p in range(0,len(high_data[0])):
+
+            high_data_compile.append([high_data[0][p], high_data[1][p]])
+            low_data_compile.append([low_data[0][p], low_data[1][p]])
+
+        
+        for i in range(price_len-1,price_len):
+            
+            high_data_seg = high_data_compile[i-45:i-5]
+            low_data_seg = low_data_compile[i-45:i-5]
+            
+            
+            highs = []
+            lows = []
+            for chunk in list(self.chunks(high_data_seg,8)):
+                # print(chunk)
+                h = max(chunk, key=lambda x:x[1][0])
+                highs.append(h)
+            
+            for chunk in list(self.chunks(low_data_seg,8)):
+                # print(chunk)
+                l = min(chunk,key=lambda x:x[1][0])
+                lows.append(l)
+
+            # print("highs: {} {}".format(i, highs))
+            # print("lows: {} {}".format(i, lows))
+            h_x = [x[0] for x in highs]
+            h_y = [y[1][0] for y in highs]
+            l_x = [x[0] for x in lows]
+            l_y = [y[1][0] for y in lows]
+
+
+            h_p, h_m, h_c = self.perform_regression(h_x,h_y)
+            l_p, l_m, l_c = self.perform_regression(l_x,l_y)
+
+            if h_m>0:
+                h_p = min(h_y)
+                
+                
+            if l_m<0:
+                l_p = max(l_y)
+                
+
+            self.prices[resolution][i]["high_trail"] = h_p
+            self.prices[resolution][i]["low_trail"] = l_p
+
+        pass
+
+    def chunks(self, l, n):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield l[i:i + n]
 
     def calculate_rsi(self, resolution, n=14):
         """Calculate the RSI"""
@@ -563,6 +669,57 @@ class Market:
                 # always add after the window
                 self.prices[resolution][i][name] = a[i]
         return a
+
+    def perform_regression(self, x, y,mins=5):
+        epoch = datetime.datetime.strptime("2010-01-01","%Y-%m-%d")
+        x = np.asarray(x)
+        y = np.asarray(y)
+
+        # yExp = self.ExpMovingAverage(y,20)
+        A = np.vstack([x, np.ones(len(x))]).T
+
+        # print(yExp)
+        reg_data = np.linalg.lstsq(A, y)
+        m, c = reg_data[0]
+        model, resid = reg_data[:2]
+
+        r2 = 1 - resid / (y.size * y.var())
+
+        future_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=mins)
+
+        prediction_point = future_time - epoch.replace(tzinfo=datetime.timezone.utc)
+
+
+        prediction = (m * prediction_point.total_seconds()) + c
+
+
+        return prediction, m, c
+
+    def get_ordered_prices(self, group="closePrice", price = "bid", resolutions=None):
+        price_data = {} # will be {time_int:price} - repeated units will be overwritten
+        if resolutions==None:
+            resolutions = "DAY, HOUR_4, HOUR_3, HOUR_2, HOUR, MINUTE_30, MINUTE_15, MINUTE_10, MINUTE_5, MINUTE_3, MINUTE_2, MINUTE".split(", ")
+        
+        epoch = datetime.datetime.strptime("2010-01-01","%Y-%m-%d")
+        for res in resolutions:
+            for p in self.prices[res]:
+                
+                timestamp = datetime.datetime.strptime(p['snapshotTime'], "%Y:%m:%d-%H:%M:%S")
+                diff = timestamp - epoch
+                time_int = int(diff.total_seconds())
+                price_data[time_int] = [float(p[group][price]),float(p['lastTradedVolume']),timestamp]
+                # price_data[time_int] = float(p['closePrice']['bid'])
+
+        x = []
+        y = []
+        # make sure the prices are in the right order and push into x y
+        for key in sorted(price_data):
+            x.append(key)
+            y.append(price_data[key])
+        
+        
+
+        return x, y
 
     def humanize_time(self, secs):
         mins, secs = divmod(secs, 60)

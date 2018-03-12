@@ -119,6 +119,11 @@ class Trade:
                 
                 self.trailing_level = max(1.1,self.pip_max-5)
 
+                # if self.prediction['direction_to_trade']=="SELL":
+                #     self.trailing_level =self.market.prices["MINUTE_5"][-1]['high_trail']
+                # else:
+                #     self.trailing_level =self.market.prices["MINUTE_5"][-1]['low_trail']
+
                 # if float(self.pip_diff) > float(self.prediction['limit_distance']) and self.trailing_stop==False:
                 #     self.trailing_stop = True
                 #     self.log_status("Trailing stop threshold passed at {}".format(self.profit_loss))
@@ -289,10 +294,10 @@ class Trade:
 
     def assess_close(self,signal):
         """checks to see whether it's a good idea to use the given signal to close the deal"""
-        if self.pip_diff<0.2:
-            return
-        if self.pip_diff < self.prediction['limit_distance']:
-            return
+        # if self.pip_diff<0.2:
+        #     return
+        # if self.pip_diff < self.prediction['limit_distance']:
+        #     return
 
         self.log_status("{} opposing signal {} found - activate trailing stoploss".format(self.market.epic,signal.action))
         self.trailing_stop = True

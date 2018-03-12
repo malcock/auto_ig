@@ -58,6 +58,7 @@ class AutoIG:
 
     def process(self,epic_ids):
         """Do the process"""
+        timenow = datetime.datetime.now(datetime.timezone.utc)
         
         self.update_markets(epic_ids)
 
@@ -96,8 +97,10 @@ class AutoIG:
                 price_len = len(m.prices["MINUTE_5"])
                 for p in range(price_len,price_len):
                     m.analyse_candle("MINUTE_5", p)    
-            if m.get_update_cost("MINUTE",30)>0:
-                m.update_prices("MINUTE",30)
+            if m.get_update_cost("MINUTE",50)>0:
+                m.update_prices("MINUTE",50)
+
+
             
             
         
@@ -133,6 +136,18 @@ class AutoIG:
                         if len(current_trades)==0 and signal.score>2:
                             # if we've got less than max open, lets try and open one now (if it's strong!)
                             if len(self.trades)<self.max_concurrent_trades:
+                                
+                                # do some time checks before opening new trades
+                                if timenow.weekday() > 4:
+                                    return False, "We don't play on weekends"
+
+                                if timenow.weekday() == 0 and timenow.hour < 2:
+                                    return False, "Waiting for market to stabilise after weekend"
+
+                                if timenow.weekday() == 4 and timenow.hour > 19:
+                                    return False, "Too late to open new trades on a Friday"
+                                
+
                                 signal.unused = False
                                 logger.info("{} lets try open a position".format(market.epic))
                                 prediction = market.make_prediction(signal)

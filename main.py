@@ -38,7 +38,7 @@ settings = {"username":"admin","password":"admin", "api_live":False,
 EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP","CS.D.EURUSD.TODAY.IP","CS.D.USDJPY.TODAY.IP","CS.D.GBPAUD.TODAY.IP","CS.D.EURCAD.TODAY.IP"
             "CS.D.AUDUSD.TODAY.IP","CS.D.EURGBP.TODAY.IP","CS.D.EURJPY.TODAY.IP","CS.D.GBPJPY.TODAY.IP","CS.D.CHFJPY.TODAY.IP"
             "CS.D.USDCAD.TODAY.IP", "CS.D.USDCHF.TODAY.IP","CS.D.EURCHF.TODAY.IP" ]
-# EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP"]
+# EPIC_IDS = ["CS.D.BITCOIN.TODAY.IP"]
 START_TIME = datetime.datetime.now(datetime.timezone.utc)
 LAST_TRADE = START_TIME
 
@@ -137,9 +137,9 @@ def logout():
 def get_prices(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
-    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd,macd_signal, macd_histogram \r\n"
+    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd,macd_signal, macd_histogram, high_trail, low_trail \r\n"
     for p in prices:
-        output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
+        output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
                                                         p['openPrice']['bid'],
                                                         p['closePrice']['bid'],
@@ -147,9 +147,11 @@ def get_prices(epic,res):
                                                         p.get('rsi',0),
                                                         p.get('ema_12',0),
                                                         p.get('ema_26',0),
-                                                        p['macd'],
-                                                        p['macd_signal'],
-                                                        p['macd_histogram'])
+                                                        p.get('macd',0),
+                                                        p.get('macd_signal',0),
+                                                        p.get('macd_histogram',0),
+                                                        p.get('high_trail',0),
+                                                        p.get('low_trail',0))
     
     return output
 
@@ -158,9 +160,9 @@ def get_prices_table(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
     output = "<table>"
-    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>ema_12</td> <td>ema_26</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td></tr> \r\n"
+    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>ema_12</td> <td>ema_26</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td><td>high_trail</td><td>low_trail</td></tr> \r\n"
     for p in prices:
-        output+="<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td></tr> \r\n".format(p['snapshotTime'],
+        output+="<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td></tr> \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
                                                         p['openPrice']['bid'],
                                                         p['closePrice']['bid'],
@@ -168,9 +170,11 @@ def get_prices_table(epic,res):
                                                         p.get('rsi',0),
                                                         p.get('ema_12',0),
                                                         p.get('ema_26',0),
-                                                        p['macd'],
-                                                        p['macd_signal'],
-                                                        p['macd_histogram'])
+                                                        p.get('macd',0),
+                                                        p.get('macd_signal',0),
+                                                        p.get('macd_histogram',0),
+                                                        p.get('high_trail',0),
+                                                        p.get('low_trail',0))
     output +="</table>"
     return output
 
