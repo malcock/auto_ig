@@ -756,10 +756,14 @@ class Market:
         if os.path.exists("markets/prices/"):
             filepath = "markets/prices/" + self.epic + ".json"
             if os.path.isfile(filepath):
-                fh = open(filepath,'r')
-                data = json.load(fh)
-                logger.info("found old data, loading")
-                self.prices = data['prices'].copy()
+                try:
+                    fh = open(filepath,'r')
+                    data = json.load(fh)
+                    logger.info("found old data, loading")
+                    self.prices = data['prices'].copy()
+                except Exception as e:
+                    logger.info("{} couldn't load JSON {}".format(self.epic,e))
+                    self.prices = {}
 
     def save_prices(self):
         save = {
