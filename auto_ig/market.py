@@ -85,7 +85,7 @@ class Market:
             "direction_to_compare" : DIRECTION_TO_COMPARE,
             "atr_low" : low_range,
             "atr_max" : max_range,
-            "stoploss" : min(max_range,30),
+            "stoploss" : min(max_range,20),
             "limit_distance" : 12,
             "support" : support,
             "resistance" : resistance,

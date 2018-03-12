@@ -80,7 +80,8 @@ class Trade:
 
     def update(self):
         try:
-            
+            if self.prediction['stoploss']>20:
+                self.prediction['stoploss'] = 20
 
             if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
                 # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
@@ -294,8 +295,8 @@ class Trade:
 
     def assess_close(self,signal):
         """checks to see whether it's a good idea to use the given signal to close the deal"""
-        # if self.pip_diff<0.2:
-        #     return
+        if self.pip_diff<0.2:
+            return
         # if self.pip_diff < self.prediction['limit_distance']:
         #     return
 

@@ -133,7 +133,7 @@ class AutoIG:
                     if market.spread<5:
                         # check if this market already has trades open
                         current_trades = [x for x in self.trades if x.market==market]
-                        if len(current_trades)==0 and signal.score>2:
+                        if len(current_trades)==0 and signal.score>3:
                             # if we've got less than max open, lets try and open one now (if it's strong!)
                             if len(self.trades)<self.max_concurrent_trades:
                                 
