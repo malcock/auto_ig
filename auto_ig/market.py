@@ -549,18 +549,18 @@ class Market:
         
         for i in range(price_len-1,price_len):
             
-            high_data_seg = high_data_compile[i-45:i-5]
-            low_data_seg = low_data_compile[i-45:i-5]
+            high_data_seg = high_data_compile[i-25:i]
+            low_data_seg = low_data_compile[i-25:i]
             
             
             highs = []
             lows = []
-            for chunk in list(self.chunks(high_data_seg,8)):
+            for chunk in list(self.chunks(high_data_seg,5)):
                 # print(chunk)
                 h = max(chunk, key=lambda x:x[1][0])
                 highs.append(h)
             
-            for chunk in list(self.chunks(low_data_seg,8)):
+            for chunk in list(self.chunks(low_data_seg,5)):
                 # print(chunk)
                 l = min(chunk,key=lambda x:x[1][0])
                 lows.append(l)
