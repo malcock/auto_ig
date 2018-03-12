@@ -363,6 +363,7 @@ class Market:
             if 59 < prev_rsi < 72:
                 is_strong = True
 
+        # need another check here too of the previous strength of the movement to see if this is a small correction
         
         if is_strong:
             self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {} RSI {}".format(position, prev_rsi))

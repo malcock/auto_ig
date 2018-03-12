@@ -118,7 +118,7 @@ class Trade:
                     self.pip_max = self.pip_diff
 
                 
-                self.trailing_level = max(1.1,self.pip_max-5)
+                
 
                 # if self.prediction['direction_to_trade']=="SELL":
                 #     self.trailing_level =self.market.prices["MINUTE_5"][-1]['high_trail']
@@ -130,9 +130,12 @@ class Trade:
                 #     self.log_status("Trailing stop threshold passed at {}".format(self.profit_loss))
                     
                 if self.trailing_stop:
+                    self.trailing_level = max(1.1,self.pip_max-5)
                     if self.pip_diff<self.trailing_level:
                         self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
                         self.close_trade()
+                else:
+                    self.trailing_level = 1.1
 
 
                 # STOP LOSS CHECKING
