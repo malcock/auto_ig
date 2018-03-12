@@ -577,11 +577,11 @@ class Market:
             l_p, l_m, l_c = self.perform_regression(l_x,l_y)
 
             if h_m>0:
-                h_p = min(h_y)
+                h_p = max(h_y)
                 
                 
             if l_m<0:
-                l_p = max(l_y)
+                l_p = min(l_y)
                 
 
             self.prices[resolution][i]["high_trail"] = h_p
