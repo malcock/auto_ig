@@ -171,6 +171,9 @@ class Market:
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
                             self.prices["MINUTE_5"].append(new_5_min)
+                            trades = [x for x in self.ig.trades if x.market.epic == self.epic]
+                            for t in trades:
+                                t.update_interval("MINUTE_5")
                         else:
                             self.prices["MINUTE_5"][i] = new_5_min
 
@@ -369,57 +372,7 @@ class Market:
             self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {} RSI {}".format(position, prev_rsi))
         else:
             self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {} RSI {}".format(position,prev_rsi))
-
-
-
-    def detect_macd(self, resolution, index):
-        """Detects a good macd signal based on the following
-            - 10 strong men vs 10 weak men 
-            - preceeding histo 10 lines significantly bigger than the 10 before
-            - average of the strong 10 should be over 1.9
-            """
-        # if index is too high, it aint gonna work, quit now
-        if index<20:
-            return
-
-        now = self.prices[resolution][index]['macd_histogram']
-        prev = self.prices[resolution][index-1]['macd_histogram']
-
-        # figure out of theres a cross over
-        if now > 0 and prev < 0:
-            position = "BUY"
-        elif now < 0 and prev > 0:
-            position = "SELL"
-        else:
-            # no cross over, don't continue - we may want to expand this later for predicting 
-            return
-        
-        is_strong = True
-        # check for 10 strong and 10 weak men
-        strong_men = [abs(x['macd_histogram']) for x in self.prices[resolution][index-10:index]]
-        strongest = max(strong_men)
-        if strongest<2:
-            is_strong = False
-
-        weak_men = [abs(x['macd_histogram']) for x in self.prices[resolution][index-20:index-10]]
-        
-        average_strong = sum(strong_men) / float(len(strong_men))
-        average_weak = sum(weak_men) / float(len(weak_men))
-
-        logger.info("{} {} - strong {} weak {}".format(self.epic,self.prices[resolution][index]['snapshotTime'],average_strong,average_weak))
-
-        if is_strong:
-            # strong signal!
-            if average_strong > average_weak*1.8:
-                self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {}".format(position))
-        else:
-            confirmation_price = self.offer + 5
-            if position=="SHORT":
-                confirmation_price = self.bid + 3
-            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {} confirms at {}".format(position,confirmation_price),round(confirmation_price,2))
-
-
-        
+     
 
         
         

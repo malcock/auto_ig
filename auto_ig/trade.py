@@ -38,6 +38,8 @@ class Trade:
         self.market = market
         self.prediction = prediction.copy()
         self.overtime = False
+        self.pip_rate = 0
+        self.bad_intervals = 0 #if this reaches x, close the trade 
         if json_data is None:
             self.status_log = []
             
@@ -59,7 +61,7 @@ class Trade:
             self.trailing_level = 0
             self.trailing_stop = False
             self.stop_distance = 150
-            self.bad_intervals = 0 #if this reaches x, close the trade 
+            
             
             self.state = TradeState.WAITING
             
@@ -103,9 +105,11 @@ class Trade:
             # check if the price has dropped, despite market momentum against it
             if self.prediction['direction_to_trade'] == "BUY" and last_interval['macd_histogram'] > 0:
                 self.bad_intervals+=1
+                self.log_status("price falling despite positive pressure at {}".format(last_interval['snapshotTime']))
 
             if self.prediction['direction_to_trade'] == "SELL" and last_interval['macd_histogram'] < 0:
                 self.bad_intervals+=1
+                self.log_status("price rising despite negative pressure at {}".format(last_interval['snapshotTime']))
 
             
                 
@@ -145,11 +149,15 @@ class Trade:
                     self.state = TradeState.FAILED
 
             elif self.state == TradeState.OPEN:
-                
+                timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+
+
                 if self.prediction['direction_to_trade'] == "SELL":
                     self.pip_diff = float(self.open_level) - float(self.market.offer)
                 else:
                     self.pip_diff = float(self.market.bid) - float(self.open_level)
+
+                self.pip_rate = self.pip_diff / (timeopen.seconds/60)
 
                 self.rsi_max = max(self.rsi_max,self.market.current_rsi)
                 self.rsi_min = min(self.rsi_min,self.market.current_rsi)
@@ -174,7 +182,7 @@ class Trade:
                     
                 if self.trailing_stop:
                     self.trailing_level = max(1.1,self.pip_max-5)
-                    if self.pip_diff<self.trailing_level:
+                    if 0 < self.pip_diff < self.trailing_level:
                         self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
                         self.close_trade()
                 else:
@@ -185,13 +193,13 @@ class Trade:
                 stoploss = float(self.prediction['stoploss'])
 
                 # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
-                timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+                
                 # logger.info(timeopen.seconds)
                 if timeopen.seconds/60>120:
-                    if not self.overtime:
+                    if not self.overtime and self.pip_diff < 0:
                         self.overtime = True
-                        self.prediction['limit_distance'] = float(self.prediction['atr_low'])/2
-                        self.log_status("ORDER OPEN 2 HOURS OVERTIME - HALVING LIMIT")
+                        self.trailing_stop = True
+                        self.log_status("ORDER OPEN 2 HOURS OVERTIME - TAKING NEXT PROFIT")
                 
 
                 if float(self.pip_diff) < -stoploss:
@@ -376,6 +384,8 @@ class Trade:
 
         self.opened_time = open_t
         self.closed_time = close_t
+        self.bad_intervals = json_data.get('bad_intervals',0)
+        self.pip_rate = json_data.get('pip_rate',0)
         
         self.rsi_init = json_data['rsi_init']
         self.rsi_max = json_data['rsi_max']
@@ -414,6 +424,8 @@ class Trade:
                 "rsi_init" : self.rsi_init,
                 "rsi_max" : self.rsi_max,
                 "rsi_min" : self.rsi_min,
+                "bad_intervals" : self.bad_intervals,
+                "pip_rate": self.pip_rate,
                 "open_level" : self.open_level,
                 "pip_diff" : round(self.pip_diff,2),
                 "pip_max" : self.pip_max,
