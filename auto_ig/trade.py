@@ -165,7 +165,7 @@ class Trade:
                 if self.prediction['direction_to_trade'] == "SELL":
                     self.pip_diff = float(self.open_level) - float(self.market.offer)
 
-                    trail = self.market.prices['MINUTE_5'][-1]['high_trail'] - last_minute['closePrice']['ask']
+                    trail = float(self.open_level) - self.market.prices['MINUTE_5'][-1]['high_trail']
 
                     if last_minute['closePrice']['ask'] < self.best_minute['closePrice']['ask']:
                         if last_minute['rsi'] > self.best_minute['rsi'] and self.trailing_stop==False:
@@ -177,7 +177,7 @@ class Trade:
                 else:
                     self.pip_diff = float(self.market.bid) - float(self.open_level)
 
-                    trail = last_minute['closePrice']['bid'] - self.market.prices['MINUTE_5'][-1]['low_trail']
+                    trail = self.market.prices['MINUTE_5'][-1]['low_trail'] - float(self.open_level)
 
                     if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid'] and self.trailing_stop==False:
                         if last_minute['rsi'] < self.best_minute['rsi']:
@@ -203,7 +203,7 @@ class Trade:
                     self.pip_max = self.pip_diff
 
                 self.trailing_level = min(self.pip_max-5,trail)
-                self.trailing_level = max(1.1,self.trailing_level)
+                //self.trailing_level = max(1.1,self.trailing_level)
 
                 if self.trailing_stop:
 
