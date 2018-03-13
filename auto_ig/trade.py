@@ -127,8 +127,8 @@ class Trade:
 
     def update(self):
         try:
-            if self.prediction['stoploss']>20:
-                self.prediction['stoploss'] = 20
+            if self.prediction['stoploss']>10:
+                self.prediction['stoploss'] = 10
 
             if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
                 # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
