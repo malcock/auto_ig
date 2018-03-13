@@ -39,7 +39,10 @@ class Trade:
         self.prediction = prediction.copy()
         self.overtime = False
         self.pip_rate = 0
-        self.bad_intervals = 0 #if this reaches x, close the trade 
+        self.bad_intervals = 0 #if this reaches x, close the trade
+        self.best_minute = None
+            
+
         if json_data is None:
             self.status_log = []
             
@@ -127,8 +130,10 @@ class Trade:
 
     def update(self):
         try:
-            if self.prediction['stoploss']>10:
-                self.prediction['stoploss'] = 10
+
+
+            if self.prediction['stoploss']>15:
+                self.prediction['stoploss'] = 15
 
             if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
                 # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
@@ -150,14 +155,43 @@ class Trade:
 
             elif self.state == TradeState.OPEN:
                 timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+                # store the last full minute
+                last_minute =  self.market.prices['MINUTE'][-2]
+                if self.best_minute is None:
+                    self.best_minute = last_minute.copy()
 
-
+                trail = 0
+                # calculate pip diff based on trade direction and check our best minute
                 if self.prediction['direction_to_trade'] == "SELL":
                     self.pip_diff = float(self.open_level) - float(self.market.offer)
+
+                    trail = self.market.prices['MINUTE_5'][-1]['high_trail'] - last_minute['closePrice']['ask']
+
+                    if last_minute['closePrice']['ask'] < self.best_minute['closePrice']['ask']:
+                        if last_minute['rsi'] > self.best_minute['rsi']:
+                            self.log_status("Lower price without lower RSI - triggering trailing stop")
+                            self.trailing_stop = True
+                        else:
+                            self.best_minute = last_minute.copy()
+                        
                 else:
                     self.pip_diff = float(self.market.bid) - float(self.open_level)
 
+                    trail = last_minute['closePrice']['bid'] - self.market.prices['MINUTE_5'][-1]['low_trail']
+
+                    if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid']:
+                        if last_minute['rsi'] < self.best_minute['rsi']:
+                            self.log_status("Higher price without higher RSI - triggering trailing stop")
+                            self.trailing_stop = True
+                        else:
+                            self.best_minute = last_minute.copy()
+
+                
+
                 self.pip_rate = self.pip_diff / (timeopen.seconds/60)
+
+                if self.pip_rate < -1 and timeopen.seconds/60 > 5:
+                    self.log_status("SHIT PIPS FALLING LIKE KNIVES")
 
                 self.rsi_max = max(self.rsi_max,self.market.current_rsi)
                 self.rsi_min = min(self.rsi_min,self.market.current_rsi)
@@ -168,20 +202,12 @@ class Trade:
                 if self.pip_diff > self.pip_max:
                     self.pip_max = self.pip_diff
 
-                
-                
+                self.trailing_level = min(self.pip_max-5,trail)
+                self.trailing_level = max(1.1,self.trailing_level)
 
-                # if self.prediction['direction_to_trade']=="SELL":
-                #     self.trailing_level =self.market.prices["MINUTE_5"][-1]['high_trail']
-                # else:
-                #     self.trailing_level =self.market.prices["MINUTE_5"][-1]['low_trail']
-
-                # if float(self.pip_diff) > float(self.prediction['limit_distance']) and self.trailing_stop==False:
-                #     self.trailing_stop = True
-                #     self.log_status("Trailing stop threshold passed at {}".format(self.profit_loss))
-                    
                 if self.trailing_stop:
-                    self.trailing_level = max(1.1,self.pip_max-5)
+
+                    
                     if 0 < self.pip_diff < self.trailing_level:
                         self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
                         self.close_trade()
@@ -349,14 +375,21 @@ class Trade:
 
     def assess_close(self,signal):
         """checks to see whether it's a good idea to use the given signal to close the deal"""
-        if self.pip_diff<0.2:
-            return
-        # if self.pip_diff < self.prediction['limit_distance']:
-        #     return
+        if self.opened_time is not None:
+            timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+            if timeopen.seconds/60 < 10:
+                self.log_status("SHIT MARKET'S CHANGED MIND!?")
+                self.close_trade()
 
-        self.log_status("{} opposing signal {} found - activate trailing stoploss. Old max {}".format(self.market.epic,signal.action, self.pip_max))
-        self.pip_max = self.pip_diff
-        self.trailing_stop = True
+            if self.pip_diff<0.2:
+                self.log_status("{} opposing signal {} found - but not in profit. max{}".format(self.market.epic,signal.action, self.pip_max))
+                return
+            # if self.pip_diff < self.prediction['limit_distance']:
+            #     return
+
+            self.log_status("{} opposing signal {} found - activate trailing stoploss. Old max {}".format(self.market.epic,signal.action, self.pip_max))
+            self.pip_max = self.pip_diff
+            self.trailing_stop = True
     
 
     def update_from_json(self, json_data):
@@ -387,6 +420,9 @@ class Trade:
         self.bad_intervals = json_data.get('bad_intervals',0)
         self.pip_rate = json_data.get('pip_rate',0)
         
+
+        self.best_minute = json_data.get('best_minute',None)
+
         self.rsi_init = json_data['rsi_init']
         self.rsi_max = json_data['rsi_max']
         self.rsi_min = json_data['rsi_min']
@@ -425,6 +461,7 @@ class Trade:
                 "rsi_max" : self.rsi_max,
                 "rsi_min" : self.rsi_min,
                 "bad_intervals" : self.bad_intervals,
+                "best_minute":self.best_minute,
                 "pip_rate": self.pip_rate,
                 "open_level" : self.open_level,
                 "pip_diff" : round(self.pip_diff,2),

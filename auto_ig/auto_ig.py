@@ -161,6 +161,7 @@ class AutoIG:
                             for t in current_trades:
                                 if signal.action == t.prediction['direction_to_trade']:
                                     t.log_status("{} signal reenforced {}".format(market.epic,signal.action))
+                                    signal.unused = False
                                 else:
                                     
                                     t.assess_close(signal)
@@ -248,7 +249,15 @@ class AutoIG:
             else:
                 return False, "Couldn't get market data: {} {}".format(auth_r.status_code,auth_r.content)
 
+    def get_history(self):
+        base_url = self.api_url + "/history/transactions/ALL/100000000000000"
+        
+        auth_r = requests.get(base_url, headers=self.authenticate())
 
+        history = json.loads(auth_r.text)
+
+
+        return history['transactions']
             
     def chunks(self, l, n):
         """Yield successive n-sized chunks from l."""

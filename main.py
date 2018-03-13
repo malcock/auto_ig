@@ -155,6 +155,29 @@ def get_prices(epic,res):
     
     return output
 
+@app.route("/get-history")
+def get_history():
+    transactions = auto_ig.get_history()
+    output = 't,date, period, epic, profit, open, close, size, total \r\n'
+    
+
+    i = 1
+    total =0
+    from re import sub
+    from decimal import Decimal
+
+    
+    for t in reversed(transactions):
+        money = t['profitAndLoss']
+        value = Decimal(sub(r'[^\d\-.]', '', money))
+        total +=value
+        date = datetime.datetime.strptime(t['date'],"%d/%m/%y").strftime("%Y-%m-%d")
+        output+="{}, '{}', {},{},{},{},{},{}, {} \r\n".format(i,date, t['period'], t['instrumentName'], value, t['openLevel'], t['closeLevel'],t['size'],total)
+        i+=1
+    output = output
+    
+    return output
+
 @app.route('/prices/<epic>/<res>/table')
 def get_prices_table(epic,res):
 

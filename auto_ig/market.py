@@ -85,7 +85,7 @@ class Market:
             "direction_to_compare" : DIRECTION_TO_COMPARE,
             "atr_low" : low_range,
             "atr_max" : max_range,
-            "stoploss" : min(max_range,10),
+            "stoploss" : min(max_range,15),
             "limit_distance" : 12,
             "support" : support,
             "resistance" : resistance,
@@ -170,12 +170,22 @@ class Market:
 
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
+                            price_len = len(self.prices['MINUTE_5'])
+                            # only want to analyse the last 30 price points (reduce to 10 later)
+
+                            for p in range(price_len-3,price_len):
+                                self.analyse_candle('MINUTE_5', p)
+
                             self.prices["MINUTE_5"].append(new_5_min)
+
                             trades = [x for x in self.ig.trades if x.market.epic == self.epic]
                             for t in trades:
                                 t.update_interval("MINUTE_5")
                         else:
+                            
+
                             self.prices["MINUTE_5"][i] = new_5_min
+                            
 
                         if len(self.prices['MINUTE_5']) > 50:
                             del self.prices['MINUTE_5'][0]
@@ -189,12 +199,7 @@ class Market:
 
                         self.calculate_macd('MINUTE')
 
-                        price_len = len(self.prices['MINUTE_5'])
-                        self.calculate_trailing('MINUTE_5')
-                        # only want to analyse the last 30 price points (reduce to 10 later)
-
-                        for p in range(price_len-3,price_len):
-                            self.analyse_candle('MINUTE_5', p)
+                        
 
                     self.save_prices()
                     
@@ -315,7 +320,7 @@ class Market:
         # for p in range(price_len-40,price_len):
         #     self.analyse_candle(resolution, p)
 
-        logger.info("api calls remaining {}/{} - time till reset {}".format(api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
+        logger.info("{} updated: api calls remaining {}/{} - time till reset {}".format(self.epic, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
 
         self.save_prices()
 
@@ -332,9 +337,9 @@ class Market:
 
         # self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
         # self.detect_crossover(resolution,index)
-        self.detect_macd_2(resolution,index)
+        self.detect_macd(resolution,index)
 
-    def detect_macd_2(self, resolution, index):
+    def detect_macd(self, resolution, index):
         """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
         if index<20:
             return
@@ -352,8 +357,10 @@ class Market:
             # no cross over, don't continue - we may want to expand this later for predicting 
             return
 
+
         is_strong = False
-        last_rsi = [x['rsi'] for x in self.prices[resolution][index-6:index]]
+        last_rsi = [x['rsi'] for x in self.prices[resolution][index-10:index]]
+        prev_rsi = sum(last_rsi)/len(last_rsi)
         if position == "BUY":
             prev_rsi = min(last_rsi)
 
