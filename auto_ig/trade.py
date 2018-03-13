@@ -168,7 +168,7 @@ class Trade:
                     trail = self.market.prices['MINUTE_5'][-1]['high_trail'] - last_minute['closePrice']['ask']
 
                     if last_minute['closePrice']['ask'] < self.best_minute['closePrice']['ask']:
-                        if last_minute['rsi'] > self.best_minute['rsi']:
+                        if last_minute['rsi'] > self.best_minute['rsi'] and self.trailing_stop==False:
                             self.log_status("Lower price without lower RSI - triggering trailing stop")
                             self.trailing_stop = True
                         else:
@@ -179,7 +179,7 @@ class Trade:
 
                     trail = last_minute['closePrice']['bid'] - self.market.prices['MINUTE_5'][-1]['low_trail']
 
-                    if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid']:
+                    if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid'] and self.trailing_stop==False:
                         if last_minute['rsi'] < self.best_minute['rsi']:
                             self.log_status("Higher price without higher RSI - triggering trailing stop")
                             self.trailing_stop = True
