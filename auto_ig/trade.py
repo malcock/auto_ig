@@ -211,9 +211,7 @@ class Trade:
                     if 0 < self.pip_diff < self.trailing_level:
                         self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
                         self.close_trade()
-                else:
-                    self.trailing_level = 1.1
-
+                
 
                 # STOP LOSS CHECKING
                 stoploss = float(self.prediction['stoploss'])
