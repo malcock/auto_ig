@@ -225,7 +225,7 @@ class Market:
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno)
+            print(exc_type, fname, exc_tb.tb_lineno,exc_obj)
             pass
 
         # if signal.update returns False, remove from list
@@ -493,61 +493,17 @@ class Market:
     def calculate_trailing(self, resolution):
         # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
         # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
-        price_len = len(self.prices[resolution])
-
-        high_data = list(self.get_ordered_prices("highPrice","ask",[resolution]))
-        low_data = list(self.get_ordered_prices("lowPrice","bid",[resolution]))
-
-        high_data_compile = []
-        low_data_compile = []
-
-        for p in range(0,len(high_data[0])):
-
-            high_data_compile.append([high_data[0][p], high_data[1][p]])
-            low_data_compile.append([low_data[0][p], low_data[1][p]])
-
+        try:
+            highs = [x["highPrice"]['ask'] + self.spread for x in self.prices[resolution]]
+            # print(highs)
+            self.exponential_average(resolution,12,highs,"high_trail")
+            self.exponential_average(resolution,12,[x["lowPrice"]['bid'] + self.spread for x in self.prices[resolution]],"low_trail")
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno,exc_obj)
+            pass
         
-        for i in range(price_len-1,price_len):
-            
-            high_data_seg = high_data_compile[i-25:i]
-            low_data_seg = low_data_compile[i-25:i]
-            
-            
-            highs = []
-            lows = []
-            for chunk in list(self.chunks(high_data_seg,5)):
-                # print(chunk)
-                h = max(chunk, key=lambda x:x[1][0])
-                highs.append(h)
-            
-            for chunk in list(self.chunks(low_data_seg,5)):
-                # print(chunk)
-                l = min(chunk,key=lambda x:x[1][0])
-                lows.append(l)
-
-            # print("highs: {} {}".format(i, highs))
-            # print("lows: {} {}".format(i, lows))
-            h_x = [x[0] for x in highs]
-            h_y = [y[1][0] for y in highs]
-            l_x = [x[0] for x in lows]
-            l_y = [y[1][0] for y in lows]
-
-
-            h_p, h_m, h_c = self.perform_regression(h_x,h_y)
-            l_p, l_m, l_c = self.perform_regression(l_x,l_y)
-
-            if h_m>0:
-                h_p = max(h_y)
-                
-                
-            if l_m<0:
-                l_p = min(l_y)
-                
-
-            self.prices[resolution][i]["high_trail"] = h_p
-            self.prices[resolution][i]["low_trail"] = l_p
-
-        pass
 
     def chunks(self, l, n):
         """Yield successive n-sized chunks from l."""

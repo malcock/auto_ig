@@ -375,7 +375,7 @@ class Trade:
         """checks to see whether it's a good idea to use the given signal to close the deal"""
         if self.opened_time is not None:
             timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
-            if timeopen.seconds/60 < 10:
+            if timeopen.seconds/60 < 16:
                 self.log_status("SHIT MARKET'S CHANGED MIND!?")
                 self.close_trade()
 
