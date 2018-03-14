@@ -55,6 +55,8 @@ class Signal:
             self.score = 2
         elif self.type == "MACD_STRONG":
             self.score = 4
+        elif self.type == "MACD":
+            self.score = 2
 
         # work out the exiry time for this signal - depending on type, plus 2mins
         seconds_per_unit = 0
@@ -79,13 +81,14 @@ class Signal:
         if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
             logger.info("SIGNAL EXPIRED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
             return False
-        
+        prices = market.prices[self.resolution]
+        i = next((index for (index, d) in enumerate(prices) if d["snapshotTime"] == self.snapshot_time), None)
+       
         # only check until it's been confirmed to conserve cpu usage
-        if self.active:
-            prices = market.prices[self.resolution]
-            i = next((index for (index, d) in enumerate(prices) if d["snapshotTime"] == self.snapshot_time), None)
+        if not self.confirmed:
+            
             if i<len(prices)-1:
-                last_price = prices[-1]['closePrice']['bid']
+                last_price = prices[-1]['macd_histogram']
                 # logger.info("{} {} {} confirm:{} current:{}".format(self.epic,self.snapshot_time,self.action, self.confirmation_price,last_price))
                 if self.action=="BUY":
                     if last_price > self.confirmation_price:
@@ -99,6 +102,9 @@ class Signal:
                 logger.info("SIGNAL CONFIRMED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
                 self.active = False
                 # do something to rescore this based on something - like multiple signals being confirmed at once?
+        else:
+            total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
+            self.score = 2 + total
 
 
         return True

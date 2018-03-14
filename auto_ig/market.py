@@ -40,7 +40,7 @@ class Market:
         self.load_prices()
         self.update_market(market_data)
         try:
-            self.current_rsi = float(self.prices['MINUTE'][-1]["rsi"])
+            self.current_rsi = float(self.prices['MINUTE_5'][-1]["rsi"])
         except Exception:
             self.current_rsi = 0
 
@@ -85,7 +85,7 @@ class Market:
             "direction_to_compare" : DIRECTION_TO_COMPARE,
             "atr_low" : low_range,
             "atr_max" : max_range,
-            "stoploss" : min(max_range,15),
+            "stoploss" : min(max_range,35),
             "limit_distance" : 12,
             "support" : support,
             "resistance" : resistance,
@@ -127,9 +127,11 @@ class Market:
         try:
             timestamp = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%Y:%m:%d-%H:%M:00")
             minNum = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%M") #1 or 6? make a new MIN_5
-            logging.info(values)
+            # logger.info(values)
             self.bid = float(values['BID_CLOSE'])
             self.offer = float(values['OFR_CLOSE'])
+            self.high = float(values['DAY_HIGH'])
+            self.low = float(values['DAY_LOW'])
             self.spread = float(self.offer) - float(self.bid)
             # create an empty price object that matches the hsitorical one
             current_price = {
@@ -141,18 +143,19 @@ class Market:
                     "lastTradedVolume": int(values['LTV'])}
             
 
-            if "MINUTE" in self.prices:
+            if "MINUTE_5" in self.prices:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
-                i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp), None)
+                i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
                 if i==None:
-                    self.prices['MINUTE'].append(current_price)
+                    self.prices['MINUTE_5'].append(current_price)
 
-                    if "MINUTE_5" in self.prices:
-                        last_5_min = int(5 * math.floor(float(minNum)/5))
+                    if "MINUTE_30" in self.prices:
+                        last_5_min = int(30 * math.floor(float(minNum)/30))
                         timestamp_5 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_5_min))
+                        
                         # get all elements from MINUTE list since last 5min mark
-                        i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp_5), None)
-                        mins = self.prices['MINUTE'][i:]
+                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_5), None)
+                        mins = self.prices['MINUTE_5'][i:]
                         open_price = mins[0]['openPrice']
                         close_price = mins[-1]['closePrice']
                         vol = sum([x['lastTradedVolume'] for x in mins])
@@ -168,56 +171,59 @@ class Market:
                             "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
 
-                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_5), None)
+                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
-                            price_len = len(self.prices['MINUTE_5'])
+                            price_len = len(self.prices['MINUTE_30'])
                             # only want to analyse the last 30 price points (reduce to 10 later)
 
                             for p in range(price_len-3,price_len):
-                                self.analyse_candle('MINUTE_5', p)
+                                self.analyse_candle('MINUTE_30', p)
 
-                            self.prices["MINUTE_5"].append(new_5_min)
+                            self.prices["MINUTE_30"].append(new_5_min)
 
                             trades = [x for x in self.ig.trades if x.market.epic == self.epic]
                             for t in trades:
-                                t.update_interval("MINUTE_5")
+                                t.update_interval("MINUTE_30")
                         else:
                             
 
-                            self.prices["MINUTE_5"][i] = new_5_min
+                            self.prices["MINUTE_30"][i] = new_5_min
                             
 
-                        if len(self.prices['MINUTE_5']) > 50:
-                            del self.prices['MINUTE_5'][0]
+                        if len(self.prices['MINUTE_30']) > 50:
+                            del self.prices['MINUTE_30'][0]
 
-                        self.calculate_rsi('MINUTE_5')
+                        self.calculate_rsi('MINUTE_30')
                         
+
+                        self.calculate_macd('MINUTE_30')
+                        self.calculate_trailing('MINUTE_30')
+                        self.calculate_trailing('MINUTE_5')
 
                         self.calculate_macd('MINUTE_5')
-                        self.calculate_trailing('MINUTE_5')
-                        self.calculate_trailing('MINUTE')
 
-                        self.calculate_macd('MINUTE')
-
-                        
+                    # if signal.update returns False, remove from list
+                    for s in self.signals:
+                        if not s.update(self):
+                            self.signals.remove(s)    
 
                     self.save_prices()
                     
                 else:
-                    self.prices['MINUTE'][i] = current_price
+                    self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE'])>50:
-                    del self.prices['MINUTE'][0]
+                if len(self.prices['MINUTE_5'])>50:
+                    del self.prices['MINUTE_5'][0]
                     
-                self.calculate_rsi('MINUTE')
+                self.calculate_rsi('MINUTE_5')
                 
 
-                self.current_rsi = float(self.prices['MINUTE'][-1]["rsi"])
+                self.current_rsi = float(self.prices['MINUTE_5'][-1]["rsi"])
 
                 
 
             else:
-                self.prices['MINUTE'] = []
+                self.prices['MINUTE_5'] = []
             
             
 
@@ -228,10 +234,7 @@ class Market:
             print(exc_type, fname, exc_tb.tb_lineno,exc_obj)
             pass
 
-        # if signal.update returns False, remove from list
-        for s in self.signals:
-            if not s.update(self):
-                self.signals.remove(s)
+        
 
 
     def get_update_cost(self, resolution = None, count = 0):
@@ -341,44 +344,47 @@ class Market:
 
     def detect_macd(self, resolution, index):
         """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
-        if index<20:
-            return
+        
         
 
         now = self.prices[resolution][index]['macd_histogram']
         prev = self.prices[resolution][index-1]['macd_histogram']
-
+        confirmation_price = max(1,now*2)
         # figure out of theres a cross over
         if now > 0 and prev < 0:
             position = "BUY"
+            
         elif now < 0 and prev > 0:
             position = "SELL"
+            confirmation_price = -confirmation_price
         else:
             # no cross over, don't continue - we may want to expand this later for predicting 
             return
-
-
-        is_strong = False
         last_rsi = [x['rsi'] for x in self.prices[resolution][index-10:index]]
         prev_rsi = sum(last_rsi)/len(last_rsi)
-        if position == "BUY":
-            prev_rsi = min(last_rsi)
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD","now {}, prev {}".format(now,prev),confirmation_price=confirmation_price)
 
-            if 28 < prev_rsi < 40:
-                is_strong = True
-
-        else:
-            prev_rsi = max(last_rsi)
-
-            if 59 < prev_rsi < 72:
-                is_strong = True
-
-        # need another check here too of the previous strength of the movement to see if this is a small correction
         
-        if is_strong:
-            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {} RSI {}".format(position, prev_rsi))
-        else:
-            self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {} RSI {}".format(position,prev_rsi))
+        # is_strong = False
+        
+        # if position == "BUY":
+        #     prev_rsi = min(last_rsi)
+
+        #     if 28 < prev_rsi < 40:
+        #         is_strong = True
+
+        # else:
+        #     prev_rsi = max(last_rsi)
+
+        #     if 59 < prev_rsi < 72:
+        #         is_strong = True
+
+        # # need another check here too of the previous strength of the movement to see if this is a small correction
+        
+        # if is_strong:
+        #     self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_STRONG","STRONG {} RSI {}, now {}, prev {}".format(position, prev_rsi,now,prev))
+        # else:
+        #     self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD_WEAK","WEAK {} RSI {}, now {}, prev {}".format(position,prev_rsi,now,prev))
      
 
         
@@ -611,6 +617,23 @@ class Market:
 
 
         return prediction, m, c
+    
+    def linear_regression(self, resolutions = None, price_compare = "bid"):
+
+
+        price_data = {}
+        if resolutions is None:
+            resolutions = self.prices.keys()
+        x = []
+        y = []
+        for res in resolutions:
+            for p in self.prices[res]:
+                x.append([float(p['highPrice'][price_compare]),float(p['lowPrice'][price_compare])])
+                y.append(float(p['closePrice'][price_compare]))
+
+        
+        
+
 
     def get_ordered_prices(self, group="closePrice", price = "bid", resolutions=None):
         price_data = {} # will be {time_int:price} - repeated units will be overwritten

@@ -91,14 +91,14 @@ class AutoIG:
 
         
         for m in self.markets.values():
+            if m.get_update_cost("MINUTE_30",50)>0:
+                m.update_prices("MINUTE_30",50)
+                # # only want to analyse the last 3 points - everything before is probably irrelevant now
+                price_len = len(m.prices["MINUTE_30"])
+                for p in range(price_len-3,price_len):
+                    m.analyse_candle("MINUTE_30", p)    
             if m.get_update_cost("MINUTE_5",50)>0:
                 m.update_prices("MINUTE_5",50)
-                # # only want to analyse the last 3 points - everything before is probably irrelevant now
-                price_len = len(m.prices["MINUTE_5"])
-                for p in range(price_len,price_len):
-                    m.analyse_candle("MINUTE_5", p)    
-            if m.get_update_cost("MINUTE",50)>0:
-                m.update_prices("MINUTE",50)
 
 
             
@@ -207,9 +207,9 @@ class AutoIG:
 
             # assuming here that we've got a lighstream connection so we can subscribe now
             
-            epic_ids_time = ["CHART:" + s + ":1MINUTE" for s in epic_list]
+            epic_ids_time = ["CHART:" + s + ":5MINUTE" for s in epic_list]
             logger.info(epic_ids_time)
-            live_charts = Subscription(mode="MERGE", items=epic_ids_time, fields="LTV,UTM,OFR_OPEN,OFR_HIGH,OFR_LOW,OFR_CLOSE,BID_OPEN,BID_HIGH,BID_LOW,BID_CLOSE,CONS_END,CONS_TICK_COUNT".split(","),adapter="DEFAULT")
+            live_charts = Subscription(mode="MERGE", items=epic_ids_time, fields="LTV,UTM,DAY_HIGH,DAY_LOW,OFR_OPEN,OFR_HIGH,OFR_LOW,OFR_CLOSE,BID_OPEN,BID_HIGH,BID_LOW,BID_CLOSE,CONS_END,CONS_TICK_COUNT".split(","),adapter="DEFAULT")
             live_charts.addlistener(self.live_update)
             self.live_charts_key = self.lightstream.subscribe(live_charts)
 

@@ -156,7 +156,7 @@ class Trade:
             elif self.state == TradeState.OPEN:
                 timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
                 # store the last full minute
-                last_minute =  self.market.prices['MINUTE'][-2]
+                last_minute =  self.market.prices['MINUTE_5'][-2]
                 if self.best_minute is None:
                     self.best_minute = last_minute.copy()
 
@@ -165,7 +165,7 @@ class Trade:
                 if self.prediction['direction_to_trade'] == "SELL":
                     self.pip_diff = float(self.open_level) - float(self.market.offer)
 
-                    trail = float(self.open_level) - self.market.prices['MINUTE_5'][-1]['high_trail']
+                    trail = float(self.open_level) - self.market.prices['MINUTE_30'][-1]['high_trail']
 
                     if last_minute['closePrice']['ask'] < self.best_minute['closePrice']['ask']:
                         if last_minute['rsi'] > self.best_minute['rsi'] and self.trailing_stop==False:
@@ -177,7 +177,7 @@ class Trade:
                 else:
                     self.pip_diff = float(self.market.bid) - float(self.open_level)
 
-                    trail = self.market.prices['MINUTE_5'][-1]['low_trail'] - float(self.open_level)
+                    trail = self.market.prices['MINUTE_30'][-1]['low_trail'] - float(self.open_level)
 
                     if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid'] and self.trailing_stop==False:
                         if last_minute['rsi'] < self.best_minute['rsi']:
@@ -264,7 +264,7 @@ class Trade:
         data = {
             "direction":self.prediction["direction_to_trade"],
             "epic": self.market.epic, 
-            "limitDistance":100, 
+            "limitDistance":150, 
             "orderType":"MARKET", 
             "size":self.size_value,
             "expiry":"DFB",
