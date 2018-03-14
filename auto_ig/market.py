@@ -174,9 +174,9 @@ class Market:
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
                             price_len = len(self.prices['MINUTE_30'])
-                            # only want to analyse the last 30 price points (reduce to 10 later)
+                            # only want to analyse the last 4 price points (2 hrs)
 
-                            for p in range(price_len-3,price_len):
+                            for p in range(price_len-4,price_len):
                                 self.analyse_candle('MINUTE_30', p)
 
                             self.prices["MINUTE_30"].append(new_5_min)

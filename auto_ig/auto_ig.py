@@ -95,7 +95,7 @@ class AutoIG:
                 m.update_prices("MINUTE_30",50)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
                 price_len = len(m.prices["MINUTE_30"])
-                for p in range(price_len-3,price_len):
+                for p in range(price_len-4,price_len):
                     m.analyse_candle("MINUTE_30", p)    
             if m.get_update_cost("MINUTE_5",50)>0:
                 m.update_prices("MINUTE_5",50)
