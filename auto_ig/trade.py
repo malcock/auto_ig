@@ -132,8 +132,8 @@ class Trade:
         try:
 
 
-            if self.prediction['stoploss']>15:
-                self.prediction['stoploss'] = 15
+            if self.prediction['stoploss']>30:
+                self.prediction['stoploss'] = 30
 
             if self.state == TradeState.CLOSED or self.state == TradeState.FAILED:
                 # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
