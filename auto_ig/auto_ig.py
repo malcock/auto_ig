@@ -38,7 +38,7 @@ class AutoIG:
         self.authenticated_headers = {}
         self.markets = {}
         self.trades = []
-        self.max_concurrent_trades = 3
+        self.max_concurrent_trades = 6
         self.lightstream = {}
         self.key = ""
 
