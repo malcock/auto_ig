@@ -70,7 +70,7 @@ class Signal:
         if "_" in resolution:
             multiplier = int(resolution.split("_")[1])
             seconds_per_unit *= multiplier
-        seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 120
+        seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 600
 
         self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S") + datetime.timedelta(seconds = seconds_per_unit)
         self.expiry_time = self.expiry_time.replace(tzinfo=datetime.timezone.utc)
@@ -100,6 +100,8 @@ class Signal:
             
             if self.confirmed:
                 logger.info("SIGNAL CONFIRMED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
+                total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
+                self.score = 2 + total
                 self.active = False
                 # do something to rescore this based on something - like multiple signals being confirmed at once?
         else:

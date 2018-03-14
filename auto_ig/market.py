@@ -148,6 +148,7 @@ class Market:
                 i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
                 if i==None:
                     self.prices['MINUTE_5'].append(current_price)
+                    
 
                     if "MINUTE_30" in self.prices:
                         last_5_min = int(30 * math.floor(float(minNum)/30))
@@ -173,11 +174,7 @@ class Market:
 
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
-                            price_len = len(self.prices['MINUTE_30'])
-                            # only want to analyse the last 4 price points (2 hrs)
-
-                            for p in range(price_len-4,price_len):
-                                self.analyse_candle('MINUTE_30', p)
+                            
 
                             self.prices["MINUTE_30"].append(new_5_min)
 
@@ -201,6 +198,12 @@ class Market:
                         self.calculate_trailing('MINUTE_5')
 
                         self.calculate_macd('MINUTE_5')
+
+                    price_len = len(self.prices['MINUTE_30'])
+                    # only want to analyse the last 4 price points (2 hrs)
+
+                    for p in range(price_len-4,price_len):
+                        self.analyse_candle('MINUTE_30', p)    
 
                     # if signal.update returns False, remove from list
                     for s in self.signals:
