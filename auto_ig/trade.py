@@ -41,7 +41,8 @@ class Trade:
         self.pip_rate = 0
         self.bad_intervals = 0 #if this reaches x, close the trade
         self.best_minute = None
-            
+        self.trailing_level = 0
+        self.open_level = 0
 
         if json_data is None:
             self.status_log = []
@@ -57,7 +58,7 @@ class Trade:
             self.rsi_init = self.market.current_rsi
             self.deal_id = "PENDING"
 
-            self.open_level = 0
+            
             self.profit_loss = 0
             self.pip_diff = 0
             self.pip_max = 0
@@ -165,7 +166,7 @@ class Trade:
                 if self.prediction['direction_to_trade'] == "SELL":
                     self.pip_diff = float(self.open_level) - float(self.market.offer)
 
-                    trail = float(self.open_level) - self.market.prices['MINUTE_30'][-1]['high_trail']
+                    trail = float(self.open_level) - self.market.prices['MINUTE_30'][-1].get('high_trail',self.open_level)
 
                     if last_minute['closePrice']['ask'] < self.best_minute['closePrice']['ask']:
                         if last_minute['rsi'] > self.best_minute['rsi'] and self.trailing_stop==False:
@@ -177,7 +178,7 @@ class Trade:
                 else:
                     self.pip_diff = float(self.market.bid) - float(self.open_level)
 
-                    trail = self.market.prices['MINUTE_30'][-1]['low_trail'] - float(self.open_level)
+                    trail = self.market.prices['MINUTE_30'][-1].get('low_trail',self.open_level) - float(self.open_level)
 
                     if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid'] and self.trailing_stop==False:
                         if last_minute['rsi'] < self.best_minute['rsi']:
