@@ -349,14 +349,14 @@ class Market:
 
         now = self.prices[resolution][index]['macd_histogram']
         prev = self.prices[resolution][index-1]['macd_histogram']
-        confirmation_price = max(1,now*2)
+        
         # figure out of theres a cross over
         if now > 0 and prev < 0:
             position = "BUY"
-            
+            confirmation_price = max(1,now*2)
         elif now < 0 and prev > 0:
             position = "SELL"
-            confirmation_price = -confirmation_price
+            confirmation_price = min(-1,now*2)
         else:
             # no cross over, don't continue - we may want to expand this later for predicting 
             return
