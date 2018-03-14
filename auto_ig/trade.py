@@ -220,11 +220,11 @@ class Trade:
                 # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
                 
                 # logger.info(timeopen.seconds)
-                if timeopen.seconds/60>120:
-                    if not self.overtime and self.pip_diff < 0:
-                        self.overtime = True
-                        self.trailing_stop = True
-                        self.log_status("ORDER OPEN 2 HOURS OVERTIME - TAKING NEXT PROFIT")
+                # if timeopen.seconds/60>120:
+                #     if not self.overtime and self.pip_diff < 0:
+                #         self.overtime = True
+                #         self.trailing_stop = True
+                #         self.log_status("ORDER OPEN 2 HOURS OVERTIME - TAKING NEXT PROFIT")
                 
 
                 if float(self.pip_diff) < -stoploss:

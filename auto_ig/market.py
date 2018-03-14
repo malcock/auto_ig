@@ -504,11 +504,9 @@ class Market:
         # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
         # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
         try:
-            highs = [x["ema_12"] + self.spread for x in self.prices[resolution]]
-            lows = [x["ema_12"] - self.spread for x in self.prices[resolution]]
-            for i in range(len(self.prices[resolution])):
-                self.prices[resolution][i]['high_trail'] = highs[i]
-                self.prices[resolution][i]['low_trail'] = lows[i]
+            for i in range(1,len(self.prices[resolution])):
+                self.prices[resolution][i]['high_trail'] = self.prices[resolution][i-1]['closePrice']['ask'] + self.spread
+                self.prices[resolution][i]['low_trail'] = self.prices[resolution][i-1]['closePrice']['bid'] - self.spread
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
