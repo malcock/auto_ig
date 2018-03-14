@@ -497,7 +497,7 @@ class Market:
             highs = [x["highPrice"]['ask'] + self.spread for x in self.prices[resolution]]
             # print(highs)
             self.exponential_average(resolution,12,highs,"high_trail")
-            self.exponential_average(resolution,12,[x["lowPrice"]['bid'] - self.spread*2 for x in self.prices[resolution]],"low_trail")
+            self.exponential_average(resolution,12,[x["lowPrice"]['bid'] - self.spread for x in self.prices[resolution]],"low_trail")
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
