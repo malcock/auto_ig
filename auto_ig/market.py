@@ -194,10 +194,12 @@ class Market:
                         
 
                         self.calculate_macd('MINUTE_5')
-                        self.calculate_trailing('MINUTE_5')
-                        self.calculate_trailing('MINUTE')
+                        
 
                         self.calculate_macd('MINUTE')
+
+                        self.calculate_trailing('MINUTE_5')
+                        self.calculate_trailing('MINUTE')
 
                         
 
@@ -493,16 +495,10 @@ class Market:
     def calculate_trailing(self, resolution):
         # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
         # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
-        try:
-            highs = [x["closePrice"]['bid'] + min(self.spread*2,5) for x in self.prices[resolution]]
-            # print(highs)
-            self.exponential_average(resolution,12,highs,"high_trail")
-            self.exponential_average(resolution,12,[x["closePrice"]['bid'] - min(self.spread*2,5) for x in self.prices[resolution]],"low_trail")
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno,exc_obj)
-            pass
+        for x in self.prices[resolution]
+            x['high_trail'] = x['ema_12'] + min(self.spread*2,5)
+            x['low_trail'] = x['ema_12']  - min(self.spread*2,5)
+       
         
 
     def chunks(self, l, n):
