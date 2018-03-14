@@ -495,7 +495,7 @@ class Market:
     def calculate_trailing(self, resolution):
         # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
         # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
-        for x in self.prices[resolution]
+        for x in self.prices[resolution]:
             x['high_trail'] = x['ema_12'] + min(self.spread*2,5)
             x['low_trail'] = x['ema_12']  - min(self.spread*2,5)
        
