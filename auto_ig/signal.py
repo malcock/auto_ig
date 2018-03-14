@@ -83,7 +83,9 @@ class Signal:
             return False
         prices = market.prices[self.resolution]
         i = next((index for (index, d) in enumerate(prices) if d["snapshotTime"] == self.snapshot_time), None)
-       
+        
+        total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
+        self.score = 2 + total
         # only check until it's been confirmed to conserve cpu usage
         if not self.confirmed:
             
@@ -100,8 +102,7 @@ class Signal:
             
             if self.confirmed:
                 logger.info("SIGNAL CONFIRMED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
-                total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
-                self.score = 2 + total
+                
                 self.active = False
                 # do something to rescore this based on something - like multiple signals being confirmed at once?
         else:
