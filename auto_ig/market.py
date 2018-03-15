@@ -175,6 +175,11 @@ class Market:
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
                             
+                            price_len = len(self.prices['MINUTE_30'])
+                            # only want to analyse the last 4 price points (2 hrs)
+
+                            for p in range(price_len-4,price_len):
+                                self.analyse_candle('MINUTE_30', p)    
 
                             self.prices["MINUTE_30"].append(new_5_min)
 
@@ -197,14 +202,13 @@ class Market:
 
                         self.calculate_macd('MINUTE_5')
 
+                        self.calculate_relative_vigor('MINUTE_30',10)
+                        self.calculate_relative_vigor('MINUTE_5',10)
+
                         self.calculate_trailing('MINUTE_30')
                         self.calculate_trailing('MINUTE_5')
 
-                    price_len = len(self.prices['MINUTE_30'])
-                    # only want to analyse the last 4 price points (2 hrs)
-
-                    for p in range(price_len-6,price_len):
-                        self.analyse_candle('MINUTE_30', p)    
+                    
 
                     # if signal.update returns False, remove from list
                     for s in self.signals:
@@ -235,7 +239,7 @@ class Market:
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno,exc_obj)
+            logger.info(exc_type, fname, exc_tb.tb_lineno,exc_obj)
             pass
 
         
@@ -322,6 +326,8 @@ class Market:
 
         self.calculate_trailing(resolution)
 
+        self.calculate_relative_vigor(resolution,10)
+
         # price_len = len(self.prices[resolution])
         # # only want to analyse the last 30 price points (reduce to 10 later)
         # for p in range(price_len-40,price_len):
@@ -344,8 +350,23 @@ class Market:
 
         # self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
         # self.detect_crossover(resolution,index)
+        self.detect_rvi(resolution,index)
         self.detect_macd(resolution,index)
 
+    def detect_rvi(self,resolution,index):
+        now = self.prices[resolution][index]['rvi_histogram']
+        prev = self.prices[resolution][index-1]['rvi_histogram']
+
+        if now > 0 and prev < 0:
+            position = "BUY"
+        elif now < 0 and prev > 0:
+            position = "SELL"
+        else:
+            # no cross over, don't continue - we may want to expand this later for predicting 
+            return
+
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RVI","")
+        
     def detect_macd(self, resolution, index):
         """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
         
@@ -366,7 +387,17 @@ class Market:
             return
         last_rsi = [x['rsi'] for x in self.prices[resolution][index-10:index]]
         prev_rsi = sum(last_rsi)/len(last_rsi)
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD","now {}, prev {}".format(now,prev),confirmation_price=confirmation_price)
+        
+        comment = "Basic MACD signal"
+        # check our signals for a previous matching RVI signal
+        rvi_sigs = sorted([x for x in self.signals if (x.type=="RVI" and x.action==position)], key=operator.attrgetter('snapshot_time'), reverse=True)
+        confirmed = False
+        if len(rvi_sigs)>0:
+            confirmed = True
+            comment = "MACD confirmed by RVI at {}".format(rvi_sigs[0].snapshot_time)
+            
+
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",comment,confirmed)
 
         
         # is_strong = False
@@ -454,17 +485,18 @@ class Market:
                 comment = "o:{}, c:{}, h:{}, l:{}".format(open_price,close_price,high_price,low_price)
                 self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",comment,round(confirmation_price,2))
 
-    def add_signal(self,resolution, snapshot_time, position, signal_type, comment = "", confirmation_price = None ):
+    def add_signal(self,resolution, snapshot_time, position, signal_type, comment = "", confirmed = False ):
         """Add a signal to the market"""
         matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type)]
-        # remove any previous crossover signals - new one superceeds them
-        if signal_type=="CROSSOVER":
-            for signal in matching_signals:
-                self.signals.remove(signal)
-            matching_signals = []
+        # remove any previous rvi signals - new one superceeds them
+        if signal_type=="RVI":
+            rvi_signals = [x for x in self.signals if x.type == "RVI"]
+            for s in rvi_signals:
+                logger.info("{} removed previous rvi signal at: {}".format(self.epic,s.snapshot_time))
+                self.signals.remove(s)
 
         if len(matching_signals)==0:
-            self.signals.append(Signal(self.epic,resolution,snapshot_time,position,signal_type, comment, confirmation_price))
+            self.signals.append(Signal(self.epic,resolution,snapshot_time,position,signal_type, comment, confirmed))
 
     # ********* Indicator calculations ***********
     def calculate_trend(self, prices):
@@ -499,7 +531,26 @@ class Market:
         for i in range(0,len(self.prices[resolution])):
             self.prices[resolution][i]['macd'] = macd[i]
             self.prices[resolution][i]['macd_histogram'] = self.prices[resolution][i]['macd'] - self.prices[resolution][i]['macd_signal']
-            
+    
+    def calculate_relative_vigor(self,resolution,N):
+        try:
+            for p in self.prices[resolution]:
+                # p['rvi'] = (float(p['closePrice']['bid']) – float(p['openPrice']['bid'])) / (float(p['highPrice']['bid']) – float(p['lowPrice']['bid']))
+                p['rvi'] = (float(p['closePrice']['bid']) - float(p['openPrice']['bid'])) / (float(p['highPrice']['bid']) - float(p['lowPrice']['bid']))
+                
+            sma = self.simple_moving_average([x['rvi'] for x in self.prices[resolution]],N)
+            print("{} {} {}".format(self.epic,len(self.prices[resolution]),len(sma)))
+            for i in range(N,len(self.prices[resolution])):
+                self.prices[resolution][i]['rvi_signal'] = sma[i-N]
+                self.prices[resolution][i]['rvi_histogram'] = self.prices[resolution][i]['rvi'] - self.prices[resolution][i]['rvi_signal']
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info(exc_type, fname, exc_tb.tb_lineno,exc_obj)
+            logger.info("{} RVI calc failed - will probably be fine next time".format(self.epic))
+            pass
+
+
     def calculate_trailing(self, resolution):
         # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
         # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
@@ -560,7 +611,7 @@ class Market:
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno,exc_obj)
+            logger.info(exc_type, fname, exc_tb.tb_lineno,exc_obj)
             pass
         
 
@@ -604,6 +655,7 @@ class Market:
 
         return rsi
 
+
     def numpy_ewma_vectorized_v2(self, data, window):
 
         alpha = 2 /(window + 1.0)
@@ -621,6 +673,9 @@ class Market:
         out = offset + cumsums*scale_arr[::-1]
         return out
 
+    def simple_moving_average(self, x, N, name=None):
+        cumsum = np.cumsum(np.insert(x, 0, 0)) 
+        return (cumsum[N:] - cumsum[:-N]) / float(N)
 
     def exponential_average(self, resolution, window, values= None, name = None):
         if values is None:

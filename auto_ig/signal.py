@@ -20,7 +20,7 @@ logger.addHandler(ch)
 
 class Signal:
     
-    def __init__(self, epic, resolution, snapshotTime, action, signalType, comment = "", confirmation_price = None):
+    def __init__(self, epic, resolution, snapshotTime, action, signalType, comment = "", confirmed = False):
         """Create a signal object stores it's state to confirm buy or sell signals
             resolution = what res was this signal discovered at?
             snapshot = when this signal was generated on the price list
@@ -35,11 +35,8 @@ class Signal:
         self.action = action
         self.type = signalType
         self.confirmation_price = 0
-        if confirmation_price is not None:
-            self.confirmation_price = confirmation_price
-            self.confirmed = False
-        else:
-            self.confirmed = True
+        
+        self.confirmed = confirmed
 
         self.active = True
         self.unused = True
@@ -47,16 +44,13 @@ class Signal:
 
         self.score = 1 #need to think of how to properly grade different signals - probably upon being confirmed?
         timeout_multiplier = 6
-        if self.type == "HAMMER":
-            self.score = 0.75
-        elif self.type == "CROSSOVER":
+        if self.type == "RVI":
+            timeout_multiplier = 12
             self.score = 1
-        elif self.type == "MACD_WEAK":
-            self.score = 2
-        elif self.type == "MACD_STRONG":
-            self.score = 4
         elif self.type == "MACD":
             self.score = 2
+            if self.confirmed:
+                self.score = 4
 
         # work out the exiry time for this signal - depending on type, plus 2mins
         seconds_per_unit = 0
@@ -81,33 +75,33 @@ class Signal:
         if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
             logger.info("SIGNAL EXPIRED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
             return False
-        prices = market.prices[self.resolution]
-        i = next((index for (index, d) in enumerate(prices) if d["snapshotTime"] == self.snapshot_time), None)
+        # prices = market.prices[self.resolution]
+        # i = next((index for (index, d) in enumerate(prices) if d["snapshotTime"] == self.snapshot_time), None)
         
-        total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
-        self.score = 2 + total
-        # only check until it's been confirmed to conserve cpu usage
-        if not self.confirmed:
+        # total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
+        # self.score = 2 + total
+        # # only check until it's been confirmed to conserve cpu usage
+        # if not self.confirmed:
             
-            if i<len(prices)-1:
-                last_price = prices[-1]['macd_histogram']
-                # logger.info("{} {} {} confirm:{} current:{}".format(self.epic,self.snapshot_time,self.action, self.confirmation_price,last_price))
-                if self.action=="BUY":
-                    if last_price > self.confirmation_price:
-                        self.confirmed = True
-                else:
-                    if last_price < self.confirmation_price:
-                        self.confirmed = True
+        #     if i<len(prices)-1:
+        #         last_price = prices[-1]['macd_histogram']
+        #         # logger.info("{} {} {} confirm:{} current:{}".format(self.epic,self.snapshot_time,self.action, self.confirmation_price,last_price))
+        #         if self.action=="BUY":
+        #             if last_price > self.confirmation_price:
+        #                 self.confirmed = True
+        #         else:
+        #             if last_price < self.confirmation_price:
+        #                 self.confirmed = True
 
             
-            if self.confirmed:
-                logger.info("SIGNAL CONFIRMED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
+        #     if self.confirmed:
+        #         logger.info("SIGNAL CONFIRMED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
                 
-                self.active = False
-                # do something to rescore this based on something - like multiple signals being confirmed at once?
-        else:
-            total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
-            self.score = 2 + total
+        #         self.active = False
+        #         # do something to rescore this based on something - like multiple signals being confirmed at once?
+        # else:
+        #     total = sum([abs(x['macd_histogram']) for x in market.prices[self.resolution][i:]])
+        #     self.score = 2 + total
 
 
         return True

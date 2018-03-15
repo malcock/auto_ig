@@ -113,8 +113,8 @@ class AutoIG:
         
         # create a list of confirmed signals
         signals = self.get_signals()
-        confirmed_signals = [x for x in signals]
-        unused_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('score'), reverse=True)
+        confirmed_signals = [x for x in signals if x.score>1]
+        unused_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('snapshot_time'), reverse=True)
 
         logger.info("SIGNALS:{} CONFIRMED:{} UNUSED:{}".format(len(signals),len(confirmed_signals),len(unused_signals)))
         if len(unused_signals)>0:
@@ -154,6 +154,7 @@ class AutoIG:
                                 logger.info("{} lets try open a position".format(market.epic))
                                 prediction = market.make_prediction(signal)
                                 self.make_trade(1,market,prediction)
+                                signal.score = 1
                             else:
                                 logger.info("Trades full - can't open more now:{}, max:{}".format(len(self.trades),self.max_concurrent_trades))
                         else:
@@ -164,10 +165,12 @@ class AutoIG:
                                 if signal.action == t.prediction['direction_to_trade']:
                                     t.log_status("{} signal reenforced {}".format(market.epic,signal.action))
                                     signal.unused = False
+                                    signal.score-=1
                                 else:
                                     
                                     t.assess_close(signal)
                                     signal.unused = False
+                                    signal.score-=1
                     else:
                         signal.unused = False
                         logger.info("{} spread too wide {}, ignoring signal".format(market.epic,market.spread))
