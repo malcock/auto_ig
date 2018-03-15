@@ -111,7 +111,7 @@ class AutoIG:
         
         # create a list of confirmed signals
         signals = self.get_signals()
-        confirmed_signals = [x for x in signals if x.confirmed]
+        confirmed_signals = [x for x in signals]
         unused_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('score'), reverse=True)
 
         logger.info("SIGNALS:{} CONFIRMED:{} UNUSED:{}".format(len(signals),len(confirmed_signals),len(unused_signals)))
@@ -133,7 +133,7 @@ class AutoIG:
                     if market.spread<5:
                         # check if this market already has trades open
                         current_trades = [x for x in self.trades if x.market==market]
-                        if len(current_trades)==0 and signal.score>2:
+                        if len(current_trades)==0 and signal.score>2 and signal.confirmed:
                             # if we've got less than max open, lets try and open one now (if it's strong!)
                             if len(self.trades)<self.max_concurrent_trades:
                                 
@@ -141,7 +141,7 @@ class AutoIG:
                                 if timenow.weekday() > 4:
                                     return False, "We don't play on weekends"
 
-                                if timenow.weekday() == 0 and timenow.hour < 2:
+                                if timenow.weekday() == 0 and timenow.hour < 1:
                                     return False, "Waiting for market to stabilise after weekend"
 
                                 if timenow.weekday() == 4 and timenow.hour > 19:
