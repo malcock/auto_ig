@@ -203,7 +203,7 @@ class Market:
                     price_len = len(self.prices['MINUTE_30'])
                     # only want to analyse the last 4 price points (2 hrs)
 
-                    for p in range(price_len-5,price_len):
+                    for p in range(price_len-6,price_len):
                         self.analyse_candle('MINUTE_30', p)    
 
                     # if signal.update returns False, remove from list

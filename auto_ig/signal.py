@@ -46,7 +46,7 @@ class Signal:
         self.comment = comment
 
         self.score = 1 #need to think of how to properly grade different signals - probably upon being confirmed?
-        timeout_multiplier = 5
+        timeout_multiplier = 6
         if self.type == "HAMMER":
             self.score = 0.75
         elif self.type == "CROSSOVER":
