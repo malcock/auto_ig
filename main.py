@@ -135,9 +135,12 @@ def logout():
 
 @app.route('/prices/<epic>/<res>')
 def get_prices(epic,res):
-
+    trade = [x for x in auto_ig.trades if x.market.epic == epic]
+    open_level = ''
+    if len(trade)>0:
+        open_level = trade[0].open_level
     prices = auto_ig.markets[epic].prices[res]
-    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd,macd_signal, macd_histogram, high_trail, low_trail \r\n"
+    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd,macd_signal, macd_histogram, high_trail, low_trail, trade_open \r\n"
     for p in prices:
         output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
@@ -151,7 +154,8 @@ def get_prices(epic,res):
                                                         p.get('macd_signal',''),
                                                         p.get('macd_histogram',''),
                                                         p.get('high_trail',''),
-                                                        p.get('low_trail',''))
+                                                        p.get('low_trail',''),
+                                                        open_level)
     
     return output
 

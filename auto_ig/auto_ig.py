@@ -99,6 +99,8 @@ class AutoIG:
                     m.analyse_candle("MINUTE_30", p)    
             if m.get_update_cost("MINUTE_5",50)>0:
                 m.update_prices("MINUTE_5",50)
+            
+            # m.calculate_trailing("MINUTE_30")
 
 
             

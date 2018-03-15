@@ -187,7 +187,7 @@ class Market:
                             self.prices["MINUTE_30"][i] = new_5_min
                             
 
-                        if len(self.prices['MINUTE_30']) > 50:
+                        if len(self.prices['MINUTE_30']) > 100:
                             del self.prices['MINUTE_30'][0]
 
                         self.calculate_rsi('MINUTE_30')
@@ -216,7 +216,7 @@ class Market:
                 else:
                     self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE_5'])>50:
+                if len(self.prices['MINUTE_5'])>100:
                     del self.prices['MINUTE_5'][0]
                     
                 self.calculate_rsi('MINUTE_5')
@@ -517,45 +517,45 @@ class Market:
                 high_data_compile.append([high_data[0][p], high_data[1][p]]) 
                 low_data_compile.append([low_data[0][p], low_data[1][p]]) 
 
-                for i in range(price_len-5,price_len): 
+            for i in range(price_len-5,price_len): 
+            
+                high_data_seg = high_data_compile[i-20:i] 
+                low_data_seg = low_data_compile[i-20:i] 
                 
-                    high_data_seg = high_data_compile[i-20:i] 
-                    low_data_seg = low_data_compile[i-20:i] 
+                
+                highs = [] 
+                lows = [] 
+                for chunk in list(self.chunks(high_data_seg,4)): 
+                    # print(chunk) 
+                    h = max(chunk, key=lambda x:x[1][0]) 
+                    highs.append(h) 
+                
+                for chunk in list(self.chunks(low_data_seg,4)): 
+                    # print(chunk) 
+                    l = min(chunk,key=lambda x:x[1][0]) 
+                    lows.append(l) 
+    
+                # print("highs: {} {}".format(i, highs)) 
+                # print("lows: {} {}".format(i, lows)) 
+                h_x = [x[0] for x in highs] 
+                h_y = [y[1][0] for y in highs] 
+                l_x = [x[0] for x in lows] 
+                l_y = [y[1][0] for y in lows] 
+    
+    
+                h_p, h_m, h_c = self.perform_regression(h_x,h_y) 
+                l_p, l_m, l_c = self.perform_regression(l_x,l_y) 
+    
+                if h_m>0: 
+                    h_p = max(h_y) 
                     
                     
-                    highs = [] 
-                    lows = [] 
-                    for chunk in list(self.chunks(high_data_seg,4)): 
-                        # print(chunk) 
-                        h = max(chunk, key=lambda x:x[1][0]) 
-                        highs.append(h) 
+                if l_m<0: 
+                    l_p = min(l_y) 
                     
-                    for chunk in list(self.chunks(low_data_seg,4)): 
-                        # print(chunk) 
-                        l = min(chunk,key=lambda x:x[1][0]) 
-                        lows.append(l) 
-        
-                    # print("highs: {} {}".format(i, highs)) 
-                    # print("lows: {} {}".format(i, lows)) 
-                    h_x = [x[0] for x in highs] 
-                    h_y = [y[1][0] for y in highs] 
-                    l_x = [x[0] for x in lows] 
-                    l_y = [y[1][0] for y in lows] 
-        
-        
-                    h_p, h_m, h_c = self.perform_regression(h_x,h_y) 
-                    l_p, l_m, l_c = self.perform_regression(l_x,l_y) 
-        
-                    if h_m>0: 
-                        h_p = max(h_y) 
-                        
-                        
-                    if l_m<0: 
-                        l_p = min(l_y) 
-                        
-        
-                    self.prices[resolution][i]["high_trail"] = h_p 
-                    self.prices[resolution][i]["low_trail"] = l_p
+    
+                self.prices[resolution][i]["high_trail"] = h_p 
+                self.prices[resolution][i]["low_trail"] = l_p
 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
