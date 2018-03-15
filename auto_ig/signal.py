@@ -46,7 +46,7 @@ class Signal:
         self.comment = comment
 
         self.score = 1 #need to think of how to properly grade different signals - probably upon being confirmed?
-        timeout_multiplier = 2
+        timeout_multiplier = 5
         if self.type == "HAMMER":
             self.score = 0.75
         elif self.type == "CROSSOVER":
@@ -70,7 +70,7 @@ class Signal:
         if "_" in resolution:
             multiplier = int(resolution.split("_")[1])
             seconds_per_unit *= multiplier
-        seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 600
+        seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 1200
 
         self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S") + datetime.timedelta(seconds = seconds_per_unit)
         self.expiry_time = self.expiry_time.replace(tzinfo=datetime.timezone.utc)
