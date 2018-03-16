@@ -175,11 +175,7 @@ class Market:
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
                             
-                            price_len = len(self.prices['MINUTE_30'])
-                            # only want to analyse the last 4 price points (2 hrs)
-
-                            for p in range(price_len-4,price_len):
-                                self.analyse_candle('MINUTE_30', p)    
+                            
 
                             self.prices["MINUTE_30"].append(new_5_min)
 
@@ -208,7 +204,13 @@ class Market:
                         self.calculate_trailing('MINUTE_30')
                         self.calculate_trailing('MINUTE_5')
 
-                    
+                        price_len = len(self.prices['MINUTE_30'])
+                        # only want to analyse the last 4 price points (2 hrs)
+
+                        for p in range(price_len-4,price_len):
+                            self.detect_rvi("MINUTE_30",p)
+                        for p in range(price_len-1,price_len):
+                            self.detect_macd("MINUTE_30",p)
 
                     # if signal.update returns False, remove from list
                     for s in self.signals:
@@ -489,15 +491,17 @@ class Market:
 
     def add_signal(self,resolution, snapshot_time, position, signal_type, comment = "", confirmed = False ):
         """Add a signal to the market"""
-        matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type)]
-        # remove any previous rvi signals - new one superceeds them
-        if signal_type=="RVI":
-            rvi_signals = [x for x in self.signals if x.type == "RVI"]
-            for s in rvi_signals:
-                logger.info("{} removed previous rvi signal at: {}".format(self.epic,s.snapshot_time))
-                self.signals.remove(s)
+        matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type and x.action == position)]
+        
 
         if len(matching_signals)==0:
+            # remove any previous rvi signals - new one superceeds them
+            if signal_type=="RVI":
+                rvi_signals = [x for x in self.signals if x.type == "RVI"]
+                for s in rvi_signals:
+                    logger.info("{} removed previous rvi signal at: {}".format(self.epic,s.snapshot_time))
+                    self.signals.remove(s)
+
             self.signals.append(Signal(self.epic,resolution,snapshot_time,position,signal_type, comment, confirmed))
 
     # ********* Indicator calculations ***********
@@ -580,8 +584,6 @@ class Market:
         hist = np.subtract(rvi[:len(sig)],sig)
         rvi = rvi[len(rvi) - len(sig):]
 
-        logger.info("{} close_open:{},high_low:{},rvi:{},sig:{},hist:{}".format(
-            self.epic,len(close_open),len(high_low),len(rvi),len(sig),len(hist)))
         price_len = len(self.prices[resolution])
         diff = price_len - len(sig)
         
