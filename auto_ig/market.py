@@ -347,7 +347,6 @@ class Market:
         open_price = float(point['openPrice']['bid'])
         close_price = float(point['closePrice']['bid'])
         point['movement'] = close_price - open_price
-        print("candle p: {}".format(index))
         # self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
         # self.detect_crossover(resolution,index)
         self.detect_rvi(resolution,index)
