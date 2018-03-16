@@ -109,6 +109,20 @@ def show_signals():
 
     return output
 
+@app.route('/fill-signals')
+def fill_signals():
+    """back fill signals - useful for post deployment"""
+    auto_ig.fill_signals()
+
+    signals = auto_ig.get_signals()
+    output = "<p>Forced signal generation<ul>"
+    for signal in signals:
+        output += "<li>{} - {}: <b>{}</b> ({}) OK:<b>{}</b>, CONFIRM AT:{} UNUSED:{}, score:{}, comment: {}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused, signal.score, signal.comment)
+    
+    output += "</ul>"
+
+    return output
+
 
 @app.route('/login', methods = ['GET', 'POST'])
 def login():

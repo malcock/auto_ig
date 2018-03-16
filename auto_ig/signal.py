@@ -45,7 +45,7 @@ class Signal:
         self.score = 1 #need to think of how to properly grade different signals - probably upon being confirmed?
         timeout_multiplier = 1
         if self.type == "RVI":
-            timeout_multiplier = 12
+            timeout_multiplier = 15
             self.score = 1
         elif self.type == "MACD":
             self.score = 2

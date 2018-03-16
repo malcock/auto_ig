@@ -56,6 +56,33 @@ class AutoIG:
             signals = []
         return signals
 
+    def fill_signals(self):
+        for m in self.markets.values():
+            if m.get_update_cost("MINUTE_30",50)>0:
+                m.update_prices("MINUTE_30",50)
+            if m.get_update_cost("MINUTE_5",50)>0:
+                m.update_prices("MINUTE_5",50)
+
+            m.calculate_rsi('MINUTE_5')
+            m.calculate_rsi('MINUTE_30')
+            
+            m.calculate_macd('MINUTE_5')
+            m.calculate_macd('MINUTE_30')
+
+            
+            m.calculate_relative_vigor('MINUTE_5',10)
+            m.calculate_relative_vigor('MINUTE_30',10)
+            
+            m.calculate_trailing('MINUTE_5')
+            m.calculate_trailing('MINUTE_30')
+            
+
+            price_len = len(m.prices["MINUTE_30"])
+            for p in range(price_len-15,price_len):
+                m.analyse_candle("MINUTE_30", p)    
+
+
+
     def process(self,epic_ids):
         """Do the process"""
         timenow = datetime.datetime.now(datetime.timezone.utc)
