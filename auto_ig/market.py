@@ -347,13 +347,16 @@ class Market:
         open_price = float(point['openPrice']['bid'])
         close_price = float(point['closePrice']['bid'])
         point['movement'] = close_price - open_price
-
+        print("candle p: {}".format(index))
         # self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
         # self.detect_crossover(resolution,index)
         self.detect_rvi(resolution,index)
         self.detect_macd(resolution,index)
 
     def detect_rvi(self,resolution,index):
+        if index<20:
+            return
+        
         now = self.prices[resolution][index]['rvi_histogram']
         prev = self.prices[resolution][index-1]['rvi_histogram']
 
@@ -532,7 +535,68 @@ class Market:
             self.prices[resolution][i]['macd'] = macd[i]
             self.prices[resolution][i]['macd_histogram'] = self.prices[resolution][i]['macd'] - self.prices[resolution][i]['macd_signal']
     
-    def calculate_relative_vigor(self,resolution,N):
+    def calculate_relative_vigor2(self,resolution, N):
+        close_price = [x['closePrice']['bid'] for x in self.prices[resolution]]
+        open_price = [x['openPrice']['bid'] for x in self.prices[resolution]]
+        high_price = [x['highPrice']['bid'] for x in self.prices[resolution]]
+        low_price = [x['lowPrice']['bid'] for x in self.prices[resolution]]
+        close_open = list(map(operator.sub,close_price,open_price))
+        high_low = list(map(operator.sub,high_price,low_price))
+
+        rvi = np.divide(np.asarray(close_open),np.asarray(high_low))
+
+        rvi = self.simple_moving_average(rvi,10)
+        sig = self.simple_moving_average(rvi,4)
+        hist = np.subtract(rvi[:len(sig)],sig)
+
+        logger.info("{} close_open:{},high_low:{},rvi:{},sig:{},hist:{}".format(
+            self.epic,len(close_open),len(high_low),len(rvi),len(sig),len(hist)))
+        price_len = len(self.prices[resolution])
+        diff = price_len - len(sig)
+        for i in range(diff,price_len):
+            self.prices[resolution][i]['rvi'] = rvi[i-diff]
+            self.prices[resolution][i]['rvi_signal'] = sig[i-diff]
+            self.prices[resolution][i]['rvi_histogram'] = hist[i-diff]
+
+
+    def calculate_relative_vigor(self,resolution, N):
+        close_price = [x['closePrice']['bid'] for x in self.prices[resolution]]
+        open_price = [x['openPrice']['bid'] for x in self.prices[resolution]]
+        high_price = [x['highPrice']['bid'] for x in self.prices[resolution]]
+        low_price = [x['lowPrice']['bid'] for x in self.prices[resolution]]
+        close_open = list(map(operator.sub,close_price,open_price))
+
+        high_low = list(map(operator.sub,high_price,low_price))
+        
+        close_open = self.swma(close_open)
+        
+        high_low = self.swma(high_low)
+
+        close_open = self.rolling_sum(close_open,N)
+        high_low = self.rolling_sum(high_low,N)
+        
+
+        rvi = np.divide(close_open,high_low)
+        sig = self.swma(rvi)
+        hist = np.subtract(rvi[:len(sig)],sig)
+        rvi = rvi[len(rvi) - len(sig):]
+
+        logger.info("{} close_open:{},high_low:{},rvi:{},sig:{},hist:{}".format(
+            self.epic,len(close_open),len(high_low),len(rvi),len(sig),len(hist)))
+        price_len = len(self.prices[resolution])
+        diff = price_len - len(sig)
+        
+        for i in range(diff,price_len):
+            self.prices[resolution][i]['rvi'] = rvi[i-diff]
+            self.prices[resolution][i]['rvi_signal'] = sig[i-diff]
+            self.prices[resolution][i]['rvi_histogram'] = hist[i-diff]
+
+    def rolling_sum(self, a, n=4) :
+        ret = np.cumsum(a, dtype=float)
+        ret[n:] = ret[n:] - ret[:-n]
+        return ret[n - 1:]
+
+    def calc_rvi(self,resolution,N):
         try:
             for p in self.prices[resolution]:
                 # p['rvi'] = (float(p['closePrice']['bid']) – float(p['openPrice']['bid'])) / (float(p['highPrice']['bid']) – float(p['lowPrice']['bid']))
@@ -551,6 +615,27 @@ class Market:
             pass
 
 
+    def sum(self,x,N):
+        return np.sum(self.rolling_window(x,N))
+
+
+    def swma(self,x):
+        a = np.asarray(x)
+        roll = self.rolling_window(a,4)
+        # print(roll)
+        return np.average(roll,axis=1,weights= [1/6, 2/6, 2/6, 1/6])
+
+    def rolling_window(self,a, window):
+        shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+        strides = a.strides + (a.strides[-1],)
+        return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+
+    def simple_moving_average(self, x, N, name=None):
+        cumsum = np.cumsum(np.insert(x, 0, 0)) 
+        return (cumsum[N:] - cumsum[:-N]) / float(N)
+
+
+    
     def calculate_trailing(self, resolution):
         # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
         # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
@@ -673,9 +758,9 @@ class Market:
         out = offset + cumsums*scale_arr[::-1]
         return out
 
-    def simple_moving_average(self, x, N, name=None):
-        cumsum = np.cumsum(np.insert(x, 0, 0)) 
-        return (cumsum[N:] - cumsum[:-N]) / float(N)
+    
+
+    
 
     def exponential_average(self, resolution, window, values= None, name = None):
         if values is None:

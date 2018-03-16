@@ -100,7 +100,7 @@ class AutoIG:
             if m.get_update_cost("MINUTE_5",50)>0:
                 m.update_prices("MINUTE_5",50)
             
-            # m.calculate_trailing("MINUTE_30")
+            # m.calculate_relative_vigor("MINUTE_30",10)
 
 
             
