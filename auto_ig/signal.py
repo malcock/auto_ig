@@ -43,7 +43,7 @@ class Signal:
         self.comment = comment
 
         self.score = 1 #need to think of how to properly grade different signals - probably upon being confirmed?
-        timeout_multiplier = 6
+        timeout_multiplier = 1
         if self.type == "RVI":
             timeout_multiplier = 12
             self.score = 1
