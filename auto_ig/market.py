@@ -581,8 +581,9 @@ class Market:
 
         rvi = np.divide(close_open,high_low)
         sig = self.swma(rvi)
-        hist = np.subtract(rvi[:len(sig)],sig)
         rvi = rvi[len(rvi) - len(sig):]
+        hist = np.subtract(rvi,sig)
+        
 
         price_len = len(self.prices[resolution])
         diff = price_len - len(sig)
