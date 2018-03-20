@@ -41,6 +41,7 @@ class AutoIG:
         self.max_concurrent_trades = 6
         self.lightstream = {}
         self.key = ""
+        self.is_open = True
 
     def make_trade(self, size, market, prediction, json_data = None):
         """Make a new trade"""
@@ -69,6 +70,8 @@ class AutoIG:
             m.calculate_macd('MINUTE_5')
             m.calculate_macd('MINUTE_30')
 
+            m.average_true_range('MINUTE_5')
+            m.average_true_range('MINUTE_30')
             
             m.calculate_relative_vigor('MINUTE_5',10)
             m.calculate_relative_vigor('MINUTE_30',10)
@@ -88,7 +91,34 @@ class AutoIG:
     def process(self,epic_ids):
         """Do the process"""
         timenow = datetime.datetime.now(datetime.timezone.utc)
-        
+
+        if timenow.weekday() == 5:
+            return False, "We don't play on weekends"
+
+        if timenow.weekday() == 4:
+            if timenow.time() > datetime.time(21):
+                # close for the weekend
+                if self.is_open:
+                    if isinstance(self.lightstream, LSClient):
+                        self.lightstream.unsubscribe_all()
+                    
+                    self.lightstream = {}
+
+                    for m in self.markets.values():
+                        m.prices = {}
+                        m.save_prices()
+
+                    self.is_open = False
+                return False, "Markets closed on Friday"
+
+        if timenow.weekday() ==6:
+            if timenow.time() > datetime.time(21):
+                if not self.is_open:
+                    self.is_open = True
+            else:
+                return False, "Market still closed on Sunday"
+
+
         self.update_markets(epic_ids)
 
 
@@ -131,10 +161,6 @@ class AutoIG:
             # m.calculate_relative_vigor("MINUTE_30",10)
 
 
-            
-            
-        
-
         open_lightstreamer = False
 
         # lets try to open a trade i guess? change
@@ -168,14 +194,14 @@ class AutoIG:
                             if len(self.trades)<self.max_concurrent_trades:
                                 
                                 # do some time checks before opening new trades
-                                if timenow.weekday() > 4:
-                                    return False, "We don't play on weekends"
+                                # if timenow.weekday() > 4:
+                                #     return False, "We don't play on weekends"
 
-                                if timenow.weekday() == 0 and timenow.hour < 1:
-                                    return False, "Waiting for market to stabilise after weekend"
+                                # if timenow.weekday() == 0 and timenow.hour < 1:
+                                #     return False, "Waiting for market to stabilise after weekend"
 
-                                if timenow.weekday() == 4 and timenow.hour > 19:
-                                    return False, "Too late to open new trades on a Friday"
+                                # if timenow.weekday() == 4 and timenow.hour > 22:
+                                #     return False, "Too late to open new trades on a Friday"
                                 
 
                                 signal.unused = False

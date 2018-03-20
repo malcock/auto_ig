@@ -60,10 +60,16 @@ class Market:
         self.net_change = obj['snapshot']['netChange']
         self.market_status = obj['snapshot']['marketStatus']
 
+        # if this market isn't tradeable, remove all price data - it's a dawn of a brand new day!
+        if not self.market_status=="TRADEABLE":
+            self.prices = {}
+            self.save_prices()
+
+
     def make_prediction(self, signal):
 
-        self.update_prices("HOUR",30)
-        low_range, max_range = self.average_true_range("HOUR")
+        # self.update_prices("MINUTE_30",30)
+        low_range, max_range, atr_latest = self.average_true_range("MINUTE_30")
 
         if signal.action == "BUY":
             # GO LONG
@@ -85,6 +91,7 @@ class Market:
             "direction_to_compare" : DIRECTION_TO_COMPARE,
             "atr_low" : low_range,
             "atr_max" : max_range,
+            "atr_latest": atr_latest,
             "stoploss" : min(max_range,35),
             "limit_distance" : 12,
             "support" : support,
@@ -118,9 +125,13 @@ class Market:
         max_range = max(tr_prices)
         low_range = min(tr_prices)
 
+        atr = np.mean(self.rolling_window(tr_prices,14))
+        diff = len(self.prices[res]) - len(atr)
+        for i in range(diff,len(self.prices[res])):
+            self.prices[res][i] = atr[i-diff]
         # low_range = max(low_range,3)
 
-        return int(low_range), int(max_range)
+        return int(low_range), int(max_range), atr[-1]
 
     def set_latest_price(self,values):
         # if self.ready:
@@ -188,18 +199,20 @@ class Market:
                             self.prices["MINUTE_30"][i] = new_5_min
                             
 
-                        if len(self.prices['MINUTE_30']) > 100:
+                        if len(self.prices['MINUTE_30']) > 75:
                             del self.prices['MINUTE_30'][0]
 
                         self.calculate_rsi('MINUTE_30')
                         
 
                         self.calculate_macd('MINUTE_30')
-
                         self.calculate_macd('MINUTE_5')
 
                         self.calculate_relative_vigor('MINUTE_30',10)
                         self.calculate_relative_vigor('MINUTE_5',10)
+
+                        self.average_true_range('MINUTE_30')
+                        self.average_true_range('MINUTE_5')
 
                         self.calculate_trailing('MINUTE_30')
                         self.calculate_trailing('MINUTE_5')
@@ -222,7 +235,7 @@ class Market:
                 else:
                     self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE_5'])>100:
+                if len(self.prices['MINUTE_5'])>75:
                     del self.prices['MINUTE_5'][0]
                     
                 self.calculate_rsi('MINUTE_5')
@@ -538,29 +551,6 @@ class Market:
             self.prices[resolution][i]['macd'] = macd[i]
             self.prices[resolution][i]['macd_histogram'] = self.prices[resolution][i]['macd'] - self.prices[resolution][i]['macd_signal']
     
-    def calculate_relative_vigor2(self,resolution, N):
-        close_price = [x['closePrice']['bid'] for x in self.prices[resolution]]
-        open_price = [x['openPrice']['bid'] for x in self.prices[resolution]]
-        high_price = [x['highPrice']['bid'] for x in self.prices[resolution]]
-        low_price = [x['lowPrice']['bid'] for x in self.prices[resolution]]
-        close_open = list(map(operator.sub,close_price,open_price))
-        high_low = list(map(operator.sub,high_price,low_price))
-
-        rvi = np.divide(np.asarray(close_open),np.asarray(high_low))
-
-        rvi = self.simple_moving_average(rvi,10)
-        sig = self.simple_moving_average(rvi,4)
-        hist = np.subtract(rvi[:len(sig)],sig)
-
-        logger.info("{} close_open:{},high_low:{},rvi:{},sig:{},hist:{}".format(
-            self.epic,len(close_open),len(high_low),len(rvi),len(sig),len(hist)))
-        price_len = len(self.prices[resolution])
-        diff = price_len - len(sig)
-        for i in range(diff,price_len):
-            self.prices[resolution][i]['rvi'] = rvi[i-diff]
-            self.prices[resolution][i]['rvi_signal'] = sig[i-diff]
-            self.prices[resolution][i]['rvi_histogram'] = hist[i-diff]
-
 
     def calculate_relative_vigor(self,resolution, N):
         close_price = [x['closePrice']['bid'] for x in self.prices[resolution]]
@@ -597,24 +587,6 @@ class Market:
         ret = np.cumsum(a, dtype=float)
         ret[n:] = ret[n:] - ret[:-n]
         return ret[n - 1:]
-
-    def calc_rvi(self,resolution,N):
-        try:
-            for p in self.prices[resolution]:
-                # p['rvi'] = (float(p['closePrice']['bid']) – float(p['openPrice']['bid'])) / (float(p['highPrice']['bid']) – float(p['lowPrice']['bid']))
-                p['rvi'] = (float(p['closePrice']['bid']) - float(p['openPrice']['bid'])) / (float(p['highPrice']['bid']) - float(p['lowPrice']['bid']))
-                
-            sma = self.simple_moving_average([x['rvi'] for x in self.prices[resolution]],N)
-            print("{} {} {}".format(self.epic,len(self.prices[resolution]),len(sma)))
-            for i in range(N,len(self.prices[resolution])):
-                self.prices[resolution][i]['rvi_signal'] = sma[i-N]
-                self.prices[resolution][i]['rvi_histogram'] = self.prices[resolution][i]['rvi'] - self.prices[resolution][i]['rvi_signal']
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.info(exc_type, fname, exc_tb.tb_lineno,exc_obj)
-            logger.info("{} RVI calc failed - will probably be fine next time".format(self.epic))
-            pass
 
 
     def sum(self,x,N):
