@@ -206,7 +206,7 @@ class Trade:
                     self.pip_max = self.pip_diff
 
                 self.trailing_level = max(self.pip_max-5,trail)
-                self.trailing_level = max(1.1,self.trailing_level)
+                self.trailing_level = max(1.1,trail)
 
                 if self.trailing_stop:
 
