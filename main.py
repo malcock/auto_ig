@@ -172,7 +172,7 @@ def get_prices(epic,res):
                                                         p.get('rvi',''),
                                                         p.get('rvi_signal',''),
                                                         p.get('rvi_histogram',''),
-                                                        p.get('atr','')
+                                                        p.get('atr',''),
                                                         open_level)
     
     return output
