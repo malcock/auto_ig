@@ -128,7 +128,7 @@ class Market:
         atr = np.mean(self.rolling_window(np.asarray(tr_prices),14))
         diff = len(self.prices[res]) - len(atr)
         for i in range(diff,len(self.prices[res])):
-            self.prices[res][i] = atr[i-diff]
+            self.prices[res][i]['atr'] = atr[i-diff]
         # low_range = max(low_range,3)
 
         return int(low_range), int(max_range), atr[-1]
