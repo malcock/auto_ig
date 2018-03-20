@@ -419,9 +419,9 @@ class Market:
         if len(rvi_sigs)>0:
             r = self.prices[resolution][-1]['rsi']
             yes = False
-            if r > 57 and position=="BUY":
+            if r > 54 and position=="BUY":
                 yes = True
-            if r < 43 and position=="SELL":
+            if r < 46 and position=="SELL":
                 yes = True
             if yes:
                 confirmed = True
