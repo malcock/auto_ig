@@ -70,20 +70,24 @@ class Market:
 
         # self.update_prices("MINUTE_30",30)
         low_range, max_range, atr_latest = self.average_true_range("MINUTE_30")
-
+        stop = 0
         if signal.action == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
             DIRECTION_TO_CLOSE = "SELL"
             DIRECTION_TO_COMPARE = 'bid'
+            stop = abs(self.bid - self.prices[signal.resolution][-2]['lowPrice']['bid'])
+
         else:
             # GO SHORT!
             DIRECTION_TO_TRADE = "SELL"
             DIRECTION_TO_CLOSE = "BUY"
             DIRECTION_TO_COMPARE = 'offer'
+            stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
 
         support = 0
         resistance = 0
+        
         # prepare the trade info object to pass back
         prediction_object = {
             "direction_to_trade" : DIRECTION_TO_TRADE,
@@ -92,7 +96,7 @@ class Market:
             "atr_low" : low_range,
             "atr_max" : max_range,
             "atr_latest": atr_latest,
-            "stoploss" : min(max_range,35),
+            "stoploss" : stop,
             "limit_distance" : 12,
             "support" : support,
             "resistance" : resistance,
@@ -413,8 +417,17 @@ class Market:
         rvi_sigs = sorted([x for x in self.signals if (x.type=="RVI" and x.action==position)], key=operator.attrgetter('snapshot_time'), reverse=True)
         confirmed = False
         if len(rvi_sigs)>0:
-            confirmed = True
-            comment = "MACD confirmed by RVI at {}".format(rvi_sigs[0].snapshot_time)
+            r = self.prices[resolution][-1]['rsi']
+            yes = False
+            if r > 57 and position=="BUY":
+                yes = True
+            if r < 43 and position=="SELL":
+                yes = True
+            if yes:
+                confirmed = True
+                comment = "MACD confirmed by RSI {} RVI at {}".format(r,rvi_sigs[0].snapshot_time)
+            else:
+                comment = "MACD only confirmed by RVI at {}".format(rvi_sigs[0].snapshot_time)
             
 
         self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",comment,confirmed)
@@ -682,7 +695,7 @@ class Market:
         for i in range(0, len(l), n):
             yield l[i:i + n]
 
-    def calculate_rsi(self, resolution, n=14):
+    def calculate_rsi(self, resolution, n=7):
         """Calculate the RSI"""
         prices = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
 
