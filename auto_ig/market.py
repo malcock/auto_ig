@@ -383,7 +383,7 @@ class Market:
             # no cross over, don't continue - we may want to expand this later for predicting 
             return
 
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RVI",delta,"")
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RVI",delta,"delta:{}".format(delta))
         
     def detect_macd(self, resolution, index):
         """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
@@ -528,7 +528,7 @@ class Market:
         
         if percent < 0.55:
             if percent * delta < 0.5:
-                logger.info("SIGNAL? Found {} signal, but delta {} wasn't strong enough at this time {}".format(signal_type,delta,now.strftime('"%Y:%m:%d-%H:%M:%S"')))
+                logger.info("SIGNAL? {} Found {} signal, but delta {} wasn't strong enough at this time {}".format(self.epic,signal_type,delta,now.strftime('"%Y:%m:%d-%H:%M:%S"')))
                 return
 
         if len(matching_signals)==0:
