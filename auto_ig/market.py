@@ -189,18 +189,7 @@ class Market:
 
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
-                            self.calculate_rsi('MINUTE_30')
-                            self.calculate_macd('MINUTE_30')
-                            self.calculate_relative_vigor('MINUTE_30',10)
-                            self.average_true_range('MINUTE_30')
-                            self.calculate_trailing('MINUTE_30')
-                            price_len = len(self.prices['MINUTE_30'])
-                            # only want to analyse the last 4 price points (2 hrs)
-
-                            for p in range(price_len-4,price_len):
-                                self.detect_rvi("MINUTE_30",p)
-                            for p in range(price_len-1,price_len):
-                                self.detect_macd("MINUTE_30",p)
+                            
 
                             self.prices["MINUTE_30"].append(new_5_min)
 
@@ -216,19 +205,23 @@ class Market:
                         if len(self.prices['MINUTE_30']) > 75:
                             del self.prices['MINUTE_30'][0]
 
-                        
-                        
-
-                        
                         self.calculate_macd('MINUTE_5')
-
                         self.calculate_relative_vigor('MINUTE_5',10)
-
-                        
                         self.average_true_range('MINUTE_5')
-
-                        
                         self.calculate_trailing('MINUTE_5')
+
+                        self.calculate_rsi('MINUTE_30')
+                        self.calculate_macd('MINUTE_30')
+                        self.calculate_relative_vigor('MINUTE_30',10)
+                        self.average_true_range('MINUTE_30')
+                        self.calculate_trailing('MINUTE_30')
+                        price_len = len(self.prices['MINUTE_30'])
+                        # only want to analyse the last 4 price points (2 hrs)
+
+                        for p in range(price_len-4,price_len):
+                            self.detect_rvi("MINUTE_30",p)
+                        for p in range(price_len-1,price_len):
+                            self.detect_macd("MINUTE_30",p)
 
                         
 
@@ -380,6 +373,7 @@ class Market:
         
         now = self.prices[resolution][index]['rvi_histogram']
         prev = self.prices[resolution][index-1]['rvi_histogram']
+        delta = abs(prev - now)
 
         if now > 0 and prev < 0:
             position = "BUY"
@@ -389,7 +383,7 @@ class Market:
             # no cross over, don't continue - we may want to expand this later for predicting 
             return
 
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RVI","")
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RVI",delta,"")
         
     def detect_macd(self, resolution, index):
         """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
@@ -409,6 +403,9 @@ class Market:
         else:
             # no cross over, don't continue - we may want to expand this later for predicting 
             return
+
+        delta = abs(prev - now)
+
         last_rsi = [x['rsi'] for x in self.prices[resolution][index-10:index]]
         prev_rsi = sum(last_rsi)/len(last_rsi)
         
@@ -430,7 +427,7 @@ class Market:
                 comment = "MACD only confirmed by RVI at {} but not RSI {}".format(rvi_sigs[0].snapshot_time,r)
             
 
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",comment,confirmed)
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",delta,comment,confirmed)
 
         
         # is_strong = False
@@ -458,70 +455,81 @@ class Market:
         
         
 
-    def detect_crossover(self, resolution, index):
-        """Detect a crossover of the ema_12 and ema_26 data"""
-        now_diff = self.prices[resolution][index]['ema_12'] - self.prices[resolution][index]['ema_26']
-        prev_diff = self.prices[resolution][index-1]['ema_12'] - self.prices[resolution][index-1]['ema_26']
+    # def detect_crossover(self, resolution, index):
+    #     """Detect a crossover of the ema_12 and ema_26 data"""
+    #     now_diff = self.prices[resolution][index]['ema_12'] - self.prices[resolution][index]['ema_26']
+    #     prev_diff = self.prices[resolution][index-1]['ema_12'] - self.prices[resolution][index-1]['ema_26']
         
-        position = None
-        if now_diff>0 and prev_diff<0:
-            position = "BUY"
+    #     position = None
+    #     if now_diff>0 and prev_diff<0:
+    #         position = "BUY"
         
-        if now_diff<0 and prev_diff>0:
-            position = "SELL"
+    #     if now_diff<0 and prev_diff>0:
+    #         position = "SELL"
 
-        if position is None:
-            return
+    #     if position is None:
+    #         return
 
-        comment = "prev:{}, now: {}".format(prev_diff,now_diff)
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",comment)
+    #     comment = "prev:{}, now: {}".format(prev_diff,now_diff)
+    #     self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",comment)
         
 
-    def detect_hammer(self, resolution, index, high_price, low_price, open_price, close_price):
-        """Detect a hammer candlestick"""
-        point = self.prices[resolution][index]
-        size = high_price - low_price
-        if size ==0:
-            return
-        body_top = max(open_price, close_price)
-        body_bottom = min(open_price, close_price)
-        body_size = body_top - body_bottom
-        top_shadow = (high_price - body_top)/size
-        bottom_shadow = (body_bottom - low_price)/size
-        big_shadow = max(top_shadow,bottom_shadow)
-        small_shadow = min(top_shadow, bottom_shadow)
-        body_percent = body_size/size
-        if (body_percent<0.40 and big_shadow>small_shadow*1.25):
-            # possible hammer detected, decide initial signal position
-            position = "BUY"
-            if point['ema_12'] > point['ema_26']:
-                position = "SELL"
+    # def detect_hammer(self, resolution, index, high_price, low_price, open_price, close_price):
+    #     """Detect a hammer candlestick"""
+    #     point = self.prices[resolution][index]
+    #     size = high_price - low_price
+    #     if size ==0:
+    #         return
+    #     body_top = max(open_price, close_price)
+    #     body_bottom = min(open_price, close_price)
+    #     body_size = body_top - body_bottom
+    #     top_shadow = (high_price - body_top)/size
+    #     bottom_shadow = (body_bottom - low_price)/size
+    #     big_shadow = max(top_shadow,bottom_shadow)
+    #     small_shadow = min(top_shadow, bottom_shadow)
+    #     body_percent = body_size/size
+    #     if (body_percent<0.40 and big_shadow>small_shadow*1.25):
+    #         # possible hammer detected, decide initial signal position
+    #         position = "BUY"
+    #         if point['ema_12'] > point['ema_26']:
+    #             position = "SELL"
             
-            # now check backwards to see if it's part of a trend
-            trend_check = self.prices[resolution][index-10:index]
-            trend_ok = True
-            for p in trend_check:
+    #         # now check backwards to see if it's part of a trend
+    #         trend_check = self.prices[resolution][index-10:index]
+    #         trend_ok = True
+    #         for p in trend_check:
  
-                p_position = "BUY"
-                if p['ema_12'] > p['ema_26']:
-                    p_position = "SELL"
-                if position != p_position:
-                    trend_ok = False
-                    break
+    #             p_position = "BUY"
+    #             if p['ema_12'] > p['ema_26']:
+    #                 p_position = "SELL"
+    #             if position != p_position:
+    #                 trend_ok = False
+    #                 break
             
-            if trend_ok:
-                if position=="BUY":
-                    confirmation_price = body_top + (big_shadow*size)
-                else:
-                    confirmation_price = body_bottom - (big_shadow*size)
+    #         if trend_ok:
+    #             if position=="BUY":
+    #                 confirmation_price = body_top + (big_shadow*size)
+    #             else:
+    #                 confirmation_price = body_bottom - (big_shadow*size)
 
-                comment = "o:{}, c:{}, h:{}, l:{}".format(open_price,close_price,high_price,low_price)
-                self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",comment,round(confirmation_price,2))
+    #             comment = "o:{}, c:{}, h:{}, l:{}".format(open_price,close_price,high_price,low_price)
+    #             self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",comment,round(confirmation_price,2))
 
-    def add_signal(self,resolution, snapshot_time, position, signal_type, comment = "", confirmed = False ):
+    def add_signal(self,resolution, snapshot_time, position, signal_type, delta, comment = "", confirmed = False ):
         """Add a signal to the market"""
-        matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type and x.action == position)]
+
+        snap_start = datetime.datetime.strptime(snapshot_time, "%Y:%m:%d-%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
+
+        diff = now - snap_start
+        percent = (diff.seconds/60) / 30
+
+        matching_signals = [x for x in self.signals if (x.snapshot_time == snapshot_time and x.type==signal_type)]
         
+        if percent < 0.55:
+            if percent * delta < 0.5:
+                logger.info("SIGNAL? Found {} signal, but delta {} wasn't strong enough at this time {}".format(signal_type,delta,now.strftime('"%Y:%m:%d-%H:%M:%S"')))
+                return
 
         if len(matching_signals)==0:
             # remove any previous rvi signals - new one superceeds them
