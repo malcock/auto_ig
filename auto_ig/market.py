@@ -419,15 +419,15 @@ class Market:
         if len(rvi_sigs)>0:
             r = self.prices[resolution][-1]['rsi']
             yes = False
-            if r > 54 and position=="BUY":
+            if r > 52.5 and position=="BUY":
                 yes = True
-            if r < 46 and position=="SELL":
+            if r < 47.5 and position=="SELL":
                 yes = True
             if yes:
                 confirmed = True
                 comment = "MACD confirmed by RSI {} RVI at {}".format(r,rvi_sigs[0].snapshot_time)
             else:
-                comment = "MACD only confirmed by RVI at {}".format(rvi_sigs[0].snapshot_time)
+                comment = "MACD only confirmed by RVI at {} but not RSI {}".format(rvi_sigs[0].snapshot_time,r)
             
 
         self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",comment,confirmed)
