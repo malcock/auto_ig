@@ -47,6 +47,8 @@ class Signal:
         if self.type == "RVI":
             timeout_multiplier = 25
             self.score = 1
+        elif self.type == "MA":
+            self.score = 2
         elif self.type == "MACD":
             self.score = 2
             if self.confirmed:

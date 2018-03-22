@@ -59,10 +59,14 @@ class AutoIG:
 
     def fill_signals(self):
         for m in self.markets.values():
-            if m.get_update_cost("MINUTE_30",50)>0:
-                m.update_prices("MINUTE_30",50)
-            if m.get_update_cost("MINUTE_5",50)>0:
-                m.update_prices("MINUTE_5",50)
+            if m.get_update_cost("MINUTE_30",75)>0:
+                m.update_prices("MINUTE_30",75)
+            if m.get_update_cost("MINUTE_5",75)>0:
+                m.update_prices("MINUTE_5",75)
+
+            m.moving_average('MINUTE_5',50)
+            m.moving_average('MINUTE_30',50)
+            
 
             m.calculate_rsi('MINUTE_5')
             m.calculate_rsi('MINUTE_30')
@@ -84,7 +88,8 @@ class AutoIG:
             for p in range(price_len-15,price_len):
                 m.detect_rvi("MINUTE_30",p)
             for p in range(price_len-1,price_len):
-                m.detect_macd("MINUTE_30",p)
+                m.detect_macd_0("MINUTE_30",p)
+                m.detect_ma50_cross('MINUTE_30',p)
 
 
 
@@ -150,13 +155,12 @@ class AutoIG:
 
         
         for m in self.markets.values():
-            if m.get_update_cost("MINUTE_30",50)>0:
-                m.update_prices("MINUTE_30",50)
+            if m.get_update_cost("MINUTE_30",75)>0:
+                m.update_prices("MINUTE_30",75)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
-                price_len = len(m.prices["MINUTE_30"])
                 self.fill_signals()
-            if m.get_update_cost("MINUTE_5",50)>0:
-                m.update_prices("MINUTE_5",50)
+            if m.get_update_cost("MINUTE_5",75)>0:
+                m.update_prices("MINUTE_5",75)
             
             # m.calculate_relative_vigor("MINUTE_30",10)
 

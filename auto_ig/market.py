@@ -189,7 +189,20 @@ class Market:
 
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_5), None)
                         if i==None:
-                            
+                            self.moving_average('MINUTE_30',50)
+                            self.calculate_rsi('MINUTE_30')
+                            self.calculate_macd('MINUTE_30')
+                            self.calculate_relative_vigor('MINUTE_30',10)
+                            self.average_true_range('MINUTE_30')
+                            self.calculate_trailing('MINUTE_30')
+                            price_len = len(self.prices['MINUTE_30'])
+                            # only want to analyse the last 4 price points (2 hrs)
+
+                            for p in range(price_len-4,price_len):
+                                self.detect_rvi("MINUTE_30",p)
+                            for p in range(price_len-1,price_len):
+                                self.detect_macd_0("MINUTE_30",p)
+                                self.detect_ma50_cross('MINUTE_30',p)
 
                             self.prices["MINUTE_30"].append(new_5_min)
 
@@ -210,18 +223,13 @@ class Market:
                         self.average_true_range('MINUTE_5')
                         self.calculate_trailing('MINUTE_5')
 
+                        self.moving_average('MINUTE_30',50)
                         self.calculate_rsi('MINUTE_30')
                         self.calculate_macd('MINUTE_30')
                         self.calculate_relative_vigor('MINUTE_30',10)
                         self.average_true_range('MINUTE_30')
                         self.calculate_trailing('MINUTE_30')
-                        price_len = len(self.prices['MINUTE_30'])
-                        # only want to analyse the last 4 price points (2 hrs)
 
-                        for p in range(price_len-4,price_len):
-                            self.detect_rvi("MINUTE_30",p)
-                        for p in range(price_len-1,price_len):
-                            self.detect_macd("MINUTE_30",p)
 
                         
 
@@ -384,7 +392,50 @@ class Market:
             return
 
         self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RVI",delta,"delta:{}".format(delta))
-        
+    
+    def detect_ma50_cross(self,resolution,index):
+        """detect if candle is above/below ma_50"""
+        now = self.prices[resolution][index]
+        prev = self.prices[resolution][index - 1]
+
+        if now['openPrice']['bid'] > now['ma_50'] and now['closePrice']['bid'] > now['ma_50']:
+            if prev['openPrice']['bid'] < now['ma_50'] or prev['closePrice']['bid'] <  now['ma_50']:
+                position = "BUY"
+            else:
+                return
+        elif now['openPrice']['bid'] < now['ma_50'] and now['closePrice']['bid'] < now['ma_50']:
+            if prev['openPrice']['bid'] > now['ma_50'] or prev['closePrice']['bid'] >  now['ma_50']:
+                position = "SELL"
+            else:
+                return
+        else:
+            return
+
+        delta = 0
+        comment = "Moving average crossed by candle"
+
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MA",delta,comment)
+
+
+
+    def detect_macd_0(self,resolution, index):
+        """detects the macd line cross 0"""
+        now = self.prices[resolution][index]['macd']
+        prev = self.prices[resolution][index-1]['macd']
+
+        if now > 0 and prev < 0:
+            position = "BUY"
+        elif now < 0 and prev > 0:
+            position = "SELL"
+        else:
+            return
+
+        delta = abs(prev - now)
+
+        comment = "MACD 0 Crossover"
+        confirmed = True
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",delta,comment,confirmed)
+
     def detect_macd(self, resolution, index):
         """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
         
@@ -757,6 +808,25 @@ class Market:
         return out
 
     
+    def moving_average(self,resolution, window, values = None, name = None):
+        if values is None:
+            values = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
+        else:
+            values = np.asarray(values)
+
+        a  = np.mean(self.rolling_window(values,window),axis=1)
+
+        if name is None:
+            name = "ma_{}".format(window)
+
+        price_len = len(self.prices[resolution])
+        diff = price_len - len(a)
+        
+        for i in range(diff,price_len):
+            self.prices[resolution][i][name] = a[i-diff]
+        
+
+        return a
 
     
 
