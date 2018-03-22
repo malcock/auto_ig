@@ -76,14 +76,16 @@ class Market:
             DIRECTION_TO_TRADE = "BUY"
             DIRECTION_TO_CLOSE = "SELL"
             DIRECTION_TO_COMPARE = 'bid'
-            stop = abs(self.bid - self.prices[signal.resolution][-2]['lowPrice']['bid'])
+            low = min([x['lowPrice']['bid'] for x in self.prices[signal.resolution][:-5]])
+            stop = abs(self.bid - low)
 
         else:
             # GO SHORT!
             DIRECTION_TO_TRADE = "SELL"
             DIRECTION_TO_CLOSE = "BUY"
             DIRECTION_TO_COMPARE = 'offer'
-            stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
+            high = min([x['highPrice']['ask'] for x in self.prices[signal.resolution][:-5]])
+            stop = abs(high - self.offer)
 
         support = 0
         resistance = 0

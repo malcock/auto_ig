@@ -156,7 +156,7 @@ def get_prices(epic,res):
     prices = auto_ig.markets[epic].prices[res]
     output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd,macd_signal, macd_histogram, high_trail, low_trail, rvi, rvi_signal, rvi_histogram, atr, ma_50, trade_open \r\n"
     for p in prices:
-        output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
+        output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
                                                         p['openPrice']['bid'],
                                                         p['closePrice']['bid'],

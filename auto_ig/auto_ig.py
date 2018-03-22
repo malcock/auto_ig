@@ -87,7 +87,7 @@ class AutoIG:
             price_len = len(m.prices["MINUTE_30"])
             for p in range(price_len-15,price_len):
                 m.detect_rvi("MINUTE_30",p)
-            for p in range(price_len-1,price_len):
+            for p in range(price_len-2,price_len):
                 m.detect_macd_0("MINUTE_30",p)
                 m.detect_ma50_cross('MINUTE_30',p)
 
@@ -190,7 +190,7 @@ class AutoIG:
                 logger.info("{} signals found for market".format(len(market_signals)))
                 for signal in market_signals:
                     # only try spread on market is tight enough
-                    if market.spread<5:
+                    if market.spread<10:
                         # check if this market already has trades open
                         current_trades = [x for x in self.trades if x.market==market]
                         if len(current_trades)==0 and signal.score>2 and signal.confirmed:
