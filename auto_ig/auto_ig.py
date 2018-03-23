@@ -227,7 +227,8 @@ class AutoIG:
                                 else:
                                     
                                     t.assess_close(signal)
-                                    signal.unused = False
+                                    if signal.type != "MACD":
+                                        signal.unused = False
                                     signal.score-=1
                     else:
                         signal.unused = False
