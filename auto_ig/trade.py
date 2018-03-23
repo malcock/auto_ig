@@ -170,8 +170,8 @@ class Trade:
 
                     if last_minute['closePrice']['ask'] < self.best_minute['closePrice']['ask']:
                         if last_minute['rsi'] > self.best_minute['rsi'] and self.trailing_stop==False:
-                            self.log_status("Lower price without lower RSI - triggering trailing stop at {} ".format(self.pip_diff))
-                            self.trailing_stop = True
+                            # self.log_status("Lower price without lower RSI - triggering trailing stop at {} ".format(self.pip_diff))
+                            # self.trailing_stop = True
                             pass
                         else:
                             self.best_minute = last_minute.copy()
@@ -183,8 +183,8 @@ class Trade:
 
                     if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid'] and self.trailing_stop==False:
                         if last_minute['rsi'] < self.best_minute['rsi']:
-                            self.log_status("Higher price without higher RSI - triggering trailing stop at {}".format(self.pip_diff))
-                            self.trailing_stop = True
+                            # self.log_status("Higher price without higher RSI - triggering trailing stop at {}".format(self.pip_diff))
+                            # self.trailing_stop = True
                             pass
                         else:
                             self.best_minute = last_minute.copy()
