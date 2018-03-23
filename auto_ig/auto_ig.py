@@ -85,10 +85,10 @@ class AutoIG:
             
 
             price_len = len(m.prices["MINUTE_30"])
-            for p in range(price_len-15,price_len):
+            for p in range(price_len-30,price_len):
                 m.detect_rvi("MINUTE_30",p)
             for p in range(price_len-2,price_len):
-                m.detect_macd_0("MINUTE_30",p)
+                m.detect_macd("MINUTE_30",p)
                 m.detect_ma50_cross('MINUTE_30',p)
 
 

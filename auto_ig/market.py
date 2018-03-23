@@ -77,7 +77,10 @@ class Market:
             DIRECTION_TO_CLOSE = "SELL"
             DIRECTION_TO_COMPARE = 'bid'
             low = min([x['lowPrice']['bid'] for x in self.prices[signal.resolution][:-5]])
-            stop = abs(self.bid - low)
+            stop = abs(self.bid - high)
+            stop = abs(self.bid - self.prices[signal.resolution][-2]['lowPrice']['bid'])
+
+            
 
         else:
             # GO SHORT!
@@ -86,6 +89,7 @@ class Market:
             DIRECTION_TO_COMPARE = 'offer'
             high = max([x['highPrice']['ask'] for x in self.prices[signal.resolution][:-5]])
             stop = abs(high - self.offer)
+            stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
 
         support = 0
         resistance = 0
@@ -203,7 +207,7 @@ class Market:
                             for p in range(price_len-4,price_len):
                                 self.detect_rvi("MINUTE_30",p)
                             for p in range(price_len-1,price_len):
-                                self.detect_macd_0("MINUTE_30",p)
+                                self.detect_macd("MINUTE_30",p)
                                 self.detect_ma50_cross('MINUTE_30',p)
 
                             self.prices["MINUTE_30"].append(new_5_min)
@@ -470,9 +474,13 @@ class Market:
             r = self.prices[resolution][-1]['rsi']
             yes = False
             if r > 52.5 and position=="BUY":
-                yes = True
+                if self.prices[resolution][index]['macd']>0:
+                    yes = True
             if r < 47.5 and position=="SELL":
-                yes = True
+                if self.prices[resolution][index]['macd']<0:
+                    yes = True
+
+            
             if yes:
                 confirmed = True
                 comment = "MACD confirmed by RSI {} RVI at {}".format(r,rvi_sigs[0].snapshot_time)
