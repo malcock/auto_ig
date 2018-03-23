@@ -84,7 +84,7 @@ class Market:
             DIRECTION_TO_TRADE = "SELL"
             DIRECTION_TO_CLOSE = "BUY"
             DIRECTION_TO_COMPARE = 'offer'
-            high = min([x['highPrice']['ask'] for x in self.prices[signal.resolution][:-5]])
+            high = max([x['highPrice']['ask'] for x in self.prices[signal.resolution][:-5]])
             stop = abs(high - self.offer)
 
         support = 0
