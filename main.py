@@ -7,6 +7,7 @@ import json
 import threading
 import time
 import random
+from pytz import timezone
 from flask import Flask
 from flask import render_template
 from flask import request, redirect, flash, session, url_for
@@ -39,7 +40,7 @@ EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP","CS.D.EURUSD.TODAY.IP","CS.D.USDJPY.TODAY.IP"
             "CS.D.AUDUSD.TODAY.IP","CS.D.EURGBP.TODAY.IP","CS.D.EURJPY.TODAY.IP","CS.D.GBPJPY.TODAY.IP","CS.D.CHFJPY.TODAY.IP",
             "CS.D.USDCAD.TODAY.IP", "CS.D.USDCHF.TODAY.IP","CS.D.EURCHF.TODAY.IP" ]
 # EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP"]
-START_TIME = datetime.datetime.now(datetime.timezone.utc)
+START_TIME = datetime.datetime.now()
 LAST_TRADE = START_TIME
 
 auto_ig = AutoIG()
@@ -206,9 +207,9 @@ def get_prices_table(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
     output = "<table>"
-    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>ema_12</td> <td>ema_26</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td><td>high_trail</td><td>low_trail</td><td>rvi</td><td>rvi_signal</td><td>rvi_histogram</td></tr> \r\n"
+    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>ema_12</td> <td>ema_26</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td><td>high_trail</td><td>low_trail</td><td>rvi</td><td>rvi_signal</td><td>rvi_histogram</td><td>stoch_k</td><td>stoch_d</td><td>psar_bull</td><td>psar_bear</td><td>momentum</td></tr> \r\n"
     for p in prices:
-        output+="<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td></tr> \r\n".format(p['snapshotTime'],
+        output+="<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td></tr> \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
                                                         p['openPrice']['bid'],
                                                         p['closePrice']['bid'],
@@ -223,7 +224,12 @@ def get_prices_table(epic,res):
                                                         p.get('low_trail',0),
                                                         p.get('rvi',''),
                                                         p.get('rvi_signal',''),
-                                                        p.get('rvi_histogram',''),)
+                                                        p.get('rvi_histogram',''),
+                                                        p.get('stoch_k',''),
+                                                        p.get('stoch_d',''),
+                                                        p.get('psar_bull',''),
+                                                        p.get('psar_bear',''),
+                                                        p.get('momentum',''))
     output +="</table>"
     return output
 

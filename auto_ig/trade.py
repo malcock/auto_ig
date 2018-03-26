@@ -8,6 +8,7 @@ import copy
 import operator
 from enum import IntEnum
 import numpy as np
+from pytz import timezone
 # from sklearn.linear_model import LinearRegression
 
 logger = logging.getLogger(__name__)
@@ -48,8 +49,8 @@ class Trade:
             self.status_log = []
             
             # this trade position will expire after 10 minutes if we've failed to open it
-            self.created_time = datetime.datetime.now(datetime.timezone.utc)
-            self.expiry_time = self.created_time + datetime.timedelta(minutes = 10)
+            self.created_time = datetime.datetime.now()
+            self.expiry_time = self.created_time + datetime.timedelta(minutes = 180)
             self.opened_time = None
             self.closed_time = None
             
@@ -81,8 +82,8 @@ class Trade:
 
     def log_status(self, message):
         """Add a message to the status list"""
-        logger.info("{}: {}: '{}'".format(self.market.epic, datetime.datetime.now(datetime.timezone.utc).strftime("%Y:%m:%d-%H:%M:%S"),message))
-        self.status_log.append({"timestamp":datetime.datetime.now(datetime.timezone.utc).strftime("%Y:%m:%d-%H:%M:%S"), "message":message})
+        logger.info("{}: {}: '{}'".format(self.market.epic, datetime.datetime.now().strftime("%Y:%m:%d-%H:%M:%S"),message))
+        self.status_log.append({"timestamp":datetime.datetime.now().strftime("%Y:%m:%d-%H:%M:%S"), "message":message})
         self.save_trade()
     
     def update_interval(self, resolution):
@@ -143,19 +144,25 @@ class Trade:
                 return False
 
             elif self.state == TradeState.WAITING:
-                if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
+                if datetime.datetime.now() > self.expiry_time:
                     self.log_status("Error occured while waiting for this trade to be accepted")
                     self.state = TradeState.FAILED
-
-                self.open_trade()
+                
+                if self.prediction['direction_to_tade'] == "BUY":
+                    if self.market.prices['MINUTE_30'][-1]['momentum']>1:
+                        self.open_trade()
+                else:
+                    if self.market.prices['MINUTE_30'][-1]['momentum']>1:
+                        self.open_trade()
+                # self.open_trade()
 
             elif self.state == TradeState.PENDING:
-                if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
+                if datetime.datetime.now() > self.expiry_time:
                     self.log_status("Error occured while waiting for this trade to be accepted")
                     self.state = TradeState.FAILED
 
             elif self.state == TradeState.OPEN:
-                timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+                timeopen = datetime.datetime.now() - self.opened_time
                 # store the last full minute
                 last_minute =  self.market.prices['MINUTE_30'][-2]
                 if self.best_minute is None:
@@ -259,7 +266,7 @@ class Trade:
     def open_trade(self):
 
         self.state = TradeState.PENDING
-        self.expiry_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 5)
+        self.expiry_time = datetime.datetime.now() + datetime.timedelta(minutes = 5)
         self.log_status("Attempting to open trade")
 
         base_url = self.market.ig.api_url + '/positions/otc'
@@ -295,7 +302,7 @@ class Trade:
                 logger.info(d['reason'])
                 if d['dealStatus'] == "ACCEPTED":
                     
-                    self.opened_time = datetime.datetime.now(datetime.timezone.utc)
+                    self.opened_time = datetime.datetime.now()
                     self.log_status("Trade Accepted")
                     systime.sleep(2)
                     # read in data to get the deal cost etc
@@ -324,11 +331,11 @@ class Trade:
                             self.state =TradeState.WAITING
                         else:
                             self.state = TradeState.FAILED
-                            self.market.cooldown = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 10)
+                            self.market.cooldown = datetime.datetime.now() + datetime.timedelta(minutes = 10)
 
                     else:
                         self.state = TradeState.FAILED
-                        self.market.cooldown = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 10)
+                        self.market.cooldown = datetime.datetime.now() + datetime.timedelta(minutes = 10)
 
                     self.save_trade()
 
@@ -338,7 +345,7 @@ class Trade:
                 self.log_status("Trade request failed")
                 self.log_status(res.content)
                 self.state = TradeState.FAILED
-                self.market.cooldown = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes = 10)
+                self.market.cooldown = datetime.datetime.now() + datetime.timedelta(minutes = 10)
                 self.save_trade()
         
         else:
@@ -356,7 +363,7 @@ class Trade:
         auth_r = requests.post(base_url, data=json.dumps(data), headers=delete_header) 
 
         if auth_r.ok:
-            self.closed_time = datetime.datetime.now(datetime.timezone.utc)
+            self.closed_time = datetime.datetime.now()
             logger.info(auth_r.status_code)
             logger.info(auth_r.reason)
             logger.info (auth_r.text)
@@ -369,7 +376,7 @@ class Trade:
             logger.info(auth_r.text)
             # something retarded has happened, but we can't find the deal so consider it closed
             if "No position found for AccountId" in auth_r.text:
-                self.closed_time = datetime.datetime.now(datetime.timezone.utc)
+                self.closed_time = datetime.datetime.now()
                 self.state = TradeState.CLOSED
                 self.save_trade()
             
@@ -377,7 +384,7 @@ class Trade:
     def assess_close(self,signal):
         """checks to see whether it's a good idea to use the given signal to close the deal"""
         if self.opened_time is not None:
-            timeopen = datetime.datetime.now(datetime.timezone.utc) - self.opened_time
+            timeopen = datetime.datetime.now() - self.opened_time
             #for now, just close the trade regardless
             self.close_trade()
             if timeopen.seconds/60 < 120:
@@ -397,11 +404,11 @@ class Trade:
 
     def update_from_json(self, json_data):
         try:
-            close_t = datetime.datetime.strptime(json_data['closed_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+            close_t = datetime.datetime.strptime(json_data['closed_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
         except Exception as e:
             close_t = None
         try:
-            open_t = datetime.datetime.strptime(json_data['opened_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+            open_t = datetime.datetime.strptime(json_data['opened_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
         except Exception as e:
             open_t = None
 
@@ -411,8 +418,8 @@ class Trade:
         self.prediction = json_data['prediction']
         self.deal_id = json_data['deal_id']
         self.state = json_data['state']
-        self.created_time = datetime.datetime.strptime(json_data['created_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
-        self.expiry_time = datetime.datetime.strptime(json_data['expiry_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+        self.created_time = datetime.datetime.strptime(json_data['created_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
+        self.expiry_time = datetime.datetime.strptime(json_data['expiry_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
 
         # some temp error fixing
         if open_t is None:
@@ -450,7 +457,7 @@ class Trade:
             open_t = None
         try:
             save_object = {
-                "last_saved" : datetime.datetime.now(datetime.timezone.utc).strftime("%Y:%m:%d-%H:%M:%S"),
+                "last_saved" : datetime.datetime.now().strftime("%Y:%m:%d-%H:%M:%S"),
                 "size_value" : self.size_value,
                 "prediction" : self.prediction,
                 "deal_id" : self.deal_id,

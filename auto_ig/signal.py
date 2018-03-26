@@ -4,6 +4,7 @@ import datetime
 import json
 import requests
 import numpy as np
+from pytz import timezone
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -53,6 +54,17 @@ class Signal:
             self.score = 2
             if self.confirmed:
                 self.score = 4
+        elif self.type == "RSI":
+            timeout_multiplier = 4
+            self.score = 1
+        elif self.type == "STOCH":
+            timeout_multiplier = 4
+            self.score = 1
+        elif self.type == "PSAR":
+            timeout_multiplier = 2
+            self.score = 2
+            if self.confirmed:
+                self.score = 4
 
         # work out the exiry time for this signal - depending on type, plus 2mins
         seconds_per_unit = 0
@@ -69,12 +81,12 @@ class Signal:
         seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 1200
 
         self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S") + datetime.timedelta(seconds = seconds_per_unit)
-        self.expiry_time = self.expiry_time.replace(tzinfo=datetime.timezone.utc)
+        self.expiry_time = self.expiry_time.replace(tzinfo=None)
         
         logger.info("NEW SIGNAL! {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
 
     def update(self, market):
-        if datetime.datetime.now(datetime.timezone.utc) > self.expiry_time:
+        if datetime.datetime.now() > self.expiry_time:
             logger.info("SIGNAL EXPIRED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
             return False
         # prices = market.prices[self.resolution]
