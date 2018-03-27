@@ -205,7 +205,7 @@ class AutoIG:
                             logger.info("{} trade already open on this market".format(market.epic))
                             for t in current_trades:
                                 if signal.action == t.prediction['direction_to_trade']:
-                                    t.log_status("{} signal reenforced {}".format(market.epic,signal.action))
+                                    t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.action, signal.type, signal.snapshot_time))
                                     signal.unused = False
                                     signal.score-=1
                                 else:
