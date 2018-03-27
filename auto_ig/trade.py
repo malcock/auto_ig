@@ -151,7 +151,7 @@ class Trade:
                     if self.market.prices['MINUTE_30'][-1]['momentum']>1:
                         self.open_trade()
                 else:
-                    if self.market.prices['MINUTE_30'][-1]['momentum']>1:
+                    if self.market.prices['MINUTE_30'][-1]['momentum']<1:
                         self.open_trade()
                 # self.open_trade()
 
