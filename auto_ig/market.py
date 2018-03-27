@@ -205,7 +205,7 @@ class Market:
                             for p in range(price_len-5,price_len):
                                 self.detect_rsi("MINUTE_30",p)
                                 self.detect_stochastic("MINUTE_30",p)
-                            for p in range(price_len-2,price_len):
+                            for p in range(price_len-1,price_len):
                                 self.detect_psar('MINUTE_30',p)
                                 # self.detect_macd("MINUTE_30",p)
                                 # self.detect_ma50_cross('MINUTE_30',p)
@@ -225,7 +225,14 @@ class Market:
                             del self.prices['MINUTE_30'][0]
 
                         self.calculate_indicators('MINUTE_30')
+                        price_len = len(self.prices['MINUTE_30'])
+                        # only want to analyse the last 4 price points (2 hrs)
 
+                        for p in range(price_len-5,price_len):
+                            self.detect_rsi("MINUTE_30",p)
+                            self.detect_stochastic("MINUTE_30",p)
+                        for p in range(price_len-1,price_len):
+                            self.detect_psar('MINUTE_30',p)
 
                         
 

@@ -50,7 +50,7 @@ class Trade:
             
             # this trade position will expire after 10 minutes if we've failed to open it
             self.created_time = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
-            self.expiry_time = self.created_time + datetime.timedelta(minutes = 180)
+            self.expiry_time = self.created_time + datetime.timedelta(minutes = 60)
             self.opened_time = None
             self.closed_time = None
             
@@ -144,15 +144,16 @@ class Trade:
 
             elif self.state == TradeState.WAITING:
                 if time_now > self.expiry_time:
-                    self.log_status("Error occured while waiting for this trade to be accepted")
+                    self.log_status("Conditions were never right for trade to open")
                     self.state = TradeState.FAILED
-                
-                if self.prediction['direction_to_trade'] == "BUY":
-                    if self.market.prices['MINUTE_30'][-1]['momentum']>1:
-                        self.open_trade()
-                else:
-                    if self.market.prices['MINUTE_30'][-1]['momentum']<1:
-                        self.open_trade()
+
+                if len([x for x in self.market.ig.trades if x.state==2])<self.market.ig.max_concurrent_trades:
+                    if self.prediction['direction_to_trade'] == "BUY":
+                        if self.market.prices['MINUTE_30'][-1]['momentum']>0.9995:
+                            self.open_trade()
+                    else:
+                        if self.market.prices['MINUTE_30'][-1]['momentum']<1.0005:
+                            self.open_trade()
                 # self.open_trade()
 
             elif self.state == TradeState.PENDING:

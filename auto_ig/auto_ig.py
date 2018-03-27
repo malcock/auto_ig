@@ -179,7 +179,7 @@ class AutoIG:
                         current_trades = [x for x in self.trades if x.market==market]
                         if len(current_trades)==0 and signal.score>2 and signal.confirmed:
                             # if we've got less than max open, lets try and open one now (if it's strong!)
-                            if len(self.trades)<self.max_concurrent_trades:
+                            if len([x for x in self.trades if x.state==2])<self.max_concurrent_trades:
                                 
                                 # do some time checks before opening new trades
                                 # if timenow.weekday() > 4:
