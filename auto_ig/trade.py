@@ -171,8 +171,8 @@ class Trade:
                 # calculate pip diff based on trade direction and check our best minute
                 if self.prediction['direction_to_trade'] == "SELL":
                     self.pip_diff = float(self.open_level) - float(self.market.offer)
-                    last_bear = [x['psar_bear'] for x in self.market.prices['MINUTE_30'] if x['psar_bear']!=''][-1]
-                    trail = float(self.open_level) - last_bear
+                    # last_bear = [x['psar_bear'] for x in self.market.prices['MINUTE_30'] if x['psar_bear']!=''][-1]
+                    # trail = float(self.open_level) - last_bear
 
                     if last_minute['closePrice']['ask'] < self.best_minute['closePrice']['ask']:
                         if last_minute['rsi'] > self.best_minute['rsi'] and self.trailing_stop==False:
@@ -184,8 +184,8 @@ class Trade:
                         
                 else:
                     self.pip_diff = float(self.market.bid) - float(self.open_level)
-                    last_bull = [x['psar_bull'] for x in self.market.prices['MINUTE_30'] if x['psar_bull']!=''][-1]
-                    trail = last_bull - float(self.open_level)
+                    # last_bull = [x['psar_bull'] for x in self.market.prices['MINUTE_30'] if x['psar_bull']!=''][-1]
+                    # trail = last_bull - float(self.open_level)
 
                     if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid'] and self.trailing_stop==False:
                         if last_minute['rsi'] < self.best_minute['rsi']:
