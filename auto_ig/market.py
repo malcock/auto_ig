@@ -201,10 +201,10 @@ class Market:
                             price_len = len(self.prices['MINUTE_30'])
                             # only want to analyse the last 4 price points (2 hrs)
 
-                            for p in range(price_len-4,price_len):
+                            for p in range(price_len-5,price_len):
                                 self.detect_rsi("MINUTE_30",p)
                                 self.detect_stochastic("MINUTE_30",p)
-                            for p in range(price_len-1,price_len):
+                            for p in range(price_len-2,price_len):
                                 self.detect_psar('MINUTE_30',p)
                                 # self.detect_macd("MINUTE_30",p)
                                 # self.detect_ma50_cross('MINUTE_30',p)
@@ -349,7 +349,7 @@ class Market:
         # for p in range(price_len-40,price_len):
         #     self.analyse_candle(resolution, p)
 
-        logger.info("{} updated: api calls remaining {}/{} - time till reset {}".format(self.epic, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
+        logger.info("{} updated: used api calls {} remaining {}/{} - time till reset {}".format(self.epic, data_count, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
 
         self.save_prices()
 
