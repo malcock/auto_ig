@@ -148,7 +148,7 @@ class Trade:
                     self.log_status("Error occured while waiting for this trade to be accepted")
                     self.state = TradeState.FAILED
                 
-                if self.prediction['direction_to_tade'] == "BUY":
+                if self.prediction['direction_to_trade'] == "BUY":
                     if self.market.prices['MINUTE_30'][-1]['momentum']>1:
                         self.open_trade()
                 else:

@@ -71,7 +71,7 @@ class Market:
 
         # self.update_prices("MINUTE_30",30)
         low_range, max_range, atr_latest = self.average_true_range("MINUTE_30")
-        stop = 0
+        stop = 30
         if signal.action == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -94,7 +94,7 @@ class Market:
 
         support = 0
         resistance = 0
-        
+        stop = max(2,stop)
         # prepare the trade info object to pass back
         prediction_object = {
             "direction_to_trade" : DIRECTION_TO_TRADE,
