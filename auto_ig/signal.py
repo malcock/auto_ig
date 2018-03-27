@@ -55,10 +55,10 @@ class Signal:
             if self.confirmed:
                 self.score = 4
         elif self.type == "RSI":
-            timeout_multiplier = 4
+            timeout_multiplier = 4.5
             self.score = 1
         elif self.type == "STOCH":
-            timeout_multiplier = 4
+            timeout_multiplier = 4.5
             self.score = 1
         elif self.type == "PSAR":
             timeout_multiplier = 2
@@ -78,7 +78,7 @@ class Signal:
         if "_" in resolution:
             multiplier = int(resolution.split("_")[1])
             seconds_per_unit *= multiplier
-        seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 1200
+        seconds_per_unit = (seconds_per_unit * timeout_multiplier)
 
         self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None) + datetime.timedelta(seconds = seconds_per_unit)
         
