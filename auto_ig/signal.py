@@ -80,13 +80,13 @@ class Signal:
             seconds_per_unit *= multiplier
         seconds_per_unit = (seconds_per_unit * timeout_multiplier) + 1200
 
-        self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S") + datetime.timedelta(seconds = seconds_per_unit)
-        self.expiry_time = self.expiry_time.replace(tzinfo=None)
+        self.expiry_time = datetime.datetime.strptime(self.snapshot_time,"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None) + datetime.timedelta(seconds = seconds_per_unit)
         
         logger.info("NEW SIGNAL! {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
 
     def update(self, market):
-        if datetime.datetime.now() > self.expiry_time:
+        time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
+        if time_now > self.expiry_time:
             logger.info("SIGNAL EXPIRED {} {} {} {}".format(self.epic,self.snapshot_time,self.type,self.action))
             return False
         # prices = market.prices[self.resolution]

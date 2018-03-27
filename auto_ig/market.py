@@ -29,7 +29,7 @@ class Market:
     
     def __init__(self, epic, ig_obj, market_data = None):
         self.epic = epic
-        self.cooldown = datetime.datetime(2000,1,1,0,0,0,0,)
+        self.cooldown = datetime.datetime(2000,1,1,0,0,0,0)
         self.ig = ig_obj
         # raw data and signal producers
         self.prices = {}
@@ -277,7 +277,7 @@ class Market:
                 if count>0:
                     data_count = count
 
-                time_now = datetime.datetime.now().replace(tzinfo=None)
+                time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
                 last_date = datetime.datetime.strptime(self.prices[resolution][-1]['snapshotTime'], "%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
                 # time_now = .localize(time_now)
                 # last_date = .localize(last_date)
@@ -334,7 +334,7 @@ class Market:
                 logger.info(auth_r.content)
 
                 # kill all trades that are in waiting and put a timeout on this market
-                self.cooldown = datetime.datetime.now() + datetime.timedelta(minutes = 10)
+                self.cooldown = datetime.datetime.now(timezone('GB')).replace(tzinfo=None) + datetime.timedelta(minutes = 10)
                 # for t in self.trades:
                 #     if t.state==0:
                 #         self.remove_trade(t)
@@ -628,7 +628,7 @@ class Market:
         self.calculate_momentum(resolution)
         self.calculate_relative_vigor(resolution,10)
         self.average_true_range(resolution)
-        self.calculate_trailing(resolution)
+       
         self.calculate_stochastic(resolution)
         self.psar(resolution)
 

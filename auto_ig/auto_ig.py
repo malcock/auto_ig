@@ -68,7 +68,7 @@ class AutoIG:
             m.calculate_indicators('MINUTE_30')
             
             price_len = len(m.prices["MINUTE_30"])
-            for p in range(price_len-5,price_len):
+            for p in range(price_len-15,price_len):
                 m.detect_rsi("MINUTE_30",p)
                 m.detect_stochastic("MINUTE_30",p)
             for p in range(price_len-2,price_len):

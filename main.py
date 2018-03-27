@@ -40,7 +40,7 @@ EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP","CS.D.EURUSD.TODAY.IP","CS.D.USDJPY.TODAY.IP"
             "CS.D.AUDUSD.TODAY.IP","CS.D.EURGBP.TODAY.IP","CS.D.EURJPY.TODAY.IP","CS.D.GBPJPY.TODAY.IP","CS.D.CHFJPY.TODAY.IP",
             "CS.D.USDCAD.TODAY.IP", "CS.D.USDCHF.TODAY.IP","CS.D.EURCHF.TODAY.IP" ]
 # EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP"]
-START_TIME = datetime.datetime.now()
+START_TIME = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
 LAST_TRADE = START_TIME
 
 auto_ig = AutoIG()
