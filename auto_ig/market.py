@@ -147,7 +147,7 @@ class Market:
     def set_latest_price(self,values):
         # if self.ready:
         try:
-            timestamp = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).replace(tzinfo=timezone('GB')).strftime("%Y:%m:%d-%H:%M:00")
+            timestamp = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:%M:00")
             minNum = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%M") #1 or 6? make a new MIN_5
             
             # logger.info(values)
@@ -175,7 +175,7 @@ class Market:
 
                     if "MINUTE_30" in self.prices:
                         last_30_min = int(30 * math.floor(float(minNum)/30))
-                        timestamp_30 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).replace(tzinfo=timezone('GB')).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_30_min))
+                        timestamp_30 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_30_min))
                         
                         # get all elements from MINUTE list since last 5min mark
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_30), None)
