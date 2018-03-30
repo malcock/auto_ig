@@ -693,7 +693,8 @@ class Market:
 
     def trend(self,resolution, value, name):
         for i in range(1,len(self.prices[resolution])):
-            self.prices[resolution][i][name] = self.prices[resolution][i][value] - self.prices[resolution][-1][value]
+            if value in self.prices[resolution][-1]:
+                self.prices[resolution][i][name] = self.prices[resolution][i][value] - self.prices[resolution][-1][value]
 
     def calculate_macd(self, resolution):
         self.exponential_average(resolution,12)
