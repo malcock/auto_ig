@@ -65,6 +65,11 @@ class Signal:
             self.score = 2
             if self.confirmed:
                 self.score = 4
+        elif self.type == "CROSSOVER":
+            timeout_multiplier = 2
+            self.score = 2
+            if self.confirmed:
+                self.score = 4
 
         # work out the exiry time for this signal - depending on type, plus 2mins
         seconds_per_unit = 0
