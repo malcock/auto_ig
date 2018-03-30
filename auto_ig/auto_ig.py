@@ -72,7 +72,8 @@ class AutoIG:
                 m.detect_rsi("MINUTE_30",p)
                 m.detect_stochastic("MINUTE_30",p)
             for p in range(price_len-2,price_len):
-                m.detect_psar("MINUTE_30",p)
+                # m.detect_psar("MINUTE_30",p)
+                m.detect_crossover("MINUTE_30",p)
                 # m.detect_ma50_cross('MINUTE_30',p)
 
 
@@ -211,7 +212,7 @@ class AutoIG:
                                 else:
                                     
                                     t.assess_close(signal)
-                                    if signal.type != "MACD":
+                                    if signal.type != "PSAR":
                                         signal.unused = False
                                     signal.score-=1
                     else:

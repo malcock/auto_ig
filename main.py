@@ -207,7 +207,7 @@ def get_prices_table(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
     output = "<table>"
-    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>ema_12</td> <td>ema_26</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td><td>high_trail</td><td>low_trail</td><td>rvi</td><td>rvi_signal</td><td>rvi_histogram</td><td>stoch_k</td><td>stoch_d</td><td>psar_bull</td><td>psar_bear</td><td>momentum</td></tr> \r\n"
+    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>wma_5</td> <td>wma_10</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td><td>high_trail</td><td>low_trail</td><td>rvi</td><td>rvi_signal</td><td>rvi_histogram</td><td>stoch_k</td><td>stoch_d</td><td>psar_bull</td><td>psar_bear</td><td>roc</td></tr> \r\n"
     for p in prices:
         output+="<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td></tr> \r\n".format(p['snapshotTime'],
                                                         p['lowPrice']['bid'],
@@ -215,8 +215,8 @@ def get_prices_table(epic,res):
                                                         p['closePrice']['bid'],
                                                         p['highPrice']['bid'],
                                                         p.get('rsi',0),
-                                                        p.get('ema_12',0),
-                                                        p.get('ema_26',0),
+                                                        p.get('wma_5',0),
+                                                        p.get('wma_10',0),
                                                         p.get('macd',0),
                                                         p.get('macd_signal',0),
                                                         p.get('macd_histogram',0),
@@ -229,7 +229,7 @@ def get_prices_table(epic,res):
                                                         p.get('stoch_d',''),
                                                         p.get('psar_bull',''),
                                                         p.get('psar_bear',''),
-                                                        p.get('momentum',''))
+                                                        p.get('roc',''))
     output +="</table>"
     return output
 

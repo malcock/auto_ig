@@ -94,7 +94,9 @@ class Market:
 
         support = 0
         resistance = 0
-        stop = max(2,stop)
+        origstop = stop
+        stop = min(30,stop)
+        stop = max(stop,5)
         # prepare the trade info object to pass back
         prediction_object = {
             "direction_to_trade" : DIRECTION_TO_TRADE,
@@ -104,6 +106,7 @@ class Market:
             "atr_max" : max_range,
             "atr_latest": atr_latest,
             "stoploss" : stop,
+            "orig_stop" : origstop,
             "limit_distance" : 12,
             "support" : support,
             "resistance" : resistance,
@@ -113,6 +116,7 @@ class Market:
                 "action" : signal.action,
                 "comment" : signal.comment
             }
+            
         }
 
         return prediction_object
@@ -206,7 +210,8 @@ class Market:
                                 self.detect_rsi("MINUTE_30",p)
                                 self.detect_stochastic("MINUTE_30",p)
                             for p in range(price_len-1,price_len):
-                                self.detect_psar('MINUTE_30',p)
+                                # self.detect_psar('MINUTE_30',p)
+                                self.detect_crossover('MINUTE_30',p)
                                 # self.detect_macd("MINUTE_30",p)
                                 # self.detect_ma50_cross('MINUTE_30',p)
 
@@ -547,24 +552,33 @@ class Market:
         
         self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"PSAR",delta,comment,confirmed)
 
-
-    # def detect_crossover(self, resolution, index):
-    #     """Detect a crossover of the ema_12 and ema_26 data"""
-    #     now_diff = self.prices[resolution][index]['ema_12'] - self.prices[resolution][index]['ema_26']
-    #     prev_diff = self.prices[resolution][index-1]['ema_12'] - self.prices[resolution][index-1]['ema_26']
+    
+    def detect_crossover(self, resolution, index):
+        """Detect a crossover of the wma_5 and wma_10 data"""
+        now_diff = self.prices[resolution][index]['wma_5'] - self.prices[resolution][index]['wma_10']
+        prev_diff = self.prices[resolution][index-1]['wma_5'] - self.prices[resolution][index-1]['wma_10']
         
-    #     position = None
-    #     if now_diff>0 and prev_diff<0:
-    #         position = "BUY"
+        position = None
+        if now_diff>0 and prev_diff<0:
+            position = "BUY"
         
-    #     if now_diff<0 and prev_diff>0:
-    #         position = "SELL"
+        if now_diff<0 and prev_diff>0:
+            position = "SELL"
 
-    #     if position is None:
-    #         return
+        if position is None:
+            return
+        comment = "prev:{}, now: {}".format(prev_diff,now_diff)
+        confirmed = False
+        rsi_sigs = [x for x in self.signals if (x.type=="RSI" and x.action == position)]
+        stoch_sigs = [x for x in self.signals if (x.type=="STOCH" and x.action == position)]
+        delta = 1
+        if len(rsi_sigs)>0 and len(stoch_sigs) > 0:
+            confirmed = True
+            comment += " confirmed by RSI and STOCH"
+        
 
-    #     comment = "prev:{}, now: {}".format(prev_diff,now_diff)
-    #     self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",comment)
+        
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",comment,confirmed)
         
 
     # def detect_hammer(self, resolution, index, high_price, low_price, open_price, close_price):
@@ -607,6 +621,11 @@ class Market:
 
     #             comment = "o:{}, c:{}, h:{}, l:{}".format(open_price,close_price,high_price,low_price)
     #             self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",comment,round(confirmation_price,2))
+    def remove_signals(self,resolution, index):
+        snapshot_time = self.prices[resolution][index]['snapshotTime']
+        matching_signals = [x for x in self.signals if x.snapshot_time==snapshot_time]
+        for s in matching_signals:
+            self.signals.remove(s)
 
     def add_signal(self,resolution, snapshot_time, position, signal_type, delta, comment = "", confirmed = False ):
         """Add a signal to the market"""
@@ -629,11 +648,13 @@ class Market:
 
     # ********* Indicator calculations ***********
     def calculate_indicators(self, resolution):
+        self.wma(resolution,5)
+        self.wma(resolution,10)
         self.moving_average(resolution,5)
         self.moving_average(resolution,10)
         self.calculate_rsi(resolution)
         self.calculate_macd(resolution)
-        self.calculate_momentum(resolution)
+        self.roc(resolution)
         self.calculate_relative_vigor(resolution,10)
         self.average_true_range(resolution)
        
@@ -662,9 +683,9 @@ class Market:
             total/=len(prices)
         return total
 
-    def calculate_momentum(self,resolution, window=12):
+    def roc(self,resolution, window=12):
         for i in range(window,len(self.prices[resolution])):
-            self.prices[resolution][i]['momentum'] = (self.prices[resolution][i]['closePrice']['bid']/self.prices[resolution][i-window]['closePrice']['bid'])
+            self.prices[resolution][i]['roc'] = ((self.prices[resolution][i]['closePrice']['bid'] - self.prices[resolution][i-window]['closePrice']['bid'])/self.prices[resolution][i-window]['closePrice']['bid'])
 
     def calculate_macd(self, resolution):
         self.exponential_average(resolution,12)
@@ -983,6 +1004,28 @@ class Market:
 
         return a
 
+    def wma(self, resolution, window, values= None, name = None, save = True):
+        if values is None:
+            values = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
+        else:
+            values = np.asarray(values)
+        
+        w = range(1,window+1)
+        
+        a = np.average(self.rolling_window(values,window),axis=1,weights=w)
+
+        if save:
+            if name is None:
+                name = "wma_{}".format(window)
+
+            price_len = len(self.prices[resolution])
+            diff = price_len - len(a)
+        
+            for i in range(diff,price_len):
+                self.prices[resolution][i][name] = a[i-diff]
+        
+
+        return a
     
 
     def exponential_average(self, resolution, window, values= None, name = None):

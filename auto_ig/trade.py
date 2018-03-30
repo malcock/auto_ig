@@ -44,13 +44,14 @@ class Trade:
         self.best_minute = None
         self.trailing_level = 0
         self.open_level = 0
+        self.open_psar = 0
 
         if json_data is None:
             self.status_log = []
             
             # this trade position will expire after 10 minutes if we've failed to open it
             self.created_time = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
-            self.expiry_time = self.created_time + datetime.timedelta(minutes = 60)
+            self.expiry_time = self.created_time + datetime.timedelta(minutes = 90)
             self.opened_time = None
             self.closed_time = None
             
@@ -149,10 +150,10 @@ class Trade:
 
                 if len([x for x in self.market.ig.trades if x.state==2])<self.market.ig.max_concurrent_trades:
                     if self.prediction['direction_to_trade'] == "BUY":
-                        if self.market.prices['MINUTE_30'][-1]['momentum']>0.9995:
+                        if self.market.prices['MINUTE_30'][-1]['wma_10']>0:
                             self.open_trade()
                     else:
-                        if self.market.prices['MINUTE_30'][-1]['momentum']<1.0005:
+                        if self.market.prices['MINUTE_30'][-1]['wma_10']<0:
                             self.open_trade()
                 # self.open_trade()
 
@@ -172,6 +173,7 @@ class Trade:
                 # calculate pip diff based on trade direction and check our best minute
                 if self.prediction['direction_to_trade'] == "SELL":
                     self.pip_diff = float(self.open_level) - float(self.market.offer)
+                    # trail = float(self.open_psar) - last_minute['psar_bear']
                     # last_bear = [x['psar_bear'] for x in self.market.prices['MINUTE_30'] if x['psar_bear']!=''][-1]
                     # trail = float(self.open_level) - last_bear
 
@@ -187,7 +189,7 @@ class Trade:
                     self.pip_diff = float(self.market.bid) - float(self.open_level)
                     # last_bull = [x['psar_bull'] for x in self.market.prices['MINUTE_30'] if x['psar_bull']!=''][-1]
                     # trail = last_bull - float(self.open_level)
-
+                    # trail = last_minute['psar_bull'] - float(self.open_psar)
                     if last_minute['closePrice']['bid'] > self.best_minute['closePrice']['bid'] and self.trailing_stop==False:
                         if last_minute['rsi'] < self.best_minute['rsi']:
                             # self.log_status("Higher price without higher RSI - triggering trailing stop at {}".format(self.pip_diff))
@@ -225,6 +227,7 @@ class Trade:
 
                 # STOP LOSS CHECKING
                 stoploss = float(self.prediction['stoploss'])
+                stoploss -= self.pip_max
 
                 # HOPEFUL TIMEOUT CHECKING - TODO: Create an acceptable profit loss shaping curve
                 
@@ -313,6 +316,10 @@ class Trade:
                         d = json.loads(auth_r.text)
                         logger.info(d)
                         self.open_level = d['position']['openLevel']
+                        if self.prediction['direction_to_trade']=="BUY":
+                            self.open_psar = self.market.prices['MINUTE_30'][-1]['psar_bull']
+                        else:
+                            self.open_psar = self.market.prices['MINUTE_30'][-1]['psar_bear']
 
                         # trade successfully created - save the object YAYAYAYAAYYYYY
                         self.state = TradeState.OPEN
@@ -439,8 +446,10 @@ class Trade:
         self.rsi_max = json_data['rsi_max']
         self.rsi_min = json_data['rsi_min']
         self.open_level = float(json_data['open_level'])
+        self.open_psar = float(json_data['open_psar'])
         self.pip_diff = float(json_data['pip_diff'])
         self.pip_max = json_data['pip_max']
+        self.open_psar = json_data['open_psar']
 
         self.profit_loss = float(json_data['profit_loss'])
         self.trailing_stop = json_data['trailing_stop']
@@ -476,6 +485,7 @@ class Trade:
                 "best_minute":self.best_minute,
                 "pip_rate": self.pip_rate,
                 "open_level" : self.open_level,
+                "open_psar" : self.open_psar,
                 "pip_diff" : round(self.pip_diff,2),
                 "pip_max" : self.pip_max,
                 "profit_loss" : round(self.profit_loss,2),
