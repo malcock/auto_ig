@@ -576,7 +576,7 @@ class Market:
         stoch_sigs = [x for x in self.signals if (x.type=="STOCH" and x.action == position)]
         delta = 1
         stoch = self.prices[resolution][index]['stoch_k']
-        stoch_trend = self.calculate_trend([x['stoch_k'] for x in self.prices[resolution][:-3]])
+        stoch_trend = self.calculate_trend([x['stoch_k'] for x in self.prices[resolution][-3:]])
         if position=="BUY":
             if self.prices[resolution][index]['rsi']>50 and stoch_trend>0 and stoch<80:
                 confirmed = True
