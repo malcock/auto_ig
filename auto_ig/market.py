@@ -1031,9 +1031,13 @@ class Market:
 
             price_len = len(self.prices[resolution])
             diff = price_len - len(a)
-        
-            for i in range(diff,price_len):
-                self.prices[resolution][i][name] = a[i-diff]
+            
+            for i in range(0,price_len):
+                if i<diff:
+                    val = 0
+                else:
+                    val = a[i-diff]
+                self.prices[resolution][i][name] = val
         
 
         return a
