@@ -237,7 +237,8 @@ class Market:
                             self.detect_rsi("MINUTE_30",p)
                             self.detect_stochastic("MINUTE_30",p)
                         for p in range(price_len-1,price_len):
-                            self.detect_psar('MINUTE_30',p)
+                            # self.detect_psar('MINUTE_30',p)
+                            self.detect_crossover('MINUTE_30',p)
 
                         
 
@@ -567,6 +568,8 @@ class Market:
 
         if position is None:
             return
+
+        delta = now_diff - prev_diff
         comment = "prev:{}, now: {}".format(prev_diff,now_diff)
         confirmed = False
         rsi_sigs = [x for x in self.signals if (x.type=="RSI" and x.action == position)]
@@ -578,7 +581,7 @@ class Market:
         
 
         
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",comment,confirmed)
+        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",delta,comment,confirmed)
         
 
     # def detect_hammer(self, resolution, index, high_price, low_price, open_price, close_price):
@@ -650,6 +653,7 @@ class Market:
     def calculate_indicators(self, resolution):
         self.wma(resolution,5)
         self.wma(resolution,10)
+        self.trend(resolution,'wma_10','wma_10_trend')
         self.moving_average(resolution,5)
         self.moving_average(resolution,10)
         self.calculate_rsi(resolution)
@@ -686,6 +690,10 @@ class Market:
     def roc(self,resolution, window=12):
         for i in range(window,len(self.prices[resolution])):
             self.prices[resolution][i]['roc'] = ((self.prices[resolution][i]['closePrice']['bid'] - self.prices[resolution][i-window]['closePrice']['bid'])/self.prices[resolution][i-window]['closePrice']['bid'])
+
+    def trend(self,resolution, value, name):
+        for i in range(1,len(self.prices[resolution])):
+            self.prices[resolution][i][name] = self.prices[resolution][i][value] - self.prices[resolution][-1][value]
 
     def calculate_macd(self, resolution):
         self.exponential_average(resolution,12)
@@ -1003,6 +1011,8 @@ class Market:
         
 
         return a
+
+
 
     def wma(self, resolution, window, values= None, name = None, save = True):
         if values is None:

@@ -150,10 +150,10 @@ class Trade:
 
                 if len([x for x in self.market.ig.trades if x.state==2])<self.market.ig.max_concurrent_trades:
                     if self.prediction['direction_to_trade'] == "BUY":
-                        if self.market.prices['MINUTE_30'][-1]['wma_10']>0:
+                        if self.market.prices['MINUTE_30'][-1]['wma_10_trend']>0:
                             self.open_trade()
                     else:
-                        if self.market.prices['MINUTE_30'][-1]['wma_10']<0:
+                        if self.market.prices['MINUTE_30'][-1]['wma_10_trend']<0:
                             self.open_trade()
                 # self.open_trade()
 
