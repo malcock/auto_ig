@@ -212,7 +212,7 @@ class AutoIG:
                                 else:
                                     
                                     t.assess_close(signal)
-                                    if signal.type != "PSAR":
+                                    if signal.type != "CROSSOVER":
                                         signal.unused = False
                                     signal.score-=1
                     else:

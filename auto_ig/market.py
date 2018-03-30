@@ -575,9 +575,21 @@ class Market:
         rsi_sigs = [x for x in self.signals if (x.type=="RSI" and x.action == position)]
         stoch_sigs = [x for x in self.signals if (x.type=="STOCH" and x.action == position)]
         delta = 1
-        if len(rsi_sigs)>0 and len(stoch_sigs) > 0:
-            confirmed = True
-            comment += " confirmed by RSI and STOCH"
+        stoch = self.prices[resolution][index]['stoch_k']
+        stoch_trend = self.calculate_trend([x['stoch_k'] for x in self.prices[resolution][:-3]])
+        if position=="BUY":
+            if self.prices[resolution][index]['rsi']>50 and stoch_trend>0 and stoch<80:
+                confirmed = True
+                comment += " confirmed by RSI and stoch"
+        else:
+            if self.prices[resolution][index]['rsi']<50 and stoch_trend<0 and stoch>20:
+                confirmed = True
+                comment += " confirmed by RSI and stoch"
+
+
+        # if len(rsi_sigs)>0 and len(stoch_sigs) > 0:
+        #     confirmed = True
+        #     comment += " confirmed by RSI and STOCH"
         
 
         
