@@ -1,7 +1,21 @@
+import logging
+import os,sys
 from .. import indicators as ta
 from .. import detection as detect
 from .base import Strategy, Sig
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('faig_debug.log')
+fh.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 class wma_cross(Strategy):
 
@@ -72,16 +86,23 @@ class wma_cross(Strategy):
         """wma entry strategy
             candle and rsi delta must be in direction of trade and rsi must not be over/undersold
         """
-        now = prices[-1]
+        
+        direction = prices[-1]['closePrice']['bid'] - prices[-2]['openPrice']['bid']
         rsi_name = 'rsi_{}'.format(self.rsi)
-        rsi = now[rsi_name]
-        rsi_delta = rsi - prices[-2][rsi_name]
+        try:
+            rsi = [x[rsi_name] for x in prices]
+        except Exception:
+            rsi = ta.rsi(self.rsi,prices)
+        
+        rsi_delta = rsi[-1] - rsi[-2]
         if signal['position']=="BUY":
-            if rsi < 70 and rsi_delta>0 and now['dir'] > 0:
+            if rsi[-1] < 70 and rsi_delta>0 and direction > 0:
                 return True
         else:
-            if rsi > 30 and rsi_delta<0 and now['dir'] < 0:
+            if rsi [-1]> 30 and rsi_delta<0 and direction < 0:
                 return True
+
+
 
         return False
 
