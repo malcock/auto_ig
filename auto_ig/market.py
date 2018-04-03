@@ -9,6 +9,8 @@ import numpy as np
 from pytz import timezone
 
 from .signal import Signal
+from . import indicators as ta
+from .strategy import wma_cross
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -33,17 +35,13 @@ class Market:
         self.ig = ig_obj
         # raw data and signal producers
         self.prices = {}
-        self.rsi = {}
-        self.ema = {}
-
-        self.signals = []
+        
+        self.strategy = wma_cross(10,25,50,14)
+        
         
         self.load_prices()
         self.update_market(market_data)
-        try:
-            self.current_rsi = float(self.prices['MINUTE_5'][-1]["rsi"])
-        except Exception:
-            self.current_rsi = 0
+
 
     def update_market(self, obj = None):
         if obj is None:
@@ -67,94 +65,13 @@ class Market:
             self.save_prices()
 
 
-    def make_prediction(self, signal):
-
-        # self.update_prices("MINUTE_30",30)
-        low_range, max_range, atr_latest = self.average_true_range("MINUTE_30")
-        stop = 30
-        if signal.action == "BUY":
-            # GO LONG
-            DIRECTION_TO_TRADE = "BUY"
-            DIRECTION_TO_CLOSE = "SELL"
-            DIRECTION_TO_COMPARE = 'bid'
-            low = min([x['lowPrice']['bid'] for x in self.prices[signal.resolution][:-5]])
-            stop = abs(self.bid - low)
-            stop = abs(self.bid - self.prices[signal.resolution][-2]['lowPrice']['bid'])
-
-            
-
-        else:
-            # GO SHORT!
-            DIRECTION_TO_TRADE = "SELL"
-            DIRECTION_TO_CLOSE = "BUY"
-            DIRECTION_TO_COMPARE = 'offer'
-            high = max([x['highPrice']['ask'] for x in self.prices[signal.resolution][:-5]])
-            stop = abs(high - self.offer)
-            stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
-
-        support = 0
-        resistance = 0
-        origstop = stop
-        stop = min(30,stop)
-        stop = max(stop,5)
-        # prepare the trade info object to pass back
-        prediction_object = {
-            "direction_to_trade" : DIRECTION_TO_TRADE,
-            "direction_to_close" : DIRECTION_TO_CLOSE,
-            "direction_to_compare" : DIRECTION_TO_COMPARE,
-            "atr_low" : low_range,
-            "atr_max" : max_range,
-            "atr_latest": atr_latest,
-            "stoploss" : stop,
-            "orig_stop" : origstop,
-            "limit_distance" : 12,
-            "support" : support,
-            "resistance" : resistance,
-            "signal" : {
-                "snapshot_time":signal.snapshot_time,
-                "type" : signal.type,
-                "action" : signal.action,
-                "comment" : signal.comment
-            }
-            
-        }
-
-        return prediction_object
-    
-    def average_true_range(self, res):
-        previous_day = self.prices[res][0]
-        prev_close = float(previous_day['closePrice']['bid'])
-
-        tr_prices = []
-
-        for p in self.prices[res][1:]:
-            high_price = float(p['highPrice']['bid'])
-            low_price = float(p['lowPrice']['bid'])
-            price_range = high_price - low_price
-
-            tr = max(price_range, abs(high_price-prev_close), abs(low_price-prev_close))
-            tr_prices.append(tr)
-
-            prev_close = p['closePrice']['bid']
-
-        max_range = max(tr_prices)
-        low_range = min(tr_prices)
-
-        atr = np.mean(self.rolling_window(np.asarray(tr_prices),14),axis=1)
-        diff = len(self.prices[res]) - atr.size
-        for i in range(diff,len(self.prices[res])):
-            self.prices[res][i]['atr'] = atr[i-diff]
-        # low_range = max(low_range,3)
-
-        return int(low_range), int(max_range), atr[-1]
-
     def set_latest_price(self,values):
         # if self.ready:
         try:
             timestamp = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:%M:00")
             minNum = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%M") #1 or 6? make a new MIN_5
             
-            # logger.info(values)
+            
             self.bid = float(values['BID_CLOSE'])
             self.offer = float(values['OFR_CLOSE'])
             self.high = float(values['DAY_HIGH'])
@@ -201,25 +118,13 @@ class Market:
 
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
                         if i==None:
-                            self.calculate_indicators('MINUTE_30')
 
-                            price_len = len(self.prices['MINUTE_30'])
-                            # only want to analyse the last 4 price points (2 hrs)
 
-                            for p in range(price_len-5,price_len):
-                                self.detect_rsi("MINUTE_30",p)
-                                self.detect_stochastic("MINUTE_30",p)
-                            for p in range(price_len-1,price_len):
-                                # self.detect_psar('MINUTE_30',p)
-                                self.detect_crossover('MINUTE_30',p)
-                                # self.detect_macd("MINUTE_30",p)
-                                # self.detect_ma50_cross('MINUTE_30',p)
+                            self.strategy.process(self.prices['MINUTE_30'])
+
 
                             self.prices["MINUTE_30"].append(new_30_min)
 
-                            trades = [x for x in self.ig.trades if x.market.epic == self.epic]
-                            for t in trades:
-                                t.update_interval("MINUTE_30")
                         else:
                             
 
@@ -229,36 +134,15 @@ class Market:
                         if len(self.prices['MINUTE_30']) > 75:
                             del self.prices['MINUTE_30'][0]
 
-                        self.calculate_indicators('MINUTE_30')
-                        price_len = len(self.prices['MINUTE_30'])
-                        # only want to analyse the last 4 price points (2 hrs)
-
-                        for p in range(price_len-5,price_len):
-                            self.detect_rsi("MINUTE_30",p)
-                            self.detect_stochastic("MINUTE_30",p)
-                        for p in range(price_len-1,price_len):
-                            # self.detect_psar('MINUTE_30',p)
-                            self.detect_crossover('MINUTE_30',p)
-
-                        
-
-                    # if signal.update returns False, remove from list
-                    for s in self.signals:
-                        if not s.update(self):
-                            self.signals.remove(s)    
 
                     self.save_prices()
                     
                 else:
                     self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE_5'])>75:
+                if len(self.prices['MINUTE_5'])>30:
                     del self.prices['MINUTE_5'][0]
                     
-                self.calculate_rsi('MINUTE_5')
-                
-
-                self.current_rsi = float(self.prices['MINUTE_5'][-1]["rsi"])
 
                 
 
@@ -293,8 +177,7 @@ class Market:
 
                 time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
                 last_date = datetime.datetime.strptime(self.prices[resolution][-1]['snapshotTime'], "%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
-                # time_now = .localize(time_now)
-                # last_date = .localize(last_date)
+
                 print("res {}, last date: {}, now: {}".format(resolution, last_date,time_now))
                 delta = time_now - last_date
                 print(delta)
@@ -354,14 +237,12 @@ class Market:
                 #         self.remove_trade(t)
         
         # sanitise the price data incase it contains a None type because of retardation at IG
-        # self.sanitise_prices(resolution)
+        self.sanitise_prices(resolution)
         # whether we updated prices or not, lets recalculate our rsi and emas
-        self.calculate_indicators(resolution)
+        self.strategy.process(self.prices[resolution])
 
-        # price_len = len(self.prices[resolution])
-        # # only want to analyse the last 30 price points (reduce to 10 later)
-        # for p in range(price_len-40,price_len):
-        #     self.analyse_candle(resolution, p)
+
+
 
         logger.info("{} updated: used api calls {} remaining {}/{} - time till reset {}".format(self.epic, data_count, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
 
@@ -385,695 +266,7 @@ class Market:
                         else:
                             self.prices[resolution][g][t][i] = 0
 
-    # ********* Candlestick detection ************
-    def analyse_candle(self, resolution, index):
-        point = self.prices[resolution][index]
-        high_price = float(point['highPrice']['bid'])
-        low_price = float(point['lowPrice']['bid'])
-        open_price = float(point['openPrice']['bid'])
-        close_price = float(point['closePrice']['bid'])
-        point['movement'] = close_price - open_price
-        # self.detect_hammer(resolution,index, high_price, low_price, open_price, close_price)
-        # self.detect_crossover(resolution,index)
-        self.detect_rvi(resolution,index)
-        self.detect_macd(resolution,index)
-
-    def detect_rvi(self,resolution,index):
-        if index<20:
-            return
-        
-        now = self.prices[resolution][index]['rvi_histogram']
-        prev = self.prices[resolution][index-1]['rvi_histogram']
-        delta = abs(prev - now)
-
-        if now > 0 and prev < 0:
-            position = "BUY"
-        elif now < 0 and prev > 0:
-            position = "SELL"
-        else:
-            # no cross over, don't continue - we may want to expand this later for predicting 
-            return
-
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RVI",delta,"delta:{}".format(delta))
     
-
-
-    def detect_macd_0(self,resolution, index):
-        """detects the macd line cross 0"""
-        now = self.prices[resolution][index]['macd']
-        prev = self.prices[resolution][index-1]['macd']
-
-        if now > 0 and prev < 0:
-            position = "BUY"
-        elif now < 0 and prev > 0:
-            position = "SELL"
-        else:
-            return
-
-        delta = abs(prev - now)
-
-        comment = "MACD 0 Crossover"
-        confirmed = True
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",delta,comment,confirmed)
-
-    def detect_macd(self, resolution, index):
-        """detects a macd signal - assigns strong if the previous rsi shows strong, but not too strong"""
-        
-        
-
-        now = self.prices[resolution][index]['macd_histogram']
-        prev = self.prices[resolution][index-1]['macd_histogram']
-        
-        # figure out of theres a cross over
-        if now > 0 and prev < 0:
-            position = "BUY"
-            confirmation_price = max(2,now*2)
-        elif now < 0 and prev > 0:
-            position = "SELL"
-            confirmation_price = min(-2,now*2)
-        else:
-            # no cross over, don't continue - we may want to expand this later for predicting 
-            return
-
-        delta = abs(prev - now)
-
-        last_rsi = [x['rsi'] for x in self.prices[resolution][index-10:index]]
-        prev_rsi = sum(last_rsi)/len(last_rsi)
-        
-        comment = "Basic MACD signal"
-        # check our signals for a previous matching RVI signal
-        rvi_sigs = sorted([x for x in self.signals if (x.type=="RVI" and x.action==position)], key=operator.attrgetter('snapshot_time'), reverse=True)
-        confirmed = False
-        if len(rvi_sigs)>0:
-            r = self.prices[resolution][-1]['rsi']
-            yes = False
-            if r > 52.5 and position=="BUY":
-                if self.prices[resolution][index]['macd']>0:
-                    yes = True
-            if r < 47.5 and position=="SELL":
-                if self.prices[resolution][index]['macd']<0:
-                    yes = True
-
-            
-            if yes:
-                confirmed = True
-                comment = "MACD confirmed by RSI {} RVI at {}".format(r,rvi_sigs[0].snapshot_time)
-            else:
-                comment = "MACD only confirmed by RVI at {} but not RSI {}".format(rvi_sigs[0].snapshot_time,r)
-            
-
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"MACD",delta,comment,confirmed)
-
-        
-    def detect_rsi(self,resolution,index):
-        """detect when RSI goes back into normal ranges after being over sold or bought"""
-        now = self.prices[resolution][index]['rsi']
-        prev = self.prices[resolution][index-1]['rsi']
-
-        oversold = 29
-        overbought = 69
-        # figure out of theres a cross over
-        if now > oversold and prev <= oversold:
-            position = "BUY"
-            comment = "RSI crossed back from oversold"
-        elif now < overbought and prev >= overbought:
-            position = "SELL"
-            comment = "RSI crossed back from overbought"
-        else:
-            # no cross over, don't continue - we may want to expand this later for predicting 
-            return
-        
-        delta = now - prev
-
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"RSI",delta,comment)
-    
-    def detect_stochastic(self,resolution,index):
-        """detect when stoch goes back from over sold or bought position"""
-        now = self.prices[resolution][index]['stoch_k']
-        prev = self.prices[resolution][index-1]['stoch_k']
-
-        oversold = 20
-        overbought = 80
-        # figure out of theres a cross over
-        if now > oversold and prev <= oversold:
-            position = "BUY"
-            comment = "Stochastic crossed back from oversold"
-        elif now < overbought and prev >= overbought:
-            position = "SELL"
-            comment = "Stochastic crossed back from overbought"
-        else:
-            # no cross over, don't continue - we may want to expand this later for predicting 
-            return
-        
-        delta = now - prev
-
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"STOCH",delta,comment)
-
-    def detect_psar(self, resolution, index):
-        now = self.prices[resolution][index]['psar_bull']
-        prev = self.prices[resolution][index-1]['psar_bull']
-        print("psar! {} {}".format(now,prev))
-        if now != ''  and prev =='':
-            position = "BUY"
-            comment = "psar flipped to BULL"
-        elif now == '' and prev !='':
-            position = "SELL"
-            comment = "psar flipped to BEAR"
-        else:
-            return
-
-        # check if we have a previous stoch and rsi signals
-        confirmed = False
-        rsi_sigs = [x for x in self.signals if (x.type=="RSI" and x.action == position)]
-        stoch_sigs = [x for x in self.signals if (x.type=="STOCH" and x.action == position)]
-        delta = 1
-        if len(rsi_sigs)>0 and len(stoch_sigs) > 0:
-            confirmed = True
-            comment += " confirmed by RSI and STOCH"
-        
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"PSAR",delta,comment,confirmed)
-
-    
-    def detect_crossover(self, resolution, index):
-        """Detect a crossover of the wma_5 and wma_10 data"""
-        now_diff = self.prices[resolution][index]['wma_5'] - self.prices[resolution][index]['wma_10']
-        prev_diff = self.prices[resolution][index-1]['wma_5'] - self.prices[resolution][index-1]['wma_10']
-        
-        position = None
-        if now_diff>0 and prev_diff<0:
-            position = "BUY"
-        
-        if now_diff<0 and prev_diff>0:
-            position = "SELL"
-
-        if position is None:
-            return
-
-        delta = now_diff - prev_diff
-        comment = "prev:{}, now: {}".format(prev_diff,now_diff)
-        confirmed = False
-        rsi_sigs = [x for x in self.signals if (x.type=="RSI" and x.action == position)]
-        stoch_sigs = [x for x in self.signals if (x.type=="STOCH" and x.action == position)]
-        delta = 1
-        stoch = self.prices[resolution][index]['stoch_k']
-        stoch_trend = self.calculate_trend([x['stoch_k'] for x in self.prices[resolution][-3:]])
-        if position=="BUY":
-            if self.prices[resolution][index]['rsi']>50 and stoch_trend>0 and stoch<80:
-                confirmed = True
-                comment += " confirmed by RSI and stoch"
-        else:
-            if self.prices[resolution][index]['rsi']<50 and stoch_trend<0 and stoch>20:
-                confirmed = True
-                comment += " confirmed by RSI and stoch"
-
-
-        # if len(rsi_sigs)>0 and len(stoch_sigs) > 0:
-        #     confirmed = True
-        #     comment += " confirmed by RSI and STOCH"
-        
-
-        
-        self.add_signal(resolution,self.prices[resolution][index]['snapshotTime'],position,"CROSSOVER",delta,comment,confirmed)
-        
-
-    # def detect_hammer(self, resolution, index, high_price, low_price, open_price, close_price):
-    #     """Detect a hammer candlestick"""
-    #     point = self.prices[resolution][index]
-    #     size = high_price - low_price
-    #     if size ==0:
-    #         return
-    #     body_top = max(open_price, close_price)
-    #     body_bottom = min(open_price, close_price)
-    #     body_size = body_top - body_bottom
-    #     top_shadow = (high_price - body_top)/size
-    #     bottom_shadow = (body_bottom - low_price)/size
-    #     big_shadow = max(top_shadow,bottom_shadow)
-    #     small_shadow = min(top_shadow, bottom_shadow)
-    #     body_percent = body_size/size
-    #     if (body_percent<0.40 and big_shadow>small_shadow*1.25):
-    #         # possible hammer detected, decide initial signal position
-    #         position = "BUY"
-    #         if point['ema_12'] > point['ema_26']:
-    #             position = "SELL"
-            
-    #         # now check backwards to see if it's part of a trend
-    #         trend_check = self.prices[resolution][index-10:index]
-    #         trend_ok = True
-    #         for p in trend_check:
- 
-    #             p_position = "BUY"
-    #             if p['ema_12'] > p['ema_26']:
-    #                 p_position = "SELL"
-    #             if position != p_position:
-    #                 trend_ok = False
-    #                 break
-            
-    #         if trend_ok:
-    #             if position=="BUY":
-    #                 confirmation_price = body_top + (big_shadow*size)
-    #             else:
-    #                 confirmation_price = body_bottom - (big_shadow*size)
-
-    #             comment = "o:{}, c:{}, h:{}, l:{}".format(open_price,close_price,high_price,low_price)
-    #             self.add_signal(resolution,point['snapshotTime'],position,"HAMMER",comment,round(confirmation_price,2))
-    def remove_signals(self,resolution, index):
-        snapshot_time = self.prices[resolution][index]['snapshotTime']
-        matching_signals = [x for x in self.signals if x.snapshot_time==snapshot_time]
-        for s in matching_signals:
-            self.signals.remove(s)
-
-    def add_signal(self,resolution, snapshot_time, position, signal_type, delta, comment = "", confirmed = False ):
-        """Add a signal to the market"""
-
-        # snap_start = datetime.datetime.strptime(snapshot_time, "%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
-        # now = datetime.datetime.now()
-
-        # diff = now - snap_start
-        # percent = (diff.seconds/60) / 30
-        # if percent < 0.55:
-        #     if percent * delta < 0.5:
-        #         logger.info("SIGNAL? {} Found {} signal, but delta {} wasn't strong enough at this time {}".format(self.epic,signal_type,delta,now.strftime('"%Y:%m:%d-%H:%M:%S"')))
-        #         return
-        # remove any previous signals of this type
-        matching_signals = [x for x in self.signals if x.type==signal_type]
-        for s in matching_signals:
-            self.signals.remove(s)
-
-        self.signals.append(Signal(self.epic,resolution,snapshot_time,position,signal_type, comment, confirmed))
-
-    # ********* Indicator calculations ***********
-    def calculate_indicators(self, resolution):
-        self.wma(resolution,5)
-        self.wma(resolution,10)
-        self.trend(resolution,'wma_10','wma_10_trend')
-        self.moving_average(resolution,5)
-        self.moving_average(resolution,10)
-        self.calculate_rsi(resolution)
-        self.calculate_macd(resolution)
-        self.roc(resolution)
-        self.calculate_relative_vigor(resolution,10)
-        self.average_true_range(resolution)
-       
-        self.calculate_stochastic(resolution)
-        self.psar(resolution)
-
-    def calculate_trend(self, prices):
-        """calculates a relative trend based on an arbitary array of data"""
-        total = 0
-        if len(prices)>0:
-            first_time = True
-            
-            last_value = 0
-            iterator = 0
-            for p in prices:
-                if first_time:
-                    last_value = p
-                    first_time = False
-                else:
-                    new_value = p
-                    val = (new_value - last_value)
-                    total += val
-                    last_value = new_value
-                iterator+=1
-            
-            total/=len(prices)
-        return total
-
-    def roc(self,resolution, window=12):
-        for i in range(window,len(self.prices[resolution])):
-            self.prices[resolution][i]['roc'] = ((self.prices[resolution][i]['closePrice']['bid'] - self.prices[resolution][i-window]['closePrice']['bid'])/self.prices[resolution][i-window]['closePrice']['bid'])
-
-    def trend(self,resolution, value, name):
-        for i in range(1,len(self.prices[resolution])):
-            if value in self.prices[resolution][-i]:
-                self.prices[resolution][i][name] = self.prices[resolution][i][value] - self.prices[resolution][i-1][value]
-
-    def calculate_macd(self, resolution):
-        self.exponential_average(resolution,12)
-        self.exponential_average(resolution,26)
-        fast = [x['ema_12'] for x in self.prices[resolution]]
-        slow = [x['ema_26'] for x in self.prices[resolution]]
-        macd = list(map(operator.sub,fast,slow))
-        self.exponential_average(resolution,9,macd,"macd_signal")
-        for i in range(0,len(self.prices[resolution])):
-            self.prices[resolution][i]['macd'] = macd[i]
-            self.prices[resolution][i]['macd_histogram'] = self.prices[resolution][i]['macd'] - self.prices[resolution][i]['macd_signal']
-    
-
-    def calculate_relative_vigor(self,resolution, N):
-        close_price = [x['closePrice']['bid'] for x in self.prices[resolution]]
-        open_price = [x['openPrice']['bid'] for x in self.prices[resolution]]
-        high_price = [x['highPrice']['bid'] for x in self.prices[resolution]]
-        low_price = [x['lowPrice']['bid'] for x in self.prices[resolution]]
-        close_open = list(map(operator.sub,close_price,open_price))
-
-        high_low = list(map(operator.sub,high_price,low_price))
-        
-        close_open = self.swma(close_open)
-        
-        high_low = self.swma(high_low)
-
-        close_open = self.rolling_sum(close_open,N)
-        high_low = self.rolling_sum(high_low,N)
-        
-
-        rvi = np.divide(close_open,high_low)
-        sig = self.swma(rvi)
-        rvi = rvi[len(rvi) - len(sig):]
-        hist = np.subtract(rvi,sig)
-        
-
-        price_len = len(self.prices[resolution])
-        diff = price_len - len(sig)
-        
-        for i in range(diff,price_len):
-            self.prices[resolution][i]['rvi'] = rvi[i-diff]
-            self.prices[resolution][i]['rvi_signal'] = sig[i-diff]
-            self.prices[resolution][i]['rvi_histogram'] = hist[i-diff]
-
-    def rolling_sum(self, a, n=4) :
-        ret = np.cumsum(a, dtype=float)
-        ret[n:] = ret[n:] - ret[:-n]
-        return ret[n - 1:]
-
-
-    def sum(self,x,N):
-        return np.sum(self.rolling_window(x,N))
-
-
-    def swma(self,x):
-        a = np.asarray(x)
-        roll = self.rolling_window(a,4)
-        # print(roll)
-        return np.average(roll,axis=1,weights= [1/6, 2/6, 2/6, 1/6])
-
-    def rolling_window(self,a, window):
-        shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
-        strides = a.strides + (a.strides[-1],)
-        return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
-
-    def simple_moving_average(self, x, N, name=None):
-        cumsum = np.cumsum(np.insert(x, 0, 0)) 
-        return (cumsum[N:] - cumsum[:-N]) / float(N)
-
-    def psar(self,resolution, iaf = 0.02, maxaf = 0.2):
-        barsdata = self.prices[resolution]
-        length = len(barsdata)
-        dates = [x['snapshotTime'] for x in barsdata]
-        high = [x['highPrice']['bid'] for x in barsdata]
-        low = [x['lowPrice']['bid'] for x in barsdata]
-        close = [x['closePrice']['bid'] for x in barsdata]
-        psar = close[0:len(close)]
-        psarbull = [None] * length
-        psarbear = [None] * length
-        bull = True
-        af = iaf
-        ep = low[0]
-        hp = high[0]
-        lp = low[0]
-
-        
-        for i in range(2,length):
-            if bull:
-                psar[i] = psar[i - 1] + af * (hp - psar[i - 1])
-            else:
-                psar[i] = psar[i - 1] + af * (lp - psar[i - 1])
-            
-            reverse = False
-            
-            if bull:
-                if low[i] < psar[i]:
-                    bull = False
-                    reverse = True
-                    psar[i] = hp
-                    lp = low[i]
-                    af = iaf
-            else:
-                if high[i] > psar[i]:
-                    bull = True
-                    reverse = True
-                    psar[i] = lp
-                    hp = high[i]
-                    af = iaf
-        
-            if not reverse:
-                if bull:
-                    if high[i] > hp:
-                        hp = high[i]
-                        af = min(af + iaf, maxaf)
-                    if low[i - 1] < psar[i]:
-                        psar[i] = low[i - 1]
-                    if low[i - 2] < psar[i]:
-                        psar[i] = low[i - 2]
-                else:
-                    if low[i] < lp:
-                        lp = low[i]
-                        af = min(af + iaf, maxaf)
-                    if high[i - 1] > psar[i]:
-                        psar[i] = high[i - 1]
-                    if high[i - 2] > psar[i]:
-                        psar[i] = high[i - 2]
-                        
-            if bull:
-                psarbull[i] = psar[i]
-                self.prices[resolution][i]['psar_bull'] = psar[i]
-                self.prices[resolution][i]['psar_bear'] = ''
-            else:
-                psarbear[i] = psar[i]
-                self.prices[resolution][i]['psar_bear'] = psar[i]
-                self.prices[resolution][i]['psar_bull'] = ''
-
-        return {"dates":dates, "high":high, "low":low, "close":close, "psar":psar, "psarbear":psarbear, "psarbull":psarbull}
-
-
-  
-    def calculate_trailing(self, resolution):
-        # highs = np.asarray([x['highPrice']['bid'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amax(axis=1)
-        # lows = np.asarray([x['lowPrice']['ask'] for x in self.prices[resolution][-40]]).reshape((5,-1)).amin(axis=1)
-        try:
-            price_len = len(self.prices[resolution]) 
- 
-            high_data = list(self.get_ordered_prices("highPrice","ask",[resolution])) 
-            low_data = list(self.get_ordered_prices("lowPrice","bid",[resolution])) 
-    
-            high_data_compile = [] 
-            low_data_compile = [] 
-    
-            for p in range(0,len(high_data[0])): 
-    
-                high_data_compile.append([high_data[0][p], high_data[1][p]]) 
-                low_data_compile.append([low_data[0][p], low_data[1][p]]) 
-
-            for i in range(price_len-5,price_len): 
-            
-                high_data_seg = high_data_compile[i-20:i] 
-                low_data_seg = low_data_compile[i-20:i] 
-                
-                
-                highs = [] 
-                lows = [] 
-                for chunk in list(self.chunks(high_data_seg,4)): 
-                    # print(chunk) 
-                    h = max(chunk, key=lambda x:x[1][0]) 
-                    highs.append(h) 
-                
-                for chunk in list(self.chunks(low_data_seg,4)): 
-                    # print(chunk) 
-                    l = min(chunk,key=lambda x:x[1][0]) 
-                    lows.append(l) 
-    
-                # print("highs: {} {}".format(i, highs)) 
-                # print("lows: {} {}".format(i, lows)) 
-                h_x = [x[0] for x in highs] 
-                h_y = [y[1][0] for y in highs] 
-                l_x = [x[0] for x in lows] 
-                l_y = [y[1][0] for y in lows] 
-    
-    
-                h_p, h_m, h_c = self.perform_regression(h_x,h_y) 
-                l_p, l_m, l_c = self.perform_regression(l_x,l_y) 
-    
-                if h_m>0: 
-                    h_p = max(h_y) 
-                    
-                    
-                if l_m<0: 
-                    l_p = min(l_y) 
-                    
-    
-                self.prices[resolution][i]["high_trail"] = h_p 
-                self.prices[resolution][i]["low_trail"] = l_p
-
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.info(exc_type, fname, exc_tb.tb_lineno,exc_obj)
-            pass
-        
-
-    def chunks(self, l, n):
-        """Yield successive n-sized chunks from l."""
-        for i in range(0, len(l), n):
-            yield l[i:i + n]
-
-    def calculate_stochastic(self,resolution, length=5, smoothK=3, smoothD = 3):
-        """Calculate stochastic indicator for timeframe"""
-
-        def stoch(close,highs,lows):
-            high = np.max(highs)
-            low = np.min(lows)
-            close = close[-1]
-            k =((close - low)/(high - low)) * 100
-            return k
-
-        highs = self.rolling_window(np.asarray([x['highPrice']['bid'] for x in self.prices[resolution]]),length)
-        lows = self.rolling_window(np.asarray([x['lowPrice']['bid'] for x in self.prices[resolution]]),length)
-        closes = self.rolling_window(np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]]),length)
-        ks = []
-        for i in range(0,len(closes)):
-            ks.append(stoch(closes[i],highs[i],lows[i]))
-
-
-        k = self.moving_average(resolution,smoothK,values = ks,save = False)
-        d = self.moving_average(resolution,smoothD,values=k, save=False)
-
-        k = k[len(k) - len(d):]
-
-        price_len = len(self.prices[resolution])
-        diff = price_len - len(d)
-        
-        for i in range(diff,price_len):
-            self.prices[resolution][i]['stoch_k'] = k[i-diff]
-            self.prices[resolution][i]['stoch_d'] = d[i-diff]
-
-        
-
-
-    def calculate_rsi(self, resolution, n=9):
-        """Calculate the RSI"""
-        prices = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
-
-        deltas = np.diff(prices)
-        seed = deltas[:n+1]
-        up = seed[seed>=0].sum()/n
-        down = -seed[seed<0].sum()/n
-        rs = up/down
-        rsi = np.zeros_like(prices)
-        # rsi[:n] = 100. - 100./(1.+rs)
-        # rsi[:n] = -1
-        
-        for i in range(0,n):
-            if not "rsi" in self.prices[resolution][i]:
-                self.prices[resolution][i]["rsi"] = -1
-
-        for i in range(n, len(prices)):
-            delta = deltas[i-1] # cause the diff is 1 shorter
-
-            if delta>0:
-                upval = delta
-                downval = 0.
-            else:
-                upval = 0.
-                downval = -delta
-
-            up = (up*(n-1) + upval)/n
-            down = (down*(n-1) + downval)/n
-
-            rs = up/down
-            rsi[i] = 100. - 100./(1.+rs)
-            self.prices[resolution][i]["rsi"] = rsi[i]
-
-        return rsi
-
-
-    def numpy_ewma_vectorized_v2(self, data, window):
-
-        alpha = 2 /(window + 1.0)
-        alpha_rev = 1-alpha
-        n = data.shape[0]
-
-        pows = alpha_rev**(np.arange(n+1))
-
-        scale_arr = 1/pows[:-1]
-        offset = data[0]*pows[1:]
-        pw0 = alpha*alpha_rev**(n-1)
-
-        mult = data*pw0*scale_arr
-        cumsums = mult.cumsum()
-        out = offset + cumsums*scale_arr[::-1]
-        return out
-
-    
-    def moving_average(self,resolution, window, values = None, name = None, save = True):
-        if values is None:
-            values = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
-        else:
-            values = np.asarray(values)
-
-        a  = np.mean(self.rolling_window(values,window),axis=1)
-
-        if save:
-            if name is None:
-                name = "ma_{}".format(window)
-
-            price_len = len(self.prices[resolution])
-            diff = price_len - len(a)
-        
-            for i in range(diff,price_len):
-                self.prices[resolution][i][name] = a[i-diff]
-        
-
-        return a
-
-
-
-    def wma(self, resolution, window, values= None, name = None, save = True):
-        if values is None:
-            values = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
-        else:
-            values = np.asarray(values)
-        
-        w = range(1,window+1)
-        
-        a = np.average(self.rolling_window(values,window),axis=1,weights=w)
-
-        if save:
-            if name is None:
-                name = "wma_{}".format(window)
-
-            price_len = len(self.prices[resolution])
-            diff = price_len - len(a)
-            
-            for i in range(diff,price_len):
-                self.prices[resolution][i][name] = a[i-diff]
-        
-
-        return a
-    
-
-    def exponential_average(self, resolution, window, values= None, name = None):
-        if values is None:
-            values = np.asarray([x['closePrice']['bid'] for x in self.prices[resolution]])
-        else:
-            values = np.asarray(values)
-        a = self.numpy_ewma_vectorized_v2(values,window)
-        # weights = np.exp(np.linspace(1.,0.,window))
-        # weights /= weights.sum()
-
-        # a = np.convolve(values, weights) [:len(values)]
-        # a[:window]=a[window]
-        if name is None:
-            name = "ema_{}".format(window)
-        # add the ema data to the saved price data
-        for i in range(0,len(values)):
-            if i < window:
-                # in duff pre-window add ema data if the property doesn't exist, leave if not
-                if not name in self.prices[resolution][i]:
-                    self.prices[resolution][i][name] = a[i]
-            else:
-                # always add after the window
-                self.prices[resolution][i][name] = a[i]
-        return a
 
     def perform_regression(self, x, y,mins=5):
         epoch = datetime.datetime.strptime("2010-01-01","%Y-%m-%d")
@@ -1164,8 +357,7 @@ class Market:
             "low" : self.low,
             "percentage_change" : self.percentage_change,
             "net_change" : self.net_change,
-            "market_status" : self.market_status,
-            "current_rsi" : self.current_rsi  
+            "market_status" : self.market_status
         }
         if not os.path.exists("markets/"):
                 os.makedirs("markets/")

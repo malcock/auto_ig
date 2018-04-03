@@ -37,7 +37,7 @@ settings = {"username":"admin","password":"admin", "api_live":False,
             "demo_api_user":"****", "demo_api_pass":"****", "demo_api_key":"****"}
 
 EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP","CS.D.EURUSD.TODAY.IP","CS.D.USDJPY.TODAY.IP","CS.D.GBPAUD.TODAY.IP","CS.D.EURCAD.TODAY.IP",
-            "CS.D.AUDUSD.TODAY.IP","CS.D.EURGBP.TODAY.IP","CS.D.EURJPY.TODAY.IP","CS.D.GBPJPY.TODAY.IP","CS.D.CHFJPY.TODAY.IP",
+            "CS.D.AUDUSD.TODAY.IP","CS.D.GBPEUR.TODAY.IP","CS.D.EURJPY.TODAY.IP","CS.D.GBPJPY.TODAY.IP","CS.D.CHFJPY.TODAY.IP",
             "CS.D.USDCAD.TODAY.IP", "CS.D.USDCHF.TODAY.IP","CS.D.EURCHF.TODAY.IP" ]
 # EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP"]
 START_TIME = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
@@ -101,10 +101,13 @@ def reset_log():
 @app.route('/signals')
 def show_signals():
     """outputs signals into a list or something"""
-    signals = auto_ig.get_signals()
+    sigs = auto_ig.get_signals()
     output = "<ul>"
-    for signal in signals:
-        output += "<li>{} - {}: <b>{}</b> ({}) OK:<b>{}</b>, CONFIRM AT:{} UNUSED:{}, score:{}, comment: {}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused, signal.score, signal.comment)
+    for key,val in sigs.items():
+        output += "<li>{}<ul>".format(key)
+        for sig in val:
+            output+="<li>{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+        output += "</ul></li>"
     
     output += "</ul>"
 
@@ -115,12 +118,25 @@ def fill_signals():
     """back fill signals - useful for post deployment"""
     auto_ig.fill_signals()
 
-    signals = auto_ig.get_signals()
+    sigs = auto_ig.get_signals()
     output = "<p>Forced signal generation</p><ul>"
-    for signal in signals:
-        output += "<li>{} - {}: <b>{}</b> ({}) OK:<b>{}</b>, CONFIRM AT:{} UNUSED:{}, score:{}, comment: {}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused, signal.score, signal.comment)
+    
+    for key,val in sigs.items():
+        output += "<li>{}<ul>".format(key)
+        for sig in val:
+            output+="<li>{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+        output += "</ul></li>"
     
     output += "</ul>"
+
+    # auto_ig.fill_signals()
+
+    # signals = auto_ig.get_signals()
+    # output = "<p>Forced signal generation</p><ul>"
+    # for signal in signals:
+    #     output += "<li>{} - {}: <b>{}</b> ({}) OK:<b>{}</b>, CONFIRM AT:{} UNUSED:{}, score:{}, comment: {}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused, signal.score, signal.comment)
+    
+    # output += "</ul>"
 
     return output
 
@@ -201,6 +217,13 @@ def get_history():
     output = output
     
     return output
+
+@app.route('/backtest/<epic>/<start_date>/<end_date>')
+def do_backtest(epic, start_date, end_date):
+
+    results = auto_ig.backtest(epic,start_date,end_date)
+
+    return "hello" + results
 
 @app.route('/prices/<epic>/<res>/table')
 def get_prices_table(epic,res):

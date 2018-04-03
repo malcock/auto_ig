@@ -51,30 +51,19 @@ class AutoIG:
         self.trades.append(t)
         return t
 
-    def get_signals(self):
-        try:
-            signals = sorted(reduce(operator.concat,[x.signals for x in self.markets.values()]), key=operator.attrgetter('snapshot_time'), reverse=True)
-        except Exception:
-            signals = []
-        return signals
 
     def fill_signals(self):
         for m in self.markets.values():
-            if m.get_update_cost("MINUTE_30",50)>0:
-                m.update_prices("MINUTE_30",50)
-            if m.get_update_cost("MINUTE_5",50)>0:
-                m.update_prices("MINUTE_5",50)
+            print("backfilling: {}".format(m.epic))
+            m.strategy.backfill(m.prices['MINUTE_30'])
 
-            m.calculate_indicators('MINUTE_30')
-            
-            price_len = len(m.prices["MINUTE_30"])
-            for p in range(price_len-6,price_len):
-                m.detect_rsi("MINUTE_30",p)
-                m.detect_stochastic("MINUTE_30",p)
-            for p in range(price_len-2,price_len):
-                # m.detect_psar("MINUTE_30",p)
-                m.detect_crossover("MINUTE_30",p)
-                # m.detect_ma50_cross('MINUTE_30',p)
+    def get_signals(self):
+        signals = {}
+
+        for m in self.markets.values():
+            signals[m.epic] = sorted(m.strategy.signals,key=operator.attrgetter('timestamp'),reverse=True)
+
+        return signals
 
 
 
@@ -82,31 +71,31 @@ class AutoIG:
         """Do the process"""
         timenow = datetime.datetime.now()
 
-        if timenow.weekday() == 5:
-            return False, "We don't play on weekends"
+        # if timenow.weekday() == 5:
+        #     return False, "We don't play on weekends"
 
-        if timenow.weekday() == 4:
-            if timenow.time() > datetime.time(21):
-                # close for the weekend
-                if self.is_open:
-                    if isinstance(self.lightstream, LSClient):
-                        self.lightstream.unsubscribe_all()
+        # if timenow.weekday() == 4:
+        #     if timenow.time() > datetime.time(21):
+        #         # close for the weekend
+        #         if self.is_open:
+        #             if isinstance(self.lightstream, LSClient):
+        #                 self.lightstream.unsubscribe_all()
                     
-                    self.lightstream = {}
+        #             self.lightstream = {}
 
-                    for m in self.markets.values():
-                        m.prices = {}
-                        m.save_prices()
+        #             for m in self.markets.values():
+        #                 m.prices = {}
+        #                 m.save_prices()
 
-                    self.is_open = False
-                return False, "Markets closed on Friday"
+        #             self.is_open = False
+        #         return False, "Markets closed on Friday"
 
-        if timenow.weekday() ==6:
-            if timenow.time() > datetime.time(21):
-                if not self.is_open:
-                    self.is_open = True
-            else:
-                return False, "Market still closed on Sunday"
+        # if timenow.weekday() ==6:
+        #     if timenow.time() > datetime.time(21):
+        #         if not self.is_open:
+        #             self.is_open = True
+        #     else:
+        #         return False, "Market still closed on Sunday"
 
 
         self.update_markets(epic_ids)
@@ -140,88 +129,57 @@ class AutoIG:
 
         
         for m in self.markets.values():
-            if m.get_update_cost("MINUTE_30",50)>0:
-                m.update_prices("MINUTE_30",50)
+            if m.get_update_cost("MINUTE_30",75)>0:
+                m.update_prices("MINUTE_30",75)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
                 # self.fill_signals()
-            if m.get_update_cost("MINUTE_5",50)>0:
-                m.update_prices("MINUTE_5",50)
+            if m.get_update_cost("MINUTE_5",18)>0:
+                m.update_prices("MINUTE_5",18)
             
             # m.calculate_relative_vigor("MINUTE_30",10)
 
 
         open_lightstreamer = False
 
-        # lets try to open a trade i guess? change
-        
-        # create a list of confirmed signals
-        signals = self.get_signals()
-        confirmed_signals = [x for x in signals if x.score>1]
-        unused_signals = sorted([x for x in confirmed_signals if x.unused], key=operator.attrgetter('snapshot_time'), reverse=True)
+        # let's process our markets and look for signals then
+        top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
+        for market in top_markets:
+            signals = [x for x in market.strategy.signals if x.score>1 and x.unused]
+            for signal in signals:
+                current_trades = [x for x in self.trades if x.market==market]
+                if len(current_trades)==0 and signal.score > 2:
+                    if market.spread < 5:
+                        if len(self.trades)<self.max_concurrent_trades:
+                            round_val = 500.0
+                            base = 1000.0
+                            trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
+                            logger.info("proposed bet size: {}".format(trade_size))
 
-        logger.info("SIGNALS:{} CONFIRMED:{} UNUSED:{}".format(len(signals),len(confirmed_signals),len(unused_signals)))
-        if len(unused_signals)>0:
-            round_val = 500.0
-            base = 1000.0
-            trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
-            logger.info("proposed bet size: {}".format(trade_size))
-
-            # prefer markets with small spread first 
-            top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
-
-            for market in top_markets:
-                logger.info("looking in {}".format(market.epic))
-                market_signals = [x for x in unused_signals if x.epic==market.epic]
-                logger.info("{} signals found for market".format(len(market_signals)))
-                for signal in market_signals:
-                    # only try spread on market is tight enough
-                    if market.spread<10:
-                        # check if this market already has trades open
-                        current_trades = [x for x in self.trades if x.market==market]
-                        if len(current_trades)==0 and signal.score>2 and signal.confirmed:
-                            # if we've got less than max open, lets try and open one now (if it's strong!)
-                            if len([x for x in self.trades if x.state==2])<self.max_concurrent_trades:
-                                
-                                # do some time checks before opening new trades
-                                # if timenow.weekday() > 4:
-                                #     return False, "We don't play on weekends"
-
-                                # if timenow.weekday() == 0 and timenow.hour < 1:
-                                #     return False, "Waiting for market to stabilise after weekend"
-
-                                # if timenow.weekday() == 4 and timenow.hour > 22:
-                                #     return False, "Too late to open new trades on a Friday"
-                                
-
-                                signal.unused = False
-                                logger.info("{} lets try open a position".format(market.epic))
-                                prediction = market.make_prediction(signal)
-                                self.make_trade(1,market,prediction)
-                                signal.score = 1
-                            else:
-                                logger.info("Trades full - can't open more now:{}, max:{}".format(len(self.trades),self.max_concurrent_trades))
+                            signal.unused = False
+                            prediction = market.strategy.prediction(signal,market.prices['MINUTE_30'])
+                            self.make_trade(1,market,prediction)
+                            signal.score = 1
                         else:
-                            # trades in market already
-                            
-                            logger.info("{} trade already open on this market".format(market.epic))
-                            for t in current_trades:
-                                if signal.action == t.prediction['direction_to_trade']:
-                                    t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.action, signal.type, signal.snapshot_time))
-                                    signal.unused = False
-                                    signal.score-=1
-                                else:
-                                    
-                                    t.assess_close(signal)
-                                    if signal.type != "CROSSOVER":
-                                        signal.unused = False
-                                    signal.score-=1
+                            logger.info("Can't open any more trades already maxed out")
                     else:
-                        signal.unused = False
-                        logger.info("{} spread too wide {}, ignoring signal".format(market.epic,market.spread))
+                        logger.info("{} : market spread too wide!".format(market.epic))
+                else:
+                    logger.info("{} trade already open on this market".format(market.epic))
+                    for t in current_trades:
+                        if signal.position == t.prediction['direction_to_trade']:
+                            t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
+                            signal.unused = False
+                            signal.score-=1
+                        else:
+                            
+                            t.assess_close(signal)
+                            
+                            signal.score-=1
+                            if signal.score > 2:
+                                signal.unused = True
+                        
 
-
-                    
-
+            
             
         if not isinstance(self.lightstream, LSClient):
             open_lightstreamer = True
@@ -276,10 +234,8 @@ class AutoIG:
             for t in market_trades:
                 if not t.update():
                     self.trades.remove(t)
-        
-        # fh = open("updizzle.txt",'a')
-        # fh.write(data)
-    
+
+
     def update_markets(self, epic_ids):
         logger.info("getting all markets data")
         for chunk in list(self.chunks(epic_ids,50)):
@@ -297,6 +253,11 @@ class AutoIG:
                         self.markets[epic_id].update_market(epic)
             else:
                 return False, "Couldn't get market data: {} {}".format(auth_r.status_code,auth_r.content)
+
+    def backtest(self, epic, start_date, end_date):
+        """do a backtest - probs should have done this a while ago..."""
+        pass
+
 
     def get_history(self):
         base_url = self.api_url + "/history/transactions/ALL/100000000000000"
