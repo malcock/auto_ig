@@ -212,15 +212,13 @@ class Market:
 
                 # now see how many times delta.seconds fits into seconds_per_unit
                 times_into = divmod(delta.seconds,seconds_per_unit)
-                if "DAY" in resolution:
-                    logger.info(delta.seconds)
-                    logger.info(seconds_per_unit)
-                    logger.info(time_now)
-                    logger.info(last_date)
-                    logger.info(delta.days)
                 logger.info(times_into)
-                # limit to data_count value
                 data_count = min(times_into[0],data_count)
+                if "DAY" in resolution:
+                    data_count = delta.days
+                
+                # limit to data_count value
+                
                 return data_count
             
             # nothing in memory, just return the given count
