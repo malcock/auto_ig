@@ -217,6 +217,7 @@ class Market:
                     logger.info(seconds_per_unit)
                     logger.info(time_now)
                     logger.info(last_date)
+                    logger.info(delta.day)
                 logger.info(times_into)
                 # limit to data_count value
                 data_count = min(times_into[0],data_count)
