@@ -300,12 +300,12 @@ class Trade:
                 self.close_trade()
 
             if self.pip_diff<0.2:
-                self.log_status("{} opposing signal {} found - but not in profit. max{}".format(self.market.epic,signal.action, self.pip_max))
+                self.log_status("{} opposing signal {} found - but not in profit. max{}".format(self.market.epic,signal.position, self.pip_max))
                 return
             # if self.pip_diff < self.prediction['limit_distance']:
             #     return
 
-            self.log_status("{} opposing signal {} found - activate trailing stoploss. Old max {}".format(self.market.epic,signal.action, self.pip_max))
+            self.log_status("{} opposing signal {} found - activate trailing stoploss. Old max {}".format(self.market.epic,signal.position, self.pip_max))
             self.pip_max = self.pip_diff
             self.trailing_stop = True
     
