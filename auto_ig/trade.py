@@ -99,8 +99,9 @@ class Trade:
                 if time_now > self.expiry_time:
                     self.log_status("Conditions were never right for trade to open")
                     self.state = TradeState.FAILED
+                else:
 
-                if self.market.strategy.entry(self.prediction['signal'],self.market.prices['MINUTE_30']):
+                    # if self.market.strategy.entry(self.prediction['signal'],self.market.prices['MINUTE_30']):
                     self.open_trade()
 
             elif self.state == TradeState.PENDING:
@@ -133,11 +134,11 @@ class Trade:
                 stoploss = float(self.prediction['stoploss'])
                 self.trailing_level = stoploss - self.pip_max
 
-                if self.trailing_stop:
+                # if self.trailing_stop:
 
-                    if self.pip_diff < self.trailing_level:
-                        self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
-                        self.close_trade()
+                if self.pip_diff < self.trailing_level:
+                    self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
+                    self.close_trade()
 
 
                 # STOP LOSS CHECKING

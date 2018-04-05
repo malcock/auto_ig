@@ -39,7 +39,7 @@ settings = {"username":"admin","password":"admin", "api_live":False,
 EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP","CS.D.EURUSD.TODAY.IP","CS.D.USDJPY.TODAY.IP","CS.D.GBPAUD.TODAY.IP","CS.D.EURCAD.TODAY.IP",
             "CS.D.AUDUSD.TODAY.IP","CS.D.GBPEUR.TODAY.IP","CS.D.EURJPY.TODAY.IP","CS.D.GBPJPY.TODAY.IP","CS.D.CHFJPY.TODAY.IP",
             "CS.D.USDCAD.TODAY.IP", "CS.D.USDCHF.TODAY.IP","CS.D.EURCHF.TODAY.IP" ]
-# EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP"]
+# EPIC_IDS = ["CS.D.GBPEUR.TODAY.IP"]
 START_TIME = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
 LAST_TRADE = START_TIME
 
@@ -97,49 +97,34 @@ def reset_log():
 
     return "log file deleted"
 
-    
-@app.route('/signals')
-def show_signals():
-    """outputs signals into a list or something"""
-    sigs = auto_ig.get_signals()
-    output = "<ul>"
-    for key,val in sigs.items():
-        output += "<li>{}<ul>".format(key)
-        for sig in val:
-            output+="<li>{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
-        output += "</ul></li>"
-    
-    output += "</ul>"
-
-    return output
 
 @app.route('/fill-signals')
 def fill_signals():
-    """back fill signals - useful for post deployment"""
     auto_ig.fill_signals()
 
     sigs = auto_ig.get_signals()
-    output = "<p>Forced signal generation</p><ul>"
-    
-    for key,val in sigs.items():
+    output = "<p>Forcing singal generation</p><ul>"
+    for key,s in sigs.items():
         output += "<li>{}<ul>".format(key)
-        for sig in val:
-            output+="<li>{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+        for sig in s:
+            output+="<li>{} - {} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.market,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
         output += "</ul></li>"
-    
+
     output += "</ul>"
-
-    # auto_ig.fill_signals()
-
-    # signals = auto_ig.get_signals()
-    # output = "<p>Forced signal generation</p><ul>"
-    # for signal in signals:
-    #     output += "<li>{} - {}: <b>{}</b> ({}) OK:<b>{}</b>, CONFIRM AT:{} UNUSED:{}, score:{}, comment: {}</li>".format(signal.snapshot_time,signal.epic,signal.action, signal.type,signal.confirmed,signal.confirmation_price, signal.unused, signal.score, signal.comment)
-    
-    # output += "</ul>"
-
     return output
 
+@app.route('/signals')
+def show_signals():
+    sigs = auto_ig.get_signals()
+    output = "<ul>"
+    for key,s in sigs.items():
+        output += "<li>{}<ul>".format(key)
+        for sig in s:
+            output+="<li>{} - {} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.market,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+        output += "</ul></li>"
+
+    output += "</ul>"
+    return output
 
 @app.route('/login', methods = ['GET', 'POST'])
 def login():
@@ -171,27 +156,20 @@ def get_prices(epic,res):
     if len(trade)>0:
         open_level = trade[0].open_level
     prices = auto_ig.markets[epic].prices[res]
-    output = "timestamp, low, open, close, high, rsi, ema_12, ema_26, macd,macd_signal, macd_histogram, high_trail, low_trail, rvi, rvi_signal, rvi_histogram, atr, ma_50, trade_open \r\n"
+
+    # get keys from 2nd to last prices - as this is guaranteed to have all indicators applied
+    keys = prices[-2].keys()
+    
+    output = ",".join(keys) + "\r\n"
     for p in prices:
-        output+="{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} \r\n".format(p['snapshotTime'],
-                                                        p['lowPrice']['bid'],
-                                                        p['openPrice']['bid'],
-                                                        p['closePrice']['bid'],
-                                                        p['highPrice']['bid'],
-                                                        p.get('rsi',''),
-                                                        p.get('ema_12',''),
-                                                        p.get('ema_26',''),
-                                                        p.get('macd',''),
-                                                        p.get('macd_signal',''),
-                                                        p.get('macd_histogram',''),
-                                                        p.get('high_trail',''),
-                                                        p.get('low_trail',''),
-                                                        p.get('rvi',''),
-                                                        p.get('rvi_signal',''),
-                                                        p.get('rvi_histogram',''),
-                                                        p.get('atr',''),
-                                                        p.get('ma_50',''),
-                                                        open_level)
+        line = []
+        for k in keys:
+            val = p.get(k,'')
+            if k in ['lowPrice','openPrice','closePrice','highPrice']:
+                val = p[k]['bid']
+            line.append(val)
+        line = [str(x) for x in line]
+        output+= ",".join(line) + "\r\n"
     
     return output
 
@@ -229,30 +207,24 @@ def do_backtest(epic, start_date, end_date):
 def get_prices_table(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
-    output = "<table>"
-    output += "<tr><td>timestamp</td> <td>low</td> <td>open</td> <td>close</td> <td>high</td> <td>rsi</td> <td>wma_5</td> <td>wma_10</td> <td>macd</td> <td>signal</td> <td>macd_histogram</td><td>high_trail</td><td>low_trail</td><td>rvi</td><td>rvi_signal</td><td>rvi_histogram</td><td>stoch_k</td><td>stoch_d</td><td>psar_bull</td><td>psar_bear</td><td>roc</td></tr> \r\n"
+    output = "<table><tr>"
+    keys = prices[-2].keys()
+    keycols = ["<td>{}</td>".format(x) for x in keys]
+    output += "".join(keycols) + "</tr>"
+    
     for p in prices:
-        output+="<tr><td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td> <td>{}</td></tr> \r\n".format(p['snapshotTime'],
-                                                        p['lowPrice']['bid'],
-                                                        p['openPrice']['bid'],
-                                                        p['closePrice']['bid'],
-                                                        p['highPrice']['bid'],
-                                                        p.get('rsi',0),
-                                                        p.get('wma_5',''),
-                                                        p.get('wma_10',''),
-                                                        p.get('macd',0),
-                                                        p.get('macd_signal',0),
-                                                        p.get('macd_histogram',0),
-                                                        p.get('high_trail',0),
-                                                        p.get('low_trail',0),
-                                                        p.get('rvi',''),
-                                                        p.get('rvi_signal',''),
-                                                        p.get('rvi_histogram',''),
-                                                        p.get('stoch_k',''),
-                                                        p.get('stoch_d',''),
-                                                        p.get('psar_bull',''),
-                                                        p.get('psar_bear',''),
-                                                        p.get('roc',''))
+        line = []
+        for k in keys:
+            val = p.get(k,'')
+            if k in ['lowPrice','openPrice','closePrice','highPrice']:
+                val = p[k]['bid']
+            line.append(val)
+        
+        line = ["<td>{}</td>".format(x) for x in line]
+        output += "<tr>{}</tr>".format("".join(line))
+
+            
+    
     output +="</table>"
     return output
 

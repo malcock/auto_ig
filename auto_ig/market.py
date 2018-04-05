@@ -29,14 +29,14 @@ logger.addHandler(ch)
 class Market:
     """Main class for handling monitoring of markets and producing signals"""
     
-    def __init__(self, epic, ig_obj, market_data = None):
+    def __init__(self, epic, ig_obj, strategy, market_data = None):
         self.epic = epic
         self.cooldown = datetime.datetime(2000,1,1,0,0,0,0)
         self.ig = ig_obj
         # raw data and signal producers
         self.prices = {}
         
-        self.strategy = wma_cross(10,25,50,14)
+        self.strategy = strategy
         
         
         self.load_prices()
@@ -50,15 +50,19 @@ class Market:
             auth_r = requests.get(base_url, headers=self.ig.authenticate())
             obj = json.loads(auth_r.text)
         # maybe we can load some prices?
-        self.bid = obj['snapshot']['bid']
-        self.offer = obj['snapshot']['offer']
-        self.spread = float(self.offer) - float(self.bid)
-        self.high = obj['snapshot']['high']
-        self.low = obj['snapshot']['low']
-        self.percentage_change = obj['snapshot']['percentageChange']
-        self.net_change = obj['snapshot']['netChange']
+        self.bid = float(obj['snapshot']['bid'])
+        self.offer = float(obj['snapshot']['offer'])
+        self.spread = self.offer - self.bid
+        self.high = float(obj['snapshot']['high'])
+        self.low = float(obj['snapshot']['low'])
+        self.percentage_change = float(obj['snapshot']['percentageChange'])
+        self.net_change = float(obj['snapshot']['netChange'])
         self.market_status = obj['snapshot']['marketStatus']
-
+        if "DAY" in self.prices:
+            self.prices['DAY'][-1]['highPrice']['bid'] = self.high
+            self.prices['DAY'][-1]['lowPrice']['bid'] = self.low
+            self.prices['DAY'][-1]['openPrice']['bid'] = self.bid - self.net_change
+            self.prices['DAY'][-1]['closePrice']['bid'] = self.bid
         # if this market isn't tradeable, remove all price data - it's a dawn of a brand new day!
         if not self.market_status=="TRADEABLE":
             self.prices = {}
@@ -72,16 +76,26 @@ class Market:
             minNum = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%M") #1 or 6? make a new MIN_5
             
             
-            self.bid = float(values['BID_CLOSE'])
-            self.offer = float(values['OFR_CLOSE'])
-            self.high = float(values['DAY_HIGH'])
-            self.low = float(values['DAY_LOW'])
+            self.bid = float(values['BID_CLOSE']) if not isinstance(values['BID_CLOSE'],str) else self.bid
+            self.offer = float(values['OFR_CLOSE']) if not isinstance(values['OFR_CLOSE'],str) else self.offer
+            self.high = float(values['DAY_HIGH']) if not isinstance(values['DAY_HIGH'],str) else self.high
+            self.low = float(values['DAY_LOW']) if not isinstance(values['DAY_LOW'],str) else self.low
             self.spread = float(self.offer) - float(self.bid)
+            if "DAY" in self.prices:
+                if len(self.prices['DAY'])>0:
+                    last_day = self.prices['DAY'][-1]
+                    # print(last_day)
+                    # print(last_day[-1])
+                    last_day['highPrice']['bid'] = self.high
+                    last_day['lowPrice']['bid'] = self.low
+                    last_day['openPrice']['bid'] = self.bid - self.net_change
+                    last_day['closePrice']['bid'] = self.bid
+                    # print(last_day)
             # create an empty price object that matches the hsitorical one
             current_price = {
                     "snapshotTime": timestamp, 
                     "openPrice": {"bid": float(values['BID_OPEN']), "ask": float(values['OFR_OPEN']), "lastTraded": None}, 
-                    "closePrice": {"bid": float(values['BID_CLOSE']), "ask": float(values['OFR_CLOSE']), "lastTraded": None }, 
+                    "closePrice": {"bid": self.bid, "ask": float(values['OFR_CLOSE']), "lastTraded": None }, 
                     "highPrice": {"bid": float(values['BID_HIGH']), "ask": float(values['OFR_HIGH']), "lastTraded": None}, 
                     "lowPrice": {"bid": float(values['BID_LOW']), "ask": float(values['OFR_LOW']), "lastTraded": None}, 
                     "lastTradedVolume": int(values['LTV'])}
@@ -120,15 +134,15 @@ class Market:
                         if i==None:
 
 
-                            self.strategy.process(self.prices['MINUTE_30'])
+                            self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
 
 
                             self.prices["MINUTE_30"].append(new_30_min)
 
                         else:
                             
-
                             self.prices["MINUTE_30"][i] = new_30_min
+                            self.strategy.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                             
 
                         if len(self.prices['MINUTE_30']) > 75:
@@ -155,7 +169,11 @@ class Market:
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.info(exc_type, fname, exc_tb.tb_lineno,exc_obj)
+            logger.info("{} live fail".format(self.epic))
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
             pass
 
 
@@ -178,9 +196,8 @@ class Market:
                 time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
                 last_date = datetime.datetime.strptime(self.prices[resolution][-1]['snapshotTime'], "%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
 
-                print("res {}, last date: {}, now: {}".format(resolution, last_date,time_now))
                 delta = time_now - last_date
-                print(delta)
+
                 seconds_per_unit = 0
                 if "MINUTE" in resolution:
                     seconds_per_unit = 60
@@ -198,7 +215,6 @@ class Market:
                 print(times_into)
                 # limit to data_count value
                 data_count = min(times_into[0],data_count)
-                print("required:{}".format(data_count))
                 return data_count
             
             # nothing in memory, just return the given count
@@ -239,12 +255,12 @@ class Market:
         # sanitise the price data incase it contains a None type because of retardation at IG
         self.sanitise_prices(resolution)
         # whether we updated prices or not, lets recalculate our rsi and emas
-        self.strategy.process(self.prices[resolution])
+        self.strategy.slow_signals(self,self.prices[resolution],resolution)
 
 
 
-
-        logger.info("{} updated: used api calls {} remaining {}/{} - time till reset {}".format(self.epic, data_count, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
+        if data_count > 0:
+            logger.info("{} updated: used api calls {} remaining {}/{} - time till reset {}".format(self.epic, data_count, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
 
         self.save_prices()
 

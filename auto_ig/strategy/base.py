@@ -12,26 +12,34 @@ class Strategy:
         self.name = name
         self.signals = []
 
-    def backfill(self,prices,lookback=15):
+    def backfill(self,market,resolution,lookback=15):
+        prices = market.prices[resolution]
         price_len = len(prices)
         if price_len - lookback > 50:
 
             for i in list(range(lookback,0,-1)):
                 p = price_len - i
                 ps = prices[:p]
-                self.process(ps)
+                self.slow_signals(market,ps,resolution)
 
-        print(self.signals)
 
-    def process(self,prices):
-        ta.direction(prices)
-        for s in self.signals:
+    def slow_signals(self,market,prices,resolution):
+        """Slow signals should be used for entry when the recent movement is clear"""
+
+        self.fast_signals(market,prices,resolution)
+        
+        for s in [x for x in self.signals if x.market == market.epic]:
             if not s.process():
                 print("{} timed out".format(s.name))
                 self.signals.remove(s)
 
-    def prediction(self, signal, prices):
+    def fast_signals(self,market,prices,resolution):
+        """Fast signals are used for closing positions"""
+        ta.net_change(prices)
+
+    def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_5"""
+        prices = market.prices[resolution]
         atr, tr = ta.atr(5,prices)
         low_range = min(tr)
         max_range = max(tr)
@@ -77,18 +85,18 @@ class Strategy:
 
         return prediction_object
 
-    def entry(self, signal, prices):
+    def entry(self, signal, market,prices):
         """returns a true or false to whether we should open the position now"""
         pass
 
-    def add_signal(self,signal):
+    def add_signal(self,signal, market):
         """makes sure that only one of each type of signal is stored"""
-        matching_signals = [x for x in self.signals if x.name==signal.name]
+        matching_signals = [x for x in self.signals if x.name==signal.name and x.market==market.epic]
         for s in matching_signals:
             self.signals.remove(s)
         
         print("removed {} matching {} signals".format(len(matching_signals),signal.name))
-
+        signal.market = market.epic
         self.signals.append(signal)
 
     
@@ -111,6 +119,7 @@ class Sig:
         self.life = life
         self.comment = comment
         self.unused = True
+        self.market = ""
         print("new sig! : {}".format(self.name))
 
     def process(self):

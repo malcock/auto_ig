@@ -27,60 +27,82 @@ class wma_cross(Strategy):
         self.trend_window = trend
         self.rsi = rsi_len
 
-    def backfill(self,prices):
-        super().backfill(prices,15)
+    def backfill(self,market,resolution):
+        super().backfill(market,resolution,15)
                 
-
-    def process(self,prices):
-        print("processing... {}".format(prices[-1]['snapshotTime']))
-        if len(prices)<50:
-            return
-        slow = ta.wma(self.slow,prices)
-        fast = ta.wma(self.fast,prices)
-        trend = ta.wma(self.trend_window,prices)
-        rsi = ta.rsi(self.rsi,prices)
+    def fast_signals(self,market,prices,resolution):
+        super().fast_signals(market,prices,resolution)
+        stoch, d = ta.stochastic(prices,14,3,3)
         now = prices[-1]
+        # check for bull closes
+        nowstoch = stoch[-1]
+        maxstoch = max(stoch[-4:])
+        if nowstoch < 75 and maxstoch > 80 and abs(nowstoch-maxstoch)>4:
+            sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=1)
+            super().add_signal(sig,market)
+        
+        # check for bear closes
+        minstoch = min(stoch[-4:])
+        if nowstoch > 25 and minstoch < 20 and abs(nowstoch-minstoch)>4:
+            sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=1)
+            super().add_signal(sig,market)
 
-        # look for bullish signals
-        if detect.crossover(fast,slow):
-            sig = Sig("WMA_CROSS",now['snapshotTime'],"BUY",2,life=12)
-            super().add_signal(sig)
 
-            # if we match all open conditions, create an additional CONFIRM signal
-            if (detect.isbelow(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
-                if rsi[-1] > rsi[-2]:
-                    sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"BUY",4,comment = "confirmed by trend below candle and good rsi",life=1)
-                    super().add_signal(sig)
-                
-                
+    def slow_signals(self,market,prices, resolution):
+        super().slow_signals(market,prices,resolution)
+        # what's the dailies saying?
+        
+        day_change = market.net_change
 
-        # look for bearish signals
-        if detect.crossunder(fast,slow):
-            sig = Sig("WMA_CROSS",now['snapshotTime'],"SELL",2,life=12)
-            super().add_signal(sig)
-            # if we match all open conditions, create an additional CONFIRM signal
-            if (detect.isabove(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
-                if rsi[-1] < rsi[-2]:
-                    sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"SELL",4,comment = "confirmed by trend below candle", life=1)
-                    super().add_signal(sig)
+        
+        if resolution=="MINUTE_30":
+            print("processing... {}".format(prices[-1]['snapshotTime']))
+            if len(prices)<50:
+                return
+            slow = ta.wma(self.slow,prices)
+            fast = ta.wma(self.fast,prices)
+            trend = ta.wma(self.trend_window,prices)
             
+            now = prices[-1]
 
-        # look for confirmation signals
-        cross_sigs = [x for x in self.signals if x.name=="WMA_CROSS"]
-        for s in cross_sigs:
-            if s.position=="BUY":
-                if detect.candleover(trend,prices):
-                    sigC = Sig("WMA_CONFIRM",now['snapshotTime'],"BUY",4)
-                    sigC.comment = "confirmed by candle over"
-                    super().add_signal(sigC)
-            else:
-                if detect.candleunder(trend,prices):
-                    sigC = Sig("WMA_CONFIRM",now['snapshotTime'],"SELL",4)
-                    sigC.comment = "confirmed by candle under"
-                    super().add_signal(sigC)
+            # look for bullish wma signals
+            if detect.crossover(fast,slow):
+                sig = Sig("WMA_CROSS",now['snapshotTime'],"BUY",2,life=9)
+                super().add_signal(sig,market)
+
+                # if we match all open conditions, create an additional CONFIRM signal
+                if (detect.isbelow(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
+                    if day_change>0:
+                        sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"BUY",4,comment = "confirmed by trend below candle and good rsi",life=1)
+                        super().add_signal(sig,market)
+
+            # look for bearish wma signals
+            if detect.crossunder(fast,slow):
+                sig = Sig("WMA_CROSS",now['snapshotTime'],"SELL",2,life=9)
+                super().add_signal(sig,market)
+                # if we match all open conditions, create an additional CONFIRM signal
+                if (detect.isabove(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
+                    if day_change<0:
+                        sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"SELL",4,comment = "confirmed by trend below candle", life=1)
+                        super().add_signal(sig,market)
+                
+
+            # look for confirmation signals
+            cross_sigs = [x for x in self.signals if x.name=="WMA_CROSS" and x.market==market.epic]
+            for s in cross_sigs:
+                if s.position=="BUY":
+                    if detect.candleover(trend,prices) and day_change>0:
+                        sigC = Sig("WMA_CONFIRM",now['snapshotTime'],"BUY",4)
+                        sigC.comment = "confirmed by candle over"
+                        super().add_signal(sigC,market)
+                else:
+                    if detect.candleunder(trend,prices) and day_change<0:
+                        sigC = Sig("WMA_CONFIRM",now['snapshotTime'],"SELL",4)
+                        sigC.comment = "confirmed by candle under"
+                        super().add_signal(sigC,market)
 
 
-        super().process(prices)
+        
 
     def entry(self, signal, prices):
         """wma entry strategy

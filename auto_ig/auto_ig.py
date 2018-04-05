@@ -16,6 +16,7 @@ from Cryptodome.Cipher import AES
 from .lightstreamer import LSClient, Subscription
 from .market import Market
 from .trade import Trade
+from .strategy import *
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,8 @@ class AutoIG:
         self.lightstream = {}
         self.key = ""
         self.is_open = True
+        self.strategy = {}
+        self.strategy['wma_cross'] = wma_cross(10,25,50,14)
 
     def make_trade(self, size, market, prediction, json_data = None):
         """Make a new trade"""
@@ -54,17 +57,16 @@ class AutoIG:
 
     def fill_signals(self):
         for m in self.markets.values():
-            print("backfilling: {}".format(m.epic))
-            m.strategy.backfill(m.prices['MINUTE_30'])
+            print('backfilling {}'.format(m.epic))
+            m.strategy.backfill(m,'MINUTE_30')
 
     def get_signals(self):
+        
         signals = {}
-
-        for m in self.markets.values():
-            signals[m.epic] = sorted(m.strategy.signals,key=operator.attrgetter('timestamp'),reverse=True)
-
+        for k,s in self.strategy.items():
+            signals[k] = sorted(s.signals, key=operator.attrgetter('timestamp'),reverse=True)
+        
         return signals
-
 
 
     def process(self,epic_ids):
@@ -129,6 +131,9 @@ class AutoIG:
 
         
         for m in self.markets.values():
+            if m.get_update_cost("DAY",30)>0:
+                m.update_prices("DAY",30)
+
             if m.get_update_cost("MINUTE_30",75)>0:
                 m.update_prices("MINUTE_30",75)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
@@ -144,25 +149,26 @@ class AutoIG:
         # let's process our markets and look for signals then
         top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
         for market in top_markets:
-            signals = [x for x in market.strategy.signals if x.score>1 and x.unused]
+            signals = [x for x in market.strategy.signals if x.score>1 and x.unused and x.market==market.epic]
             for signal in signals:
                 current_trades = [x for x in self.trades if x.market==market]
-                if len(current_trades)==0 and signal.score > 2:
-                    if market.spread < 15:
-                        if len(self.trades)<self.max_concurrent_trades:
-                            round_val = 500.0
-                            base = 1000.0
-                            trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
-                            logger.info("proposed bet size: {}".format(trade_size))
+                if len(current_trades)==0:
+                    if signal.score > 2:
+                        if market.spread < 10:
+                            if len(self.trades)<self.max_concurrent_trades:
+                                round_val = 500.0
+                                base = 1000.0
+                                trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
+                                logger.info("proposed bet size: {}".format(trade_size))
 
-                            signal.unused = False
-                            prediction = market.strategy.prediction(signal,market.prices['MINUTE_30'])
-                            self.make_trade(1,market,prediction)
-                            signal.score = 1
+                                signal.unused = False
+                                prediction = market.strategy.prediction(signal,market,'MINUTE_30')
+                                self.make_trade(1,market,prediction)
+                                signal.score = 1
+                            else:
+                                logger.info("Can't open any more trades already maxed out")
                         else:
-                            logger.info("Can't open any more trades already maxed out")
-                    else:
-                        logger.info("{} : market spread too wide!".format(market.epic))
+                            logger.info("{} : market spread too wide!".format(market.epic))
                 else:
                     logger.info("{} trade already open on this market".format(market.epic))
                     for t in current_trades:
@@ -248,7 +254,7 @@ class AutoIG:
                 for epic in epics_data:
                     epic_id = epic['instrument']['epic']
                     if not epic_id in self.markets:
-                        self.markets[epic_id] = Market(epic_id,self,epic)
+                        self.markets[epic_id] = Market(epic_id,self,self.strategy['wma_cross'],epic)
                     else:
                         self.markets[epic_id].update_market(epic)
             else:

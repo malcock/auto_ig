@@ -12,7 +12,8 @@ class vwma_cross(Strategy):
         self.window = window
         self.trend_window = trend
 
-    def process(self,prices):
+    def slow_signals(self,market,prices, resolution):
+        super().slow_signals(market,prices,resolution)
         vwma = ta.vwma(self.window,prices)
         ma = ta.ma(self.window,prices)
         trend = ta.ma(self.trend_window,prices)
@@ -26,7 +27,7 @@ class vwma_cross(Strategy):
             else:
                 sig.score = 2
             
-            super().add_signal(sig)
+            super().add_signal(sig,market)
 
         # look for bearish signals
         if detect.crossunder(vwma,ma):
@@ -36,5 +37,5 @@ class vwma_cross(Strategy):
                 sig.score = 4
             else:
                 sig.score = 2
-            super().add_signal(sig)
+            super().add_signal(sig,market)
 

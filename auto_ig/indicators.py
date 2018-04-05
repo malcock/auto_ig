@@ -30,9 +30,9 @@ def atr(window, prices, name = None):
 
     return atr,tr_prices
 
-def direction(prices):
+def net_change(prices):
     for p in prices:
-        p['dir'] = p['closePrice']['bid'] - p['openPrice']['bid']
+        p['net_change'] = p['closePrice']['bid'] - p['openPrice']['bid']
 
 def ema(window, prices = None, name = None, values= None):
     def numpy_ewma_vectorized_v2(data, window):
