@@ -51,8 +51,19 @@ class wma_cross(Strategy):
     def slow_signals(self,market,prices, resolution):
         super().slow_signals(market,prices,resolution)
         # what's the dailies saying?
-        
+        day_stoch = ta.stochastic(market.prices["DAY"],14,3,3)
+        day_wma25 = ta.wma(25,market.prices['DAY'])
         day_change = market.net_change
+
+        # want to look at the daily trends before even considering opening a position
+        daydir = "NONE"
+        stoch_delta = day_stoch[-1] - day_stoch[-2]
+        wma_delta = day_wma25[-1] - day_wma25[-2]
+        if stoch_delta > 0 and wma_delta > 0:
+            daydir = "BUY"
+        
+        if stoch_delta < 0 and wma_delta < 0:
+            daydir = "SELL"
 
         
         if resolution=="MINUTE_30":
@@ -72,7 +83,7 @@ class wma_cross(Strategy):
 
                 # if we match all open conditions, create an additional CONFIRM signal
                 if (detect.isbelow(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
-                    if day_change>0:
+                    if daydir=="BUY:
                         sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"BUY",4,comment = "confirmed by trend below candle and good rsi",life=1)
                         super().add_signal(sig,market)
 
@@ -82,7 +93,7 @@ class wma_cross(Strategy):
                 super().add_signal(sig,market)
                 # if we match all open conditions, create an additional CONFIRM signal
                 if (detect.isabove(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
-                    if day_change<0:
+                    if daydir=="SELL:
                         sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"SELL",4,comment = "confirmed by trend below candle", life=1)
                         super().add_signal(sig,market)
                 
@@ -91,12 +102,12 @@ class wma_cross(Strategy):
             cross_sigs = [x for x in self.signals if x.name=="WMA_CROSS" and x.market==market.epic]
             for s in cross_sigs:
                 if s.position=="BUY":
-                    if detect.candleover(trend,prices) and day_change>0:
+                    if detect.candleover(trend,prices) and daydir=="BUY":
                         sigC = Sig("WMA_CONFIRM",now['snapshotTime'],"BUY",4)
                         sigC.comment = "confirmed by candle over"
                         super().add_signal(sigC,market)
                 else:
-                    if detect.candleunder(trend,prices) and day_change<0:
+                    if detect.candleunder(trend,prices) and daydir=="SELL:
                         sigC = Sig("WMA_CONFIRM",now['snapshotTime'],"SELL",4)
                         sigC.comment = "confirmed by candle under"
                         super().add_signal(sigC,market)
