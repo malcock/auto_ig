@@ -136,7 +136,7 @@ class Trade:
 
                 # if self.trailing_stop:
 
-                if self.pip_diff < self.trailing_level:
+                if self.pip_diff < -self.trailing_level:
                     self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
                     self.close_trade()
 
