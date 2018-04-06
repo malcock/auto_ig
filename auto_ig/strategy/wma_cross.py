@@ -107,7 +107,7 @@ class wma_cross(Strategy):
                         sigC.comment = "confirmed by candle over"
                         super().add_signal(sigC,market)
                 else:
-                    if detect.candleunder(trend,prices) and daydir=="SELL:
+                    if detect.candleunder(trend,prices) and daydir=="SELL":
                         sigC = Sig("WMA_CONFIRM",now['snapshotTime'],"SELL",4)
                         sigC.comment = "confirmed by candle under"
                         super().add_signal(sigC,market)
