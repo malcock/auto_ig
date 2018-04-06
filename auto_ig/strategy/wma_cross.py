@@ -83,7 +83,7 @@ class wma_cross(Strategy):
 
                 # if we match all open conditions, create an additional CONFIRM signal
                 if (detect.isbelow(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
-                    if daydir=="BUY:
+                    if daydir=="BUY":
                         sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"BUY",4,comment = "confirmed by trend below candle and good rsi",life=1)
                         super().add_signal(sig,market)
 
@@ -93,7 +93,7 @@ class wma_cross(Strategy):
                 super().add_signal(sig,market)
                 # if we match all open conditions, create an additional CONFIRM signal
                 if (detect.isabove(trend[-1], now['openPrice']['bid'],now['closePrice']['bid'])):
-                    if daydir=="SELL:
+                    if daydir=="SELL":
                         sig = Sig("WMA_CROSS_CONFIRM",now['snapshotTime'],"SELL",4,comment = "confirmed by trend below candle", life=1)
                         super().add_signal(sig,market)
                 
