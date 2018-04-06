@@ -51,7 +51,7 @@ class wma_cross(Strategy):
     def slow_signals(self,market,prices, resolution):
         super().slow_signals(market,prices,resolution)
         # what's the dailies saying?
-        day_stoch = ta.stochastic(market.prices["DAY"],14,3,3)
+        day_stoch, d = ta.stochastic(market.prices["DAY"],14,3,3)
         day_wma25 = ta.wma(25,market.prices['DAY'])
         day_change = market.net_change
 
