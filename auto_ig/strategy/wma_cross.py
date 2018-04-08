@@ -58,10 +58,10 @@ class wma_cross(Strategy):
         daydir = "NONE"
         stoch_delta = day_k[-1] - day_d[-1]
         wma_delta = day_wma25[-1] - day_wma25[-2]
-        if (stoch_delta > 0 or day_k > 85) and wma_delta > 0:
+        if (stoch_delta > 0 or day_k[-1] > 85) and wma_delta > 0:
             daydir = "BUY"
         
-        if (stoch_delta < 0 or day_k < 15) and wma_delta < 0:
+        if (stoch_delta < 0 or day_k[-1] < 15) and wma_delta < 0:
             daydir = "SELL"
 
         
