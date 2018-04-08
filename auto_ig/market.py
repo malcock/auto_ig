@@ -282,9 +282,9 @@ class Market:
                 if len(none_indices)>0:
                     for i in none_indices:
                         if i>0:
-                            self.prices[resolution][g][t][i] = self.prices[resolution][g][t][i-1]
+                            self.prices[resolution][i][g][t] = self.prices[resolution][i-1][g][t]
                         else:
-                            self.prices[resolution][g][t][i] = 0
+                            self.prices[resolution][i][g][t] = 0
 
     
 
