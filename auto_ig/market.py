@@ -105,6 +105,8 @@ class Market:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
                 i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
                 if i==None:
+                    self.prices['MINUTE_5'][-1]['closePrice']['bid'] = current_price['openPrice']['bid']
+                    self.prices['MINUTE_5'][-1]['closePrice']['ask'] = current_price['openPrice']['ask']
                     self.prices['MINUTE_5'].append(current_price)
                     
 
@@ -133,7 +135,9 @@ class Market:
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
                         if i==None:
 
-
+                            self.prices['MINUTE_30'][-1]['closePrice']['bid'] = new_30_min['openPrice']['bid']
+                            self.prices['MINUTE_30'][-1]['closePrice']['ask'] = new_30_min['openPrice']['ask']
+                            
                             self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
 
 
