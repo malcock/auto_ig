@@ -45,7 +45,7 @@ class AutoIG:
         self.key = ""
         self.is_open = True
         self.strategy = {}
-        self.strategy['wma_cross'] = wma_cross(10,25,50,14)
+        # self.strategy['wma_cross'] = wma_cross(10,25,50,14)
         self.strategy['stoch'] = stoch(14,3,3)
 
     def make_trade(self, size, market, prediction, json_data = None):
@@ -255,7 +255,7 @@ class AutoIG:
                 for epic in epics_data:
                     epic_id = epic['instrument']['epic']
                     if not epic_id in self.markets:
-                        self.markets[epic_id] = Market(epic_id,self,self.strategy['wma_cross'],epic)
+                        self.markets[epic_id] = Market(epic_id,self,self.strategy['stoch'],epic)
                     else:
                         self.markets[epic_id].update_market(epic)
             else:
