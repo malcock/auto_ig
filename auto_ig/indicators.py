@@ -288,10 +288,10 @@ def stochastic(prices, length=5, smoothK=3, smoothD = 3):
 
     price_len = len(prices)
     diff = price_len - len(d)
-    
+    name = "{}_{}_{}".format(length,smoothK,smoothD)
     for i in range(diff,price_len):
-        prices[i]['stoch_k'] = k[i-diff]
-        prices[i]['stoch_d'] = d[i-diff]
+        prices[i]['stoch_k_{}'.format(name)] = k[i-diff]
+        prices[i]['stoch_d_{}'.format(name)] = d[i-diff]
 
     return k,d
 
