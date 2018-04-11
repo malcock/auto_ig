@@ -290,24 +290,27 @@ class Trade:
 
     def assess_close(self,signal):
         """checks to see whether it's a good idea to use the given signal to close the deal"""
-        time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
-        if self.opened_time is not None:
-            timeopen = time_now - self.opened_time
-            #for now, just close the trade regardless
-            self.close_trade()
-            if timeopen.seconds/60 < 120:
-                self.log_status("SHIT MARKET'S CHANGED MIND!?")
-                self.close_trade()
+        # self.log_status("CLOSED BY SIGNAL: {}".format(signal))
+        self.close_trade()
+        # return
+        # time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
+        # if self.opened_time is not None:
+        #     timeopen = time_now - self.opened_time
+        #     #for now, just close the trade regardless
+        #     self.close_trade()
+        #     if timeopen.seconds/60 < 120:
+        #         self.log_status("SHIT MARKET'S CHANGED MIND!?")
+        #         self.close_trade()
 
-            if self.pip_diff<0.2:
-                self.log_status("{} opposing signal {} found - but not in profit. max{}".format(self.market.epic,signal.position, self.pip_max))
-                return
-            # if self.pip_diff < self.prediction['limit_distance']:
-            #     return
+        #     if self.pip_diff<0.2:
+        #         self.log_status("{} opposing signal {} found - but not in profit. max{}".format(self.market.epic,signal.position, self.pip_max))
+        #         return
+        #     # if self.pip_diff < self.prediction['limit_distance']:
+        #     #     return
 
-            self.log_status("{} opposing signal {} found - activate trailing stoploss. Old max {}".format(self.market.epic,signal.position, self.pip_max))
-            self.pip_max = self.pip_diff
-            self.trailing_stop = True
+        #     self.log_status("{} opposing signal {} found - activate trailing stoploss. Old max {}".format(self.market.epic,signal.position, self.pip_max))
+        #     self.pip_max = self.pip_diff
+            # self.trailing_stop = True
     
 
     def update_from_json(self, json_data):

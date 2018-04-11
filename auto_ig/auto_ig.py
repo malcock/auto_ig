@@ -178,7 +178,7 @@ class AutoIG:
                             signal.unused = False
                             signal.score-=1
                         else:
-                            
+                            t.log_status("{} signal closed by {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
                             t.assess_close(signal)
                             
                             signal.score-=1

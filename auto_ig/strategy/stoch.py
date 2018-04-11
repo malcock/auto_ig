@@ -40,12 +40,12 @@ class stoch(Strategy):
 
             now = prices[-1]
 
-            if detect.crossunder(series,79):
-                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=1)
+            if detect.crossunder(stoch_k,79):
+                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=2)
                 super().add_signal(sig,market)
             
-            if detect.crossover(series,21):
-                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=1)
+            if detect.crossover(stoch_k,21):
+                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=2)
                 super().add_signal(sig,market)
 
 
@@ -79,12 +79,12 @@ class stoch(Strategy):
             stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
             stoch_k_delta = stoch_k[-1] - stoch_k[-3]
             if daydir =="BUY":
-                if 70 > stoch_k[-1] > 55 and stoch_k[-3]<55:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=4)
+                if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",2,comment = "",life=4)
                     super().add_signal(sig,market)
             elif daydir=="SELL":
-                if stoch_k[-1]<45 and stoch_k[-3]>45:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=4)
+                if stoch_k[-1]<45 and stoch_k[-3]>50:
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",2,comment = "",life=4)
                     super().add_signal(sig,market)
 
             open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
@@ -92,12 +92,14 @@ class stoch(Strategy):
             for s in open_sigs:
                 if s.position=="BUY":
                     if wma_delt > 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "",life=4)
+                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",1,comment = "orig: {}".format(sig.timestamp),life=4)
                         super().add_signal(sig,market)
+                        self.signals.remove(s)
                 else:
                     if wma_delt < 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "",life=4)
+                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",1,comment = "orig: {}".format(sig.timestamp),life=4)
                         super().add_signal(sig,market)
+                        self.signals.remove(s)
 
 
 
