@@ -192,6 +192,8 @@ def roc(window=12,prices = None, values = None, name = None):
         if prices is not None:
             prices[i][name] = r
 
+    return rs
+
 def rsi(window = 14, prices = None, values = None, name = None):
     """Calculate the RSI"""
     if values is None:

@@ -40,11 +40,11 @@ class stoch(Strategy):
 
             now = prices[-1]
 
-            if detect.crossunder(series,50):
+            if detect.crossunder(series,79):
                 sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=1)
                 super().add_signal(sig,market)
             
-            if detect.crossover(series,50):
+            if detect.crossover(series,21):
                 sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=1)
                 super().add_signal(sig,market)
 
@@ -53,32 +53,51 @@ class stoch(Strategy):
     def slow_signals(self,market,prices, resolution):
         super().slow_signals(market,prices,resolution)
         # what's the dailies saying?
-        day_k, day_d = ta.stochastic(market.prices["DAY"],14,3,3)
+        
         day_wma25 = ta.wma(25,market.prices['DAY'])
 
         # want to look at the daily trends before even considering opening a position
         daydir = "NONE"
-        stoch_delta = day_k[-1] - day_d[-1]
         wma_delta = day_wma25[-1] - day_wma25[-2]
-        if (stoch_delta > 0 or day_k[-1] > 85) and wma_delta > 0:
+        if wma_delta > 0:
             daydir = "BUY"
         
-        if (stoch_delta < 0 or day_k[-1] < 15) and wma_delta < 0:
+        if wma_delta < 0:
             daydir = "SELL"
 
         now = prices[-1]
         
         if resolution=="MINUTE_30":
-            stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
+            wma25 = ta.wma(25,prices)
+            # check if the price action is matching the day wma
+            roc = ta.roc(36,prices)
+            if daydir=="BUY" and roc[-1] < 0:
+                daydir = "NONE"
+            if daydir=="SELL" and roc[-1] > 0:
+                daydir = "NONE"
 
+            stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
+            stoch_k_delta = stoch_k[-1] - stoch_k[-3]
             if daydir =="BUY":
-                if stoch_k[-1]>21 and stoch_k[-2]<21:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",4,comment = "",life=4)
+                if stoch_k[-1]>50 and stoch_k[-3]<50:
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=4)
                     super().add_signal(sig,market)
             elif daydir=="SELL":
-                if stoch_k[-1]<79 and stoch_k[-2]>79:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",4,comment = "",life=4)
+                if stoch_k[-1]<50 and stoch_k[-3]>50:
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=4)
                     super().add_signal(sig,market)
+
+            open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
+            wma_delt = wma25[-1] - wma25[-2]
+            for s in open_sigs:
+                if s.position=="BUY":
+                    if wma_delt > 0:
+                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "",life=4)
+                        super().add_signal(sig,market)
+                else:
+                    if wma_delt < 0:
+                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "",life=4)
+                        super().add_signal(sig,market)
 
 
 
