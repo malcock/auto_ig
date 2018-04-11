@@ -132,7 +132,7 @@ class Trade:
 
                 # rough trail calc - update with strategy method one day?
                 stoploss = float(self.prediction['stoploss'])
-                self.trailing_level = stoploss - (self.pip_max*0.5)
+                self.trailing_level = stoploss - self.pip_max
 
                 # if self.trailing_stop:
 
