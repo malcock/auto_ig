@@ -31,7 +31,9 @@ class stoch(Strategy):
                 
     def fast_signals(self,market,prices,resolution):
         super().fast_signals(market,prices,resolution)
-
+        if 'MINUTE_5' not in market.prices:
+            return
+            
         prices = market.prices['MINUTE_5']
         if resolution == "MINUTE_30":
             stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
