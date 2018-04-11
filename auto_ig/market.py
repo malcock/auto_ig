@@ -111,7 +111,7 @@ class Market:
                     
 
                     if "MINUTE_5" in self.prices:
-                        last_30_min = int(30 * math.floor(float(minNum)/30))
+                        last_30_min = int(5 * math.floor(float(minNum)/5))
                         timestamp_30 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_30_min))
                         
                         # get all elements from MINUTE list since last 5min mark
@@ -216,7 +216,7 @@ class Market:
 
                 # now see how many times delta.seconds fits into seconds_per_unit
                 times_into = divmod(delta.seconds,seconds_per_unit)
-                logger.info(times_into)
+                
                 data_count = min(times_into[0],data_count)
                 if "DAY" in resolution:
                     data_count = delta.days
