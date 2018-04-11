@@ -79,11 +79,11 @@ class stoch(Strategy):
             stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
             stoch_k_delta = stoch_k[-1] - stoch_k[-3]
             if daydir =="BUY":
-                if 70 > stoch_k[-1] > 50 and stoch_k[-3]<50:
+                if 70 > stoch_k[-1] > 55 and stoch_k[-3]<55:
                     sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=4)
                     super().add_signal(sig,market)
             elif daydir=="SELL":
-                if stoch_k[-1]<50 and stoch_k[-3]>50:
+                if stoch_k[-1]<45 and stoch_k[-3]>45:
                     sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=4)
                     super().add_signal(sig,market)
 
