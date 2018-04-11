@@ -139,8 +139,8 @@ class AutoIG:
                 m.update_prices("MINUTE_30",75)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
                 # self.fill_signals()
-            if m.get_update_cost("MINUTE_5",18)>0:
-                m.update_prices("MINUTE_5",18)
+            if m.get_update_cost("MINUTE_5",36)>0:
+                m.update_prices("MINUTE_5",36)
             
             # m.calculate_relative_vigor("MINUTE_30",10)
 

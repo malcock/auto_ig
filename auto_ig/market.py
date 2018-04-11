@@ -158,7 +158,7 @@ class Market:
                 else:
                     self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE_5'])>30:
+                if len(self.prices['MINUTE_5'])>36:
                     del self.prices['MINUTE_5'][0]
                     
 
