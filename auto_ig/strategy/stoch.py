@@ -80,11 +80,11 @@ class stoch(Strategy):
             stoch_k_delta = stoch_k[-1] - stoch_k[-3]
             if daydir =="BUY":
                 if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",2,comment = "",life=4)
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
                     super().add_signal(sig,market)
             elif daydir=="SELL":
                 if stoch_k[-1]<45 and stoch_k[-3]>50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",2,comment = "",life=4)
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
                     super().add_signal(sig,market)
 
             open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
@@ -92,12 +92,12 @@ class stoch(Strategy):
             for s in open_sigs:
                 if s.position=="BUY":
                     if wma_delt > 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",1,comment = "orig: {}".format(sig.timestamp),life=4)
+                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {}".format(sig.timestamp),life=1)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     if wma_delt < 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",1,comment = "orig: {}".format(sig.timestamp),life=4)
+                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {}".format(sig.timestamp),life=1)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
 
