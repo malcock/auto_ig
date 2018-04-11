@@ -31,7 +31,7 @@ class stoch(Strategy):
                 
     def fast_signals(self,market,prices,resolution):
         super().fast_signals(market,prices,resolution)
-        if resolution == "MINUTE_30":
+        if resolution == "MINUTE_5":
             stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
             prev_avg = (stoch_k[-2] + stoch_d[-2]) / 2
             now_avg = (stoch_k[-1] + stoch_d[-1]) / 2
@@ -67,7 +67,7 @@ class stoch(Strategy):
 
         now = prices[-1]
         
-        if resolution=="MINUTE_30":
+        if resolution=="MINUTE_5":
             wma25 = ta.wma(25,prices)
             # check if the price action is matching the day wma
             roc = ta.roc(36,prices)

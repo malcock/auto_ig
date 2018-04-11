@@ -101,7 +101,7 @@ class Trade:
                     self.state = TradeState.FAILED
                 else:
 
-                    # if self.market.strategy.entry(self.prediction['signal'],self.market.prices['MINUTE_30']):
+                    # if self.market.strategy.entry(self.prediction['signal'],self.market.prices['MINUTE_5']):
                     self.open_trade()
 
             elif self.state == TradeState.PENDING:

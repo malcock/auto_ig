@@ -65,7 +65,7 @@ class wma_cross(Strategy):
             daydir = "SELL"
 
         
-        if resolution=="MINUTE_30":
+        if resolution=="MINUTE_5":
             print("processing... {}".format(prices[-1]['snapshotTime']))
             if len(prices)<50:
                 return

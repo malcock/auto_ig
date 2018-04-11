@@ -59,7 +59,7 @@ class AutoIG:
     def fill_signals(self):
         for m in self.markets.values():
             print('backfilling {}'.format(m.epic))
-            m.strategy.backfill(m,'MINUTE_30')
+            m.strategy.backfill(m,'MINUTE_5')
 
     def get_signals(self):
         
@@ -135,14 +135,14 @@ class AutoIG:
             if m.get_update_cost("DAY",30)>0:
                 m.update_prices("DAY",30)
 
-            if m.get_update_cost("MINUTE_30",75)>0:
-                m.update_prices("MINUTE_30",75)
+            if m.get_update_cost("MINUTE_5",75)>0:
+                m.update_prices("MINUTE_5",75)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
                 # self.fill_signals()
-            if m.get_update_cost("MINUTE_5",18)>0:
-                m.update_prices("MINUTE_5",18)
+            if m.get_update_cost("MINUTE",18)>0:
+                m.update_prices("MINUTE",18)
             
-            # m.calculate_relative_vigor("MINUTE_30",10)
+            # m.calculate_relative_vigor("MINUTE_5",10)
 
 
         open_lightstreamer = False
@@ -163,7 +163,7 @@ class AutoIG:
                                 logger.info("proposed bet size: {}".format(trade_size))
 
                                 signal.unused = False
-                                prediction = market.strategy.prediction(signal,market,'MINUTE_30')
+                                prediction = market.strategy.prediction(signal,market,'MINUTE_5')
                                 self.make_trade(1,market,prediction)
                                 signal.score = 1
                             else:
@@ -221,7 +221,7 @@ class AutoIG:
 
             # assuming here that we've got a lighstream connection so we can subscribe now
             
-            epic_ids_time = ["CHART:" + s + ":5MINUTE" for s in epic_list]
+            epic_ids_time = ["CHART:" + s + ":1MINUTE" for s in epic_list]
             logger.info(epic_ids_time)
             live_charts = Subscription(mode="MERGE", items=epic_ids_time, fields="LTV,UTM,DAY_HIGH,DAY_LOW,OFR_OPEN,OFR_HIGH,OFR_LOW,OFR_CLOSE,BID_OPEN,BID_HIGH,BID_LOW,BID_CLOSE,CONS_END,CONS_TICK_COUNT".split(","),adapter="DEFAULT")
             live_charts.addlistener(self.live_update)
