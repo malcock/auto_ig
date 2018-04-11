@@ -31,7 +31,9 @@ class stoch(Strategy):
                 
     def fast_signals(self,market,prices,resolution):
         super().fast_signals(market,prices,resolution)
-        if resolution == "MINUTE_5":
+
+        prices = market.prices['MINUTE_5']
+        if resolution == "MINUTE_30":
             stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
             prev_avg = (stoch_k[-2] + stoch_d[-2]) / 2
             now_avg = (stoch_k[-1] + stoch_d[-1]) / 2
@@ -48,11 +50,7 @@ class stoch(Strategy):
                 sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=2)
                 super().add_signal(sig,market)
 
-
-
-    def slow_signals(self,market,prices, resolution):
-        super().slow_signals(market,prices,resolution)
-        # what's the dailies saying?
+            # what's the dailies saying?
         
         day_wma25 = ta.wma(25,market.prices['DAY'])
 
@@ -67,10 +65,10 @@ class stoch(Strategy):
 
         now = prices[-1]
         
-        if resolution=="MINUTE_5":
+        if resolution=="MINUTE_30":
             wma25 = ta.wma(25,prices)
             # check if the price action is matching the day wma
-            roc = ta.roc(36,prices)
+            roc = ta.roc(36,market.prices['MINUTE_30'])
             if daydir=="BUY" and roc[-1] < 0:
                 daydir = "NONE"
             if daydir=="SELL" and roc[-1] > 0:
@@ -100,6 +98,12 @@ class stoch(Strategy):
                         sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {}".format(sig.timestamp),life=1)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
+
+
+
+    def slow_signals(self,market,prices, resolution):
+        super().slow_signals(market,prices,resolution)
+        
 
 
 

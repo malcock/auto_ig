@@ -101,22 +101,22 @@ class Market:
                     "lastTradedVolume": int(values['LTV'])}
             
 
-            if "MINUTE" in self.prices:
+            if "MINUTE_5" in self.prices:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
-                i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp), None)
+                i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
                 if i==None:
-                    self.prices['MINUTE'][-1]['closePrice']['bid'] = current_price['openPrice']['bid']
-                    self.prices['MINUTE'][-1]['closePrice']['ask'] = current_price['openPrice']['ask']
-                    self.prices['MINUTE'].append(current_price)
+                    self.prices['MINUTE_5'][-1]['closePrice']['bid'] = current_price['openPrice']['bid']
+                    self.prices['MINUTE_5'][-1]['closePrice']['ask'] = current_price['openPrice']['ask']
+                    self.prices['MINUTE_5'].append(current_price)
                     
 
-                    if "MINUTE_5" in self.prices:
-                        last_30_min = int(5 * math.floor(float(minNum)/5))
+                    if "MINUTE_30" in self.prices:
+                        last_30_min = int(30 * math.floor(float(minNum)/30))
                         timestamp_30 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_30_min))
                         
                         # get all elements from MINUTE list since last 5min mark
-                        i = next((index for (index, d) in enumerate(self.prices['MINUTE']) if d["snapshotTime"] == timestamp_30), None)
-                        mins = self.prices['MINUTE'][i:]
+                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_30), None)
+                        mins = self.prices['MINUTE_5'][i:]
                         open_price = mins[0]['openPrice']
                         close_price = mins[-1]['closePrice']
                         vol = sum([x['lastTradedVolume'] for x in mins])
@@ -132,40 +132,40 @@ class Market:
                             "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
 
-                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_30), None)
+                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
                         if i==None:
 
-                            self.prices['MINUTE_5'][-1]['closePrice']['bid'] = new_30_min['openPrice']['bid']
-                            self.prices['MINUTE_5'][-1]['closePrice']['ask'] = new_30_min['openPrice']['ask']
+                            self.prices['MINUTE_30'][-1]['closePrice']['bid'] = new_30_min['openPrice']['bid']
+                            self.prices['MINUTE_30'][-1]['closePrice']['ask'] = new_30_min['openPrice']['ask']
                             
-                            self.strategy.slow_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
+                            self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
 
 
-                            self.prices["MINUTE_5"].append(new_30_min)
+                            self.prices["MINUTE_30"].append(new_30_min)
 
                         else:
                             
-                            self.prices["MINUTE_5"][i] = new_30_min
-                            self.strategy.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
+                            self.prices["MINUTE_30"][i] = new_30_min
+                            self.strategy.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                             
 
-                        if len(self.prices['MINUTE_5']) > 75:
-                            del self.prices['MINUTE_5'][0]
+                        if len(self.prices['MINUTE_30']) > 75:
+                            del self.prices['MINUTE_30'][0]
 
 
                     self.save_prices()
                     
                 else:
-                    self.prices['MINUTE'][i] = current_price
+                    self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE'])>30:
-                    del self.prices['MINUTE'][0]
+                if len(self.prices['MINUTE_5'])>30:
+                    del self.prices['MINUTE_5'][0]
                     
 
                 
 
             else:
-                self.prices['MINUTE'] = []
+                self.prices['MINUTE_5'] = []
             
             
 
@@ -203,7 +203,7 @@ class Market:
                 delta = time_now - last_date
 
                 seconds_per_unit = 0
-                if "MINUTE" in resolution:
+                if "MINUTE_5" in resolution:
                     seconds_per_unit = 60
                 elif "HOUR" in resolution:
                     seconds_per_unit = 60 * 60
@@ -337,7 +337,7 @@ class Market:
     def get_ordered_prices(self, group="closePrice", price = "bid", resolutions=None):
         price_data = {} # will be {time_int:price} - repeated units will be overwritten
         if resolutions==None:
-            resolutions = "DAY, HOUR_4, HOUR_3, HOUR_2, HOUR, MINUTE_5, MINUTE_15, MINUTE_10, MINUTE, MINUTE_3, MINUTE_2, MINUTE".split(", ")
+            resolutions = "DAY, HOUR_4, HOUR_3, HOUR_2, HOUR, MINUTE_30, MINUTE_15, MINUTE_10, MINUTE, MINUTE_3, MINUTE_2, MINUTE_5".split(", ")
         
         epoch = datetime.datetime.strptime("2010-01-01","%Y-%m-%d")
         for res in resolutions:

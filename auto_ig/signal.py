@@ -73,7 +73,7 @@ class Signal:
 
         # work out the exiry time for this signal - depending on type, plus 2mins
         seconds_per_unit = 0
-        if "MINUTE" in resolution:
+        if "MINUTE_5" in resolution:
             seconds_per_unit = 60
         elif "HOUR" in resolution:
             seconds_per_unit = 60 * 60
