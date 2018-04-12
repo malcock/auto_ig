@@ -36,7 +36,7 @@ class stoch(Strategy):
         low_range = min(tr)
         max_range = max(tr)
         
-        stop = atr[-1] * 2
+        stop = (atr[-1] * 2) + (market.spread*1.5)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
