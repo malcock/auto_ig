@@ -30,10 +30,13 @@ class stoch(Strategy):
         super().backfill(market,resolution,15)
                 
     def fast_signals(self,market,prices,resolution):
-        super().fast_signals(market,prices,resolution)
+        for s in [x for x in self.signals if x.market == market.epic]:
+            if not s.process():
+                print("{} timed out".format(s.name))
+                self.signals.remove(s)
         if 'MINUTE_5' not in market.prices:
             return
-            
+
         prices = market.prices['MINUTE_5']
         if resolution == "MINUTE_30":
             stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
@@ -104,7 +107,7 @@ class stoch(Strategy):
 
 
     def slow_signals(self,market,prices, resolution):
-        super().slow_signals(market,prices,resolution)
+        self.fast_signals(market,prices,resolution)
         
 
 
