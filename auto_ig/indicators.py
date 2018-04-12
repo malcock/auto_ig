@@ -106,7 +106,7 @@ def macd(prices,fast=12,slow=26,signal=9):
         prices[i]['macd'] = macd[i]
         prices[i]['macd_histogram'] = histo[i]
 
-    
+# def obv(prices, smooth=10):    
 
 def psar(prices, iaf = 0.02, maxaf = 0.2):
     barsdata = prices

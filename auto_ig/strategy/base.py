@@ -111,7 +111,7 @@ class Strategy:
             self.signals.remove(s)
         
         print("removed {} matching {} signals".format(len(matching_signals),signal.name))
-        signal.market = market.epic
+        signal.market(market.epic)
         self.signals.append(signal)
 
     
@@ -135,7 +135,11 @@ class Sig:
         self.comment = comment
         self.unused = True
         self.market = ""
-        logger.info("new sig! : {}".format(self.name))
+        
+    
+    def set_market(self,market):
+        self.market = market
+        logger.info("new sig! : {} : {}".format(self.market, self.name))
 
     def process(self):
         self.life-=1
