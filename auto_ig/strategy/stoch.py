@@ -79,90 +79,100 @@ class stoch(Strategy):
 
 
     def fast_signals(self,market,prices,resolution):
-        for s in [x for x in self.signals if x.market == market.epic]:
-            if not s.process():
-                print("{} timed out".format(s.name))
-                self.signals.remove(s)
-        if 'MINUTE_5' not in market.prices:
-            return
+        try:
+            for s in [x for x in self.signals if x.market == market.epic]:
+                if not s.process():
+                    print("{} timed out".format(s.name))
+                    self.signals.remove(s)
+            if 'MINUTE_5' not in market.prices:
+                return
 
-        prices = market.prices['MINUTE_5']
-        if resolution == "MINUTE_30":
-            stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
-            prev_avg = (stoch_k[-2] + stoch_d[-2]) / 2
-            now_avg = (stoch_k[-1] + stoch_d[-1]) / 2
+            prices = market.prices['MINUTE_5']
+            if resolution == "MINUTE_30":
+                stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
+                prev_avg = (stoch_k[-2] + stoch_d[-2]) / 2
+                now_avg = (stoch_k[-1] + stoch_d[-1]) / 2
+                
+                series = [prev_avg,now_avg]
+
+                now = prices[-1]
+
+                if detect.crossunder(stoch_k,79):
+                    sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=1)
+                    super().add_signal(sig,market)
+                
+                if detect.crossover(stoch_k,21):
+                    sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=1)
+                    super().add_signal(sig,market)
+
+                # what's the dailies saying?
             
-            series = [prev_avg,now_avg]
+            day_wma25 = ta.wma(25,market.prices['DAY'])
+
+            # want to look at the daily trends before even considering opening a position
+            daydir = "NONE"
+            wma_delta = day_wma25[-1] - day_wma25[-2]
+            if wma_delta > 0:
+                daydir = "BUY"
+            
+            if wma_delta < 0:
+                daydir = "SELL"
 
             now = prices[-1]
-
-            if detect.crossunder(stoch_k,79):
-                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=1)
-                super().add_signal(sig,market)
             
-            if detect.crossover(stoch_k,21):
-                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=1)
-                super().add_signal(sig,market)
+            if resolution=="MINUTE_30":
+                wma25 = ta.wma(25,prices)
+                # check if the price action is matching the day wma
+                roc = ta.roc(36,market.prices['MINUTE_30'])
+                if daydir=="BUY" and roc[-1] < 0:
+                    daydir = "NONE"
+                if daydir=="SELL" and roc[-1] > 0:
+                    daydir = "NONE"
 
-            # what's the dailies saying?
-        
-        day_wma25 = ta.wma(25,market.prices['DAY'])
-
-        # want to look at the daily trends before even considering opening a position
-        daydir = "NONE"
-        wma_delta = day_wma25[-1] - day_wma25[-2]
-        if wma_delta > 0:
-            daydir = "BUY"
-        
-        if wma_delta < 0:
-            daydir = "SELL"
-
-        now = prices[-1]
-        
-        if resolution=="MINUTE_30":
-            wma25 = ta.wma(25,prices)
-            # check if the price action is matching the day wma
-            roc = ta.roc(36,market.prices['MINUTE_30'])
-            if daydir=="BUY" and roc[-1] < 0:
-                daydir = "NONE"
-            if daydir=="SELL" and roc[-1] > 0:
-                daydir = "NONE"
-
-            stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
-            stoch_k_delta = stoch_k[-1] - stoch_k[-3]
-            if daydir =="BUY":
-                if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
-                    super().add_signal(sig,market)
-                
-                if detect.crossover(stoch_k,stoch_d) and 80 > stoch_k > 50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
-                    super().add_signal(sig,market)
+                stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
+                stoch_k_delta = stoch_k[-1] - stoch_k[-3]
+                if daydir =="BUY":
+                    if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
+                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
+                        super().add_signal(sig,market)
                     
-            elif daydir=="SELL":
-                if stoch_k[-1]<45 and stoch_k[-3]>50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
-                    super().add_signal(sig,market)
-                
-                if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_k > 20:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
-                    super().add_signal(sig,market)
-                
-
-            open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
-            wma_delt = wma25[-1] - wma25[-2]
-            for s in open_sigs:
-                if s.position=="BUY":
-                    if wma_delt > 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {}".format(sig.timestamp),life=1)
+                    if detect.crossover(stoch_k,stoch_d) and 80 > stoch_k[-1] > 50:
+                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
                         super().add_signal(sig,market)
-                        self.signals.remove(s)
-                else:
-                    if wma_delt < 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {}".format(sig.timestamp),life=1)
+                        
+                elif daydir=="SELL":
+                    if stoch_k[-1]<45 and stoch_k[-3]>50:
+                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
                         super().add_signal(sig,market)
-                        self.signals.remove(s)
+                    
+                    if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_k[-1] > 20:
+                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
+                        super().add_signal(sig,market)
+                    
 
+                open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
+                wma_delt = wma25[-1] - wma25[-2]
+                for s in open_sigs:
+                    if s.position=="BUY":
+                        if wma_delt > 0:
+                            sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {}".format(sig.timestamp),life=1)
+                            super().add_signal(sig,market)
+                            self.signals.remove(s)
+                    else:
+                        if wma_delt < 0:
+                            sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {}".format(sig.timestamp),life=1)
+                            super().add_signal(sig,market)
+                            self.signals.remove(s)
+        
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("{} live fail".format(market.epic))
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
 
 
     def slow_signals(self,market,prices, resolution):

@@ -1,6 +1,21 @@
+import logging
 # from ..sig import Sig
 from .. import indicators as ta
 from .. import detection as detect
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('faig_debug.log')
+fh.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
+
 class Strategy:
     """Strategy base class - build new strategies on this one i think.
      idea is that each strategy handles it's signal generation and management
@@ -120,7 +135,7 @@ class Sig:
         self.comment = comment
         self.unused = True
         self.market = ""
-        print("new sig! : {}".format(self.name))
+        logger.info("new sig! : {}".format(self.name))
 
     def process(self):
         self.life-=1
