@@ -111,7 +111,7 @@ class Strategy:
             self.signals.remove(s)
         
         print("removed {} matching {} signals".format(len(matching_signals),signal.name))
-        signal.market(market.epic)
+        signal.set_market(market.epic)
         self.signals.append(signal)
 
     
