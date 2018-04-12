@@ -65,7 +65,7 @@ class stoch(Strategy):
             "atr_low" : low_range,
             "atr_max" : max_range,
             "stoploss" : stop,
-            "limit_distance" : atr[-1],
+            "limit_distance" : -1,
             "signal" : {
                 "timestamp":signal.timestamp,
                 "name" : signal.name,
@@ -130,38 +130,40 @@ class stoch(Strategy):
 
             stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
             stoch_k_delta = stoch_k[-1] - stoch_k[-3]
-            if daydir =="BUY":
-                if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
-                    super().add_signal(sig,market)
+            
+            if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
+                sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",2,comment = "",life=2)
+                super().add_signal(sig,market)
+            
+            if detect.crossover(stoch_k,stoch_d) and 80 > stoch_k > 50:
+                sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",2,comment = "",life=2)
+                super().add_signal(sig,market)
                 
-                if detect.crossover(stoch_k,stoch_d) and 80 > stoch_k > 50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
-                    super().add_signal(sig,market)
-                    
-            elif daydir=="SELL":
-                if stoch_k[-1]<45 and stoch_k[-3]>50:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
-                    super().add_signal(sig,market)
-                
-                if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_k > 20:
-                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
-                    super().add_signal(sig,market)
+        
+            if stoch_k[-1]<45 and stoch_k[-3]>50:
+                sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",2,comment = "",life=2)
+                super().add_signal(sig,market)
+            
+            if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_k > 20:
+                sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",2,comment = "",life=2)
+                super().add_signal(sig,market)
                 
 
             open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
             wma_delt = wma25[-1] - wma25[-2]
             for s in open_sigs:
                 if s.position=="BUY":
-                    if wma_delt > 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {}".format(sig.timestamp),life=1)
-                        super().add_signal(sig,market)
-                        self.signals.remove(s)
+                    if daydir =="BUY":
+                        if wma_delt > 0:
+                            sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {}".format(sig.timestamp),life=1)
+                            super().add_signal(sig,market)
+                            self.signals.remove(s)
                 else:
-                    if wma_delt < 0:
-                        sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {}".format(sig.timestamp),life=1)
-                        super().add_signal(sig,market)
-                        self.signals.remove(s)
+                    if daydir=="SELL":
+                        if wma_delt < 0:
+                            sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {}".format(sig.timestamp),life=1)
+                            super().add_signal(sig,market)
+                            self.signals.remove(s)
 
 
 
