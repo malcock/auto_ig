@@ -174,13 +174,15 @@ class Trade:
         self.state = TradeState.PENDING
         self.expiry_time = time_now + datetime.timedelta(minutes = 5)
         self.log_status("Attempting to open trade")
-
+        limit = 150
+        if float(self.prediction['limit_distance']) > 0:
+            limit = float(self.prediction['limit_distance'])
         base_url = self.market.ig.api_url + '/positions/otc'
         # logger.info("prediction: {}".format(self.prediction))
         data = {
             "direction":self.prediction["direction_to_trade"],
             "epic": self.market.epic, 
-            "limitDistance":150, 
+            "limitDistance":limit, 
             "orderType":"MARKET", 
             "size":self.size_value,
             "expiry":"DFB",

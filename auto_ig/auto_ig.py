@@ -231,6 +231,42 @@ class AutoIG:
 
         return True, "hello"
 
+    def insta_trade(self,market):
+        signals = [x for x in market.strategy.signals if x.score>1 and x.unused and x.market==market.epic]
+        for signal in signals:
+            current_trades = [x for x in self.trades if x.market==market]
+            if len(current_trades)==0:
+                if signal.score > 2:
+                    if market.spread < 10:
+                        if len(self.trades)<self.max_concurrent_trades:
+                            round_val = 500.0
+                            base = 1000.0
+                            trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
+                            logger.info("proposed bet size: {}".format(trade_size))
+
+                            signal.unused = False
+                            prediction = market.strategy.prediction(signal,market,'MINUTE_30')
+                            self.make_trade(1,market,prediction)
+                            signal.score = 1
+                        else:
+                            logger.info("Can't open any more trades already maxed out")
+                    else:
+                        logger.info("{} : market spread too wide!".format(market.epic))
+            else:
+                logger.info("{} trade already open on this market".format(market.epic))
+                for t in current_trades:
+                    if signal.position == t.prediction['direction_to_trade']:
+                        t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
+                        signal.unused = False
+                        signal.score-=1
+                    else:
+                        t.log_status("{} signal closed by {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
+                        t.assess_close(signal)
+                        
+                        signal.score-=1
+                        if signal.score > 2:
+                            signal.unused = True
+
     def live_update(self,data):
         # get the epic
         epic = data['name'].split(":")[1]

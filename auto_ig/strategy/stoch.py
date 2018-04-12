@@ -28,7 +28,56 @@ class stoch(Strategy):
 
     def backfill(self,market,resolution):
         super().backfill(market,resolution,15)
-                
+    
+    def prediction(self, signal,market,resolution):
+        """default stoploss and limit calculator based on atr_5"""
+        prices = market.prices['MINUTE_5']
+        atr, tr = ta.atr(5,prices)
+        low_range = min(tr)
+        max_range = max(tr)
+        
+        stop = atr[-1] * 2
+        if signal.position == "BUY":
+            # GO LONG
+            DIRECTION_TO_TRADE = "BUY"
+            DIRECTION_TO_CLOSE = "SELL"
+            DIRECTION_TO_COMPARE = 'bid'
+            # low = min([x['lowPrice']['bid'] for x in self.prices[signal.resolution][:-5]])
+            # stop = abs(self.bid - low)
+            # stop = abs(self.bid - self.prices[signal.resolution][-2]['lowPrice']['bid'])
+
+        else:
+            # GO SHORT!
+            DIRECTION_TO_TRADE = "SELL"
+            DIRECTION_TO_CLOSE = "BUY"
+            DIRECTION_TO_COMPARE = 'offer'
+            # high = max([x['highPrice']['ask'] for x in self.prices[signal.resolution][:-5]])
+            # stop = abs(high - self.offer)
+            # stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
+
+
+        # prepare the trade info object to pass back
+        prediction_object = {
+            "strategy" : self.name,
+            "direction_to_trade" : DIRECTION_TO_TRADE,
+            "direction_to_close" : DIRECTION_TO_CLOSE,
+            "direction_to_compare" : DIRECTION_TO_COMPARE,
+            "atr_low" : low_range,
+            "atr_max" : max_range,
+            "stoploss" : stop,
+            "limit_distance" : atr[-1],
+            "signal" : {
+                "timestamp":signal.timestamp,
+                "name" : signal.name,
+                "position" : signal.position,
+                "comment" : signal.comment
+            }
+            
+        }
+
+        return prediction_object
+
+
     def fast_signals(self,market,prices,resolution):
         for s in [x for x in self.signals if x.market == market.epic]:
             if not s.process():
@@ -48,11 +97,11 @@ class stoch(Strategy):
             now = prices[-1]
 
             if detect.crossunder(stoch_k,79):
-                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=2)
+                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=1)
                 super().add_signal(sig,market)
             
             if detect.crossover(stoch_k,21):
-                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=2)
+                sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=1)
                 super().add_signal(sig,market)
 
             # what's the dailies saying?
@@ -85,10 +134,17 @@ class stoch(Strategy):
                 if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
                     sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
                     super().add_signal(sig,market)
+                
+                if detect.crossover(stoch_k,stoch_d) and 80 > stoch_k > 50:
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "",life=2)
+                    super().add_signal(sig,market)
+                    
             elif daydir=="SELL":
                 if stoch_k[-1]<45 and stoch_k[-3]>50:
                     sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
                     super().add_signal(sig,market)
+                
+                if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_k > 20
 
             open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
             wma_delt = wma25[-1] - wma25[-2]

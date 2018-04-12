@@ -139,7 +139,7 @@ class Market:
                             self.prices['MINUTE_30'][-1]['closePrice']['ask'] = new_30_min['openPrice']['ask']
                             
                             self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-
+                            self.ig.insta_trade(self)
 
                             self.prices["MINUTE_30"].append(new_30_min)
 
@@ -147,7 +147,7 @@ class Market:
                             
                             self.prices["MINUTE_30"][i] = new_30_min
                             self.strategy.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-                            
+                            self.ig.insta_trade(self)
 
                         if len(self.prices['MINUTE_30']) > 75:
                             del self.prices['MINUTE_30'][0]
@@ -158,7 +158,7 @@ class Market:
                 else:
                     self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE_5'])>36:
+                if len(self.prices['MINUTE_5'])>50:
                     del self.prices['MINUTE_5'][0]
                     
 
