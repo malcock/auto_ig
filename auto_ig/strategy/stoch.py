@@ -144,7 +144,10 @@ class stoch(Strategy):
                     sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
                     super().add_signal(sig,market)
                 
-                if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_k > 20
+                if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_k > 20:
+                    sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "",life=2)
+                    super().add_signal(sig,market)
+                
 
             open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
             wma_delt = wma25[-1] - wma25[-2]
