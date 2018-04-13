@@ -156,7 +156,7 @@ class stoch(Strategy):
                 wma_delt = wma25[-1] - wma25[-2]
                 for s in open_sigs:
                     if s.position=="BUY":
-                        if wma_delt > 0 and obv[-1]>0::
+                        if wma_delt > 0 and obv[-1]>0:
                             sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {} | {}".format(s.timestamp,s.comment),life=1)
                             super().add_signal(sig,market)
                             self.signals.remove(s)
