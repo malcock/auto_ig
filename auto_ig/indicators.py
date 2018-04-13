@@ -129,6 +129,7 @@ def obv(prices, smooth=10):
     for i in range(len_diff,len(prices)):
         prices[i]['obv_{}'.format(smooth)] = histo[i-len_diff]
     
+
     return histo
 
 

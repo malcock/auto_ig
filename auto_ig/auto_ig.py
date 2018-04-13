@@ -46,7 +46,8 @@ class AutoIG:
         self.is_open = True
         self.strategy = {}
         # self.strategy['wma_cross'] = wma_cross(10,25,50,14)
-        self.strategy['stoch'] = stoch(14,3,3)
+        # self.strategy['stoch'] = stoch(14,3,3)
+        self.strategy['obv_psar'] = obv_psar(14,7)
 
     def make_trade(self, size, market, prediction, json_data = None):
         """Make a new trade"""
@@ -148,9 +149,9 @@ class AutoIG:
         open_lightstreamer = False
 
         # let's process our markets and look for signals then
-        top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
-        for market in top_markets:
-            self.insta_trade(market)
+        # top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
+        # for market in top_markets:
+        #     self.insta_trade(market)
             
             
         if not isinstance(self.lightstream, LSClient):
@@ -256,7 +257,7 @@ class AutoIG:
                 for epic in epics_data:
                     epic_id = epic['instrument']['epic']
                     if not epic_id in self.markets:
-                        self.markets[epic_id] = Market(epic_id,self,self.strategy['stoch'],epic)
+                        self.markets[epic_id] = Market(epic_id,self,self.strategy['obv_psar'],epic)
                     else:
                         self.markets[epic_id].update_market(epic)
             else:
