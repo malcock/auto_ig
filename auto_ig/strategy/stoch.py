@@ -134,7 +134,6 @@ class stoch(Strategy):
                 stoch_k_delta = stoch_k[-1] - stoch_k[-3]
                 obv_fig = ", obv: {}".format(obv[-1])
                 if daydir =="BUY":
-                    if obv[-1]>0:
                         if detect.crossover(stoch_k,55) and stoch_k[-1] > stoch_d[-1]:
                             sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "mid cross {}".format(obv_fig),life=2)
                             super().add_signal(sig,market)
@@ -144,7 +143,6 @@ class stoch(Strategy):
                             super().add_signal(sig,market)
                         
                 elif daydir=="SELL":
-                    if obv[-1]<0:
                         if detect.crossunder(stoch_k,45) and stoch_k[-1] < stoch_d[-1]:
                             sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "mid cross {}".format(obv_fig),life=2)
                             super().add_signal(sig,market)
@@ -158,12 +156,12 @@ class stoch(Strategy):
                 wma_delt = wma25[-1] - wma25[-2]
                 for s in open_sigs:
                     if s.position=="BUY":
-                        if wma_delt > 0:
+                        if wma_delt > 0 and obv[-1]>0::
                             sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {} | {}".format(s.timestamp,s.comment),life=1)
                             super().add_signal(sig,market)
                             self.signals.remove(s)
                     else:
-                        if wma_delt < 0:
+                        if wma_delt < 0 and obv[-1]<0:
                             sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {} | {}".format(s.timestamp,s.comment),life=1)
                             super().add_signal(sig,market)
                             self.signals.remove(s)
