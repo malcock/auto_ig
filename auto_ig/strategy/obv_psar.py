@@ -110,6 +110,7 @@ class obv_psar(Strategy):
             if daydir =="BUY":
                 # detect a crossover in a bull
                 if isinstance(now['psar_bull'],Number):
+                    logger.info("{} is bull".format(market.epic))
                     if detect.crossover(obv_ma,0):
                         # open position i guess
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "ZERO_CROSS",life=1)
@@ -122,6 +123,7 @@ class obv_psar(Strategy):
                         super().add_signal(sig,market)
             elif daydir=="SELL":
                 if isinstance(now['psar_bear'],Number):
+                    logger.info("{} is bear".format(market.epic))
                     if detect.crossunder(obv_ma,0):
                         # open position i guess
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "ZERO_CROSS",life=1)
