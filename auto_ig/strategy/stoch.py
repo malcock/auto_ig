@@ -121,6 +121,7 @@ class stoch(Strategy):
             now = prices[-1]
             
             if resolution=="MINUTE_30":
+                obv = ta.obv(prices,10)
                 wma25 = ta.wma(25,prices)
                 # check if the price action is matching the day wma
                 roc = ta.roc(36,market.prices['MINUTE_30'])
@@ -131,23 +132,26 @@ class stoch(Strategy):
 
                 stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
                 stoch_k_delta = stoch_k[-1] - stoch_k[-3]
+                obv_fig = ", obv: {}".format(obv[-1])
                 if daydir =="BUY":
-                    if 70 > stoch_k[-1] > 55 and stoch_k[-3]<50:
-                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "mid cross",life=2)
-                        super().add_signal(sig,market)
-                    
-                    if detect.crossover(stoch_k,stoch_d) and 80 > stoch_d[-3] > 50:
-                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "mini reversal",life=2)
-                        super().add_signal(sig,market)
+                    if obv[-1]>0:
+                        if detect.crossover(stoch_k,55) and stoch_k[-1] > stoch_d[-1]:
+                            sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "mid cross {}".format(obv_fig),life=2)
+                            super().add_signal(sig,market)
+                        
+                        if detect.crossover(stoch_k,stoch_d) and 80 > stoch_d[-3] > 50:
+                            sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "mini reversal {}".format(obv_fig),life=2)
+                            super().add_signal(sig,market)
                         
                 elif daydir=="SELL":
-                    if stoch_k[-1]<45 and stoch_k[-3]>50:
-                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "mid cross",life=2)
-                        super().add_signal(sig,market)
-                    
-                    if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_d[-3] > 20:
-                        sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "mini reversal",life=2)
-                        super().add_signal(sig,market)
+                    if obv[-1]<0:
+                        if detect.crossunder(stoch_k,45) and stoch_k[-1] < stoch_d[-1]:
+                            sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "mid cross {}".format(obv_fig),life=2)
+                            super().add_signal(sig,market)
+                        
+                        if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_d[-3] > 20:
+                            sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "mini reversal {}".format(obv_fig),life=2)
+                            super().add_signal(sig,market)
                     
 
                 open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]

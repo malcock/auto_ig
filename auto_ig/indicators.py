@@ -106,7 +106,31 @@ def macd(prices,fast=12,slow=26,signal=9):
         prices[i]['macd'] = macd[i]
         prices[i]['macd_histogram'] = histo[i]
 
-# def obv(prices, smooth=10):    
+def obv(prices, smooth=10):
+    vals = []
+    for i in range(1,len(prices)):
+        diff = prices[i]['closePrice']['bid'] - prices[i-1]['closePrice']['bid']
+        val = 0
+        if diff > 0:
+            val = prices[i]['lastTradedVolume']
+        elif diff < 0:
+            val = -prices[i]['lastTradedVolume']
+        else:
+            val = 0
+        vals.append(val)
+    
+    obv = np.cumsum(np.array(vals))
+    signal = wma(10,values=obv)
+    obv = obv[len(obv) - len(signal):]
+    histo = np.subtract(obv,signal)
+
+    len_diff = len(prices) - len(histo)
+
+    for i in range(len_diff,len(prices)):
+        prices[i]['obv_{}'.format(smooth)] = histo[i-len_diff]
+    
+    return histo
+
 
 def psar(prices, iaf = 0.02, maxaf = 0.2):
     barsdata = prices
