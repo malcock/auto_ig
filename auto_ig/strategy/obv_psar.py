@@ -114,19 +114,23 @@ class obv_psar(Strategy):
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "ZERO_CROSS",life=1)
                         super().add_signal(sig,market)
                 
-                if now['psar_bull'] != '' and prev['psar_bull']== '' and obv_ma[-1] >0:
-                    sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
-                    super().add_signal(sig,market)
-            else:
+                if now['psar_bull'] != '' and prev['psar_bull']== '':
+                    logger.info("{} psar flipped to bull".format(market.epic))
+                    if obv_ma[-1] >0:
+                        sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
+                        super().add_signal(sig,market)
+            elif daydir=="SELL":
                 if now['psar_bear'] != '':
                     if detect.crossunder(obv_ma,0):
                         # open position i guess
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "ZERO_CROSS",life=1)
                         super().add_signal(sig,market)
                 
-                if now['psar_bear'] != '' and prev['psar_bear']== '' and obv_ma[-1] < 0:
-                    sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "PSAR_FLIP",life=1)
-                    super().add_signal(sig,market)
+                if now['psar_bear'] != '' and prev['psar_bear']== '':
+                    logger.info("{} psar flipped to bear".format(market.epic))
+                    if obv_ma[-1] < 0:
+                        sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "PSAR_FLIP",life=1)
+                        super().add_signal(sig,market)
             
             
         
