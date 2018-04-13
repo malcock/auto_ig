@@ -108,23 +108,23 @@ class obv_psar(Strategy):
 
             if daydir =="BUY":
                 # detect a crossover in a bull
-                if now['psarbull'] != '':
+                if now['psar_bull'] != '':
                     if detect.crossover(obv_ma,0):
                         # open position i guess
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "ZERO_CROSS",life=1)
                         super().add_signal(sig,market)
                 
-                if now['psarbull'] != '' and prev['psarbull']== '' and obv_ma[-1] >0:
+                if now['psar_bull'] != '' and prev['psar_bull']== '' and obv_ma[-1] >0:
                     sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
                     super().add_signal(sig,market)
             else:
-                if now['psarbear'] != '':
+                if now['psar_bear'] != '':
                     if detect.crossunder(obv_ma,0):
                         # open position i guess
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "ZERO_CROSS",life=1)
                         super().add_signal(sig,market)
                 
-                if now['psarbear'] != '' and prev['psarbear']== '' and obv_ma[-1] < 0:
+                if now['psar_bear'] != '' and prev['psar_bear']== '' and obv_ma[-1] < 0:
                     sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "PSAR_FLIP",life=1)
                     super().add_signal(sig,market)
             
