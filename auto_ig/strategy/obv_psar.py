@@ -1,5 +1,6 @@
 import logging
 import os,sys
+from numbers import Number
 from .. import indicators as ta
 from .. import detection as detect
 from .base import Strategy, Sig
@@ -105,28 +106,28 @@ class obv_psar(Strategy):
             psar = ta.psar(prices)
             now = prices[-1]
             prev = prices[-2]
-
+            
             if daydir =="BUY":
                 # detect a crossover in a bull
-                if now['psar_bull'] != '':
+                if isinstance(now['psar_bull'],Number):
                     if detect.crossover(obv_ma,0):
                         # open position i guess
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "ZERO_CROSS",life=1)
                         super().add_signal(sig,market)
                 
-                if now['psar_bull'] != '' and prev['psar_bull']== '':
+                if isinstance(now['psar_bull'],Number) and not isinstance(prev['psar_bull'],Number):
                     logger.info("{} psar flipped to bull".format(market.epic))
                     if obv_ma[-1] >0:
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
                         super().add_signal(sig,market)
             elif daydir=="SELL":
-                if now['psar_bear'] != '':
+                if isinstance(now['psar_bear'],Number):
                     if detect.crossunder(obv_ma,0):
                         # open position i guess
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "ZERO_CROSS",life=1)
                         super().add_signal(sig,market)
                 
-                if now['psar_bear'] != '' and prev['psar_bear']== '':
+                if isinstance(now['psar_bear'],Number) and not isinstance(prev['psar_bear'],Number):
                     logger.info("{} psar flipped to bear".format(market.epic))
                     if obv_ma[-1] < 0:
                         sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "PSAR_FLIP",life=1)
