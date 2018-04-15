@@ -114,6 +114,9 @@ class Strategy:
         signal.set_market(market.epic)
         self.signals.append(signal)
 
+    def assess_close(self,signal,trade):
+        trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
+        trade.close_trade()
     
 
 

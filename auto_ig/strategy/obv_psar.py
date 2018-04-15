@@ -20,7 +20,7 @@ logger.addHandler(ch)
 
 class obv_psar(Strategy):
 
-    def __init__(self, obv_smooth, obv_fast):
+    def __init__(self, obv_smooth = 14, obv_fast=7):
         name = "obv_psar"
         super().__init__(name)
         self.obv_smooth = obv_smooth
@@ -94,49 +94,77 @@ class obv_psar(Strategy):
             # want to look at the daily trends before even considering opening a position
             daydir = "NONE"
             wma_delta = day_wma25[-1] - day_wma25[-2]
-            if wma_delta > 0 and roc[-1] > 0:
+
+            # also look at the 30 min trends
+            min30obv = ta.obv(market.prices['MINUTE_30'],self.obv_smooth)
+            min30obvma = ta.wma(self.obv_fast, prices = market.prices['MINUTE_30'], values = min30obv, name="obv_wma")
+            min30psar = ta.psar(market.prices['MINUTE_30'])
+
+            # do some 30 min checks
+            now30 = market.prices['MINUTE_30'][-1]
+            prev30 = market.prices['MINUTE_30'][-2]
+            
+            dir30 = "BUY"
+            if isinstance(now30['psar_bear'], Number):
+                dir30 = "SELL"
+
+            if wma_delta > 0 and roc[-1] > 0 and dir30=="BUY" and min30obvma[-1] > 0:
                 daydir = "BUY"
             
-            if wma_delta < 0 and roc[-1] < 0:
+            if wma_delta < 0 and roc[-1] < 0 and dir30=="SELL" and min30obvma[-1] < 0:
                 daydir = "SELL"
 
-   
+            flip30 = self.psar_flip(now30,prev30)
+
+            # check if min 30 has flipped PSAR, create a close signal
+            # TODO: make an open signal if current 5 mins are looking good already
+            
+            if flip30:
+                sig = Sig("PSAR_30_FLIP",now30['snapshotTime'],flip30,2,comment = "MIN 30 PSAR flip",life=1)
+                super().add_signal(sig,market)
+            
+
             obv = ta.obv(prices,self.obv_smooth)
             obv_ma = ta.wma(self.obv_fast,prices = prices,values=obv, name="obv_wma")
             psar = ta.psar(prices)
             now = prices[-1]
             prev = prices[-2]
             
-            if daydir =="BUY":
-                # detect a crossover in a bull
-                if isinstance(now['psar_bull'],Number):
-                    logger.info("{} is bull".format(market.epic))
-                    if detect.crossover(obv_ma,0):
-                        # open position i guess
-                        sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "ZERO_CROSS",life=1)
-                        super().add_signal(sig,market)
-                
-                if isinstance(now['psar_bull'],Number) and not isinstance(prev['psar_bull'],Number):
-                    logger.info("{} psar flipped to bull".format(market.epic))
-                    if obv_ma[-1] >0:
-                        sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
-                        super().add_signal(sig,market)
-            elif daydir=="SELL":
-                if isinstance(now['psar_bear'],Number):
-                    logger.info("{} is bear".format(market.epic))
-                    if detect.crossunder(obv_ma,0):
-                        # open position i guess
-                        sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "ZERO_CROSS",life=1)
-                        super().add_signal(sig,market)
-                
-                if isinstance(now['psar_bear'],Number) and not isinstance(prev['psar_bear'],Number):
-                    logger.info("{} psar flipped to bear".format(market.epic))
-                    if obv_ma[-1] < 0:
-                        sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "PSAR_FLIP",life=1)
-                        super().add_signal(sig,market)
+            # check for obv_ma crossovers
+            if detect.crossover(obv_ma,0):
+                if daydir=="BUY" and isinstance(now['psar_bull'],Number):
+                    sig = Sig("OBV_OPEN",now['snapshotTime'],"BUY",4,comment = "ZERO_CROSS",life=1)
+                else:
+                    sig = Sig("OBV_CLOSE",now['snapshotTime'],"BUY",2,comment = "ZERO_CROSS",life=1)
+                super().add_signal(sig,market)
+
+            if detect.crossunder(obv_ma,0):
+                if daydir=="SELL" and isinstance(now['psar_bear'],Number):
+                    sig = Sig("OBV_OPEN",now['snapshotTime'],"SELL",4,comment = "ZERO_CROSS",life=1)
+                else:
+                    sig = Sig("OBV_CLOSE",now['snapshotTime'],"SELL",2,comment = "ZERO_CROSS",life=1)
+                super().add_signal(sig,market)
+
+            # now check for flip events
+            flip5 = self.psar_flip(now,prev)
+
+            if flip5 == daydir and obv_ma[-1] > 0:
+                sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
+                super().add_signal(sig,market)
             
-            
-        
+            if flip5 == daydir and obv_ma[-1] < 0:
+                sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "PSAR_FLIP",life=1)
+                super().add_signal(sig,market)
+
+
+            # now check for 3 period PSAR event
+            if self.is_psar_type("psar_bull",prices[-1],prices[-2],prices[-3]) and self.is_psar_type("psar_bear",prices[-4]):
+                sig = Sig("PSAR_CLOSE",now['snapshotTime'],"BUY",2,comment="3 conflicting psar dots", life=1)
+                super().add_signal(sig,market)
+            if self.is_psar_type("psar_bear",prices[-1],prices[-2],prices[-3]) and self.is_psar_type("psar_bull",prices[-4]):
+                sig = Sig("PSAR_CLOSE",now['snapshotTime'],"SELL",2,comment="3 conflicting psar dots", life=1)
+                super().add_signal(sig,market)
+                
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -147,13 +175,38 @@ class obv_psar(Strategy):
             logger.info(exc_obj)
             pass
 
+    
+
 
     def slow_signals(self,market,prices, resolution):
         self.fast_signals(market,prices,resolution)
         
+    def assess_close(self,signal,trade):
+        if signal.name=="PSAR_30_FLIP":
+            trade.log_status("PSAR 30 flipped CLOSE!")
+            trade.close_trade()
+        if signal.name=="PSAR_CLOSE":
+            trade.log_status("3 periods flipped CLOSE!")
+            trade.close_trade()
 
+        if signal.name == "OBV_CLOSE" and trade.pip_diff>0:
+            trade.log_status("obv crossed back and in profit")
+            trade.close_trade()
 
+    def is_psar_type(self,typename,*times):
+        ret_val = True
+        for t in times:
+            if not isinstance(t[typename],Number):
+                ret_val = False
+        return ret_val
 
+    def psar_flip(self,now,prev):
+        if isinstance(now['psar_bull'],Number) and not isinstance(prev['psar_bull'],Number):
+            return "BUY"
+        if isinstance(now['psar_bear'],Number) and not isinstance(prev['psar_bear'],Number):
+            return "SELL"
+        
+        return False
     
    
     

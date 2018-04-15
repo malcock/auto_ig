@@ -140,8 +140,8 @@ class AutoIG:
                 m.update_prices("MINUTE_30",75)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
                 # self.fill_signals()
-            if m.get_update_cost("MINUTE_5",36)>0:
-                m.update_prices("MINUTE_5",36)
+            if m.get_update_cost("MINUTE_5",60)>0:
+                m.update_prices("MINUTE_5",60)
             
             # m.calculate_relative_vigor("MINUTE_30",10)
 
@@ -226,8 +226,9 @@ class AutoIG:
                         signal.unused = False
                         signal.score-=1
                     else:
-                        t.log_status("{} signal closed by {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
-                        t.assess_close(signal)
+                        
+                        # t.assess_close(signal)
+                        market.strategy.assess_close(signal,t)
                         
                         signal.score-=1
                         if signal.score > 2:
