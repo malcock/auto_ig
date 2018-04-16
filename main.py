@@ -166,7 +166,7 @@ def get_prices(epic,res):
         for k in keys:
             val = p.get(k,'')
             if k in ['lowPrice','openPrice','closePrice','highPrice']:
-                val = p[k]['bid']
+                val = p[k]['mid']
             line.append(val)
         line = [str(x) for x in line]
         output+= ",".join(line) + "\r\n"
@@ -217,7 +217,7 @@ def get_prices_table(epic,res):
         for k in keys:
             val = p.get(k,'')
             if k in ['lowPrice','openPrice','closePrice','highPrice']:
-                val = p[k]['bid']
+                val = p[k]['mid']
             line.append(val)
         
         line = ["<td>{}</td>".format(x) for x in line]

@@ -94,10 +94,10 @@ class Market:
             # create an empty price object that matches the hsitorical one
             current_price = {
                     "snapshotTime": timestamp, 
-                    "openPrice": {"bid": float(values['BID_OPEN']), "ask": float(values['OFR_OPEN']), "lastTraded": None}, 
-                    "closePrice": {"bid": self.bid, "ask": float(values['OFR_CLOSE']), "lastTraded": None }, 
-                    "highPrice": {"bid": float(values['BID_HIGH']), "ask": float(values['OFR_HIGH']), "lastTraded": None}, 
-                    "lowPrice": {"bid": float(values['BID_LOW']), "ask": float(values['OFR_LOW']), "lastTraded": None}, 
+                    "openPrice": {"bid": float(values['BID_OPEN']), "ask": float(values['OFR_OPEN']), "mid": (float(values['BID_OPEN']) + float(values['OFR_OPEN']))/2, "lastTraded": None}, 
+                    "closePrice": {"bid": self.bid, "ask": float(values['OFR_CLOSE']), "mid": (float(values['BID_CLOSE']) + float(values['OFR_CLOSE']))/2, "lastTraded": None }, 
+                    "highPrice": {"bid": float(values['BID_HIGH']), "ask": float(values['OFR_HIGH']), "mid": (float(values['BID_HIGH']) + float(values['OFR_HIGH']))/2, "lastTraded": None}, 
+                    "lowPrice": {"bid": float(values['BID_LOW']), "ask": float(values['OFR_LOW']), "mid": (float(values['BID_LOW']) + float(values['OFR_LOW']))/2, "lastTraded": None}, 
                     "lastTradedVolume": int(values['LTV'])}
             
 
@@ -105,8 +105,7 @@ class Market:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
                 i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
                 if i==None:
-                    self.prices['MINUTE_5'][-1]['closePrice']['bid'] = current_price['openPrice']['bid']
-                    self.prices['MINUTE_5'][-1]['closePrice']['ask'] = current_price['openPrice']['ask']
+
                     self.prices['MINUTE_5'].append(current_price)
                     
 
@@ -126,17 +125,15 @@ class Market:
                         bid_high = max([x['highPrice']['bid'] for x in mins])
                         new_30_min = {
                             "snapshotTime": timestamp_30, 
-                            "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "lastTraded": None}, 
-                            "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "lastTraded": None }, 
-                            "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "lastTraded": None}, 
-                            "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "lastTraded": None}, 
+                            "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "mid": (float(open_price['bid']) + float(open_price['ask']))/2, "lastTraded": None}, 
+                            "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "mid": (float(close_price['bid']) + float(close_price['ask']))/2, "lastTraded": None }, 
+                            "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "mid": (float(bid_high) + float(ask_high))/2, "lastTraded": None}, 
+                            "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "mid": (float(bid_low) + float(ask_low))/2, "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
 
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
                         if i==None:
 
-                            self.prices['MINUTE_30'][-1]['closePrice']['bid'] = new_30_min['openPrice']['bid']
-                            self.prices['MINUTE_30'][-1]['closePrice']['ask'] = new_30_min['openPrice']['ask']
                             
                             self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                             self.ig.insta_trade(self)
@@ -278,17 +275,19 @@ class Market:
     def sanitise_prices(self,resolution):
         """Checks for None values in price data and sets to previous value"""
         price_groups = ['openPrice','closePrice','highPrice','lowPrice']
-        price_types = ['bid','ask']
-        for g in price_groups:
-            for t in price_types:
-                prices = [x[g][t] for x in self.prices[resolution]]
-                none_indices = [i for i,val in enumerate(prices) if val is None]
-                if len(none_indices)>0:
-                    for i in none_indices:
-                        if i>0:
-                            self.prices[resolution][i][g][t] = self.prices[resolution][i-1][g][t]
-                        else:
-                            self.prices[resolution][i][g][t] = 0
+        prev = self.prices[resolution][0]
+        for i in range(1,len(self.prices[resolution])):
+            now = self.prices[resolution][i]
+            for g in price_groups:
+                bid = now[g]['bid']
+                ask = now[g]['ask']
+                if bid is None:
+                    bid = prev[g]['bid']
+                if ask is None:
+                    ask = prev[g]['ask']
+                mid = (bid + ask)/2
+                now[g]['mid'] = mid
+            
 
     
 

@@ -6,19 +6,19 @@ def atr(window, prices, name = None):
         name = "atr_{}".format(window)
 
     previous_day = prices[0]
-    prev_close = float(previous_day['closePrice']['bid'])
+    prev_close = float(previous_day['closePrice']['mid'])
 
     tr_prices = []
 
     for p in prices[1:]:
-        high_price = float(p['highPrice']['bid'])
-        low_price = float(p['lowPrice']['bid'])
+        high_price = float(p['highPrice']['mid'])
+        low_price = float(p['lowPrice']['mid'])
         price_range = high_price - low_price
 
         tr = max(price_range, abs(high_price-prev_close), abs(low_price-prev_close))
         tr_prices.append(tr)
 
-        prev_close = p['closePrice']['bid']
+        prev_close = p['closePrice']['mid']
 
 
 
@@ -32,7 +32,7 @@ def atr(window, prices, name = None):
 
 def net_change(prices):
     for p in prices:
-        p['net_change'] = p['closePrice']['bid'] - p['openPrice']['bid']
+        p['net_change'] = p['closePrice']['mid'] - p['openPrice']['mid']
 
 def ema(window, prices = None, name = None, values= None):
     def numpy_ewma_vectorized_v2(data, window):
@@ -56,7 +56,7 @@ def ema(window, prices = None, name = None, values= None):
     if values is None:
         if prices is None:
             raise Exception("values or prices or both must be supplied")
-        values = np.asarray([x['closePrice']['bid'] for x in prices])
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
     else:
         values = np.asarray(values)
 
@@ -79,7 +79,7 @@ def ma(window, prices = None, values = None, name = None):
     if values is None:
         if prices is None:
             raise Exception("values or prices or both must be supplied")
-        values = np.asarray([x['closePrice']['bid'] for x in prices])
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
     else:
         values = np.asarray(values)
 
@@ -109,7 +109,7 @@ def macd(prices,fast=12,slow=26,signal=9):
 def obv(prices, smooth=10):
     vals = []
     for i in range(1,len(prices)):
-        diff = prices[i]['closePrice']['bid'] - prices[i-1]['closePrice']['bid']
+        diff = prices[i]['closePrice']['mid'] - prices[i-1]['closePrice']['mid']
         val = 0
         if diff > 0:
             val = prices[i]['lastTradedVolume']
@@ -137,9 +137,9 @@ def psar(prices, iaf = 0.02, maxaf = 0.2):
     barsdata = prices
     length = len(barsdata)
     dates = [x['snapshotTime'] for x in barsdata]
-    high = [x['highPrice']['bid'] for x in barsdata]
-    low = [x['lowPrice']['bid'] for x in barsdata]
-    close = [x['closePrice']['bid'] for x in barsdata]
+    high = [x['highPrice']['mid'] for x in barsdata]
+    low = [x['lowPrice']['mid'] for x in barsdata]
+    close = [x['closePrice']['mid'] for x in barsdata]
     psar = close[0:len(close)]
     psarbull = [None] * length
     psarbear = [None] * length
@@ -204,7 +204,7 @@ def roc(window=12,prices = None, values = None, name = None):
     if values is None:
         if prices is None:
             raise Exception("values or prices or both must be supplied")
-        values = np.asarray([x['closePrice']['bid'] for x in prices])
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
     else:
         values = np.asarray(values)
     
@@ -224,7 +224,7 @@ def rsi(window = 14, prices = None, values = None, name = None):
     if values is None:
         if prices is None:
             raise Exception("values or prices or both must be supplied")
-        values = np.asarray([x['closePrice']['bid'] for x in prices])
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
     else:
         values = np.asarray(values)
     n = window
@@ -261,10 +261,10 @@ def rsi(window = 14, prices = None, values = None, name = None):
     return rsi
 
 def rvi(prices, N=10):
-    close_price = [x['closePrice']['bid'] for x in prices]
-    open_price = [x['openPrice']['bid'] for x in prices]
-    high_price = [x['highPrice']['bid'] for x in prices]
-    low_price = [x['lowPrice']['bid'] for x in prices]
+    close_price = [x['closePrice']['mid'] for x in prices]
+    open_price = [x['openPrice']['mid'] for x in prices]
+    high_price = [x['highPrice']['mid'] for x in prices]
+    low_price = [x['lowPrice']['mid'] for x in prices]
     close_open = list(map(operator.sub,close_price,open_price))
 
     high_low = list(map(operator.sub,high_price,low_price))
@@ -301,9 +301,9 @@ def stochastic(prices, length=5, smoothK=3, smoothD = 3):
         k =((close - low)/(high - low)) * 100
         return k
 
-    highs = rolling_window(np.asarray([x['highPrice']['bid'] for x in prices]),length)
-    lows = rolling_window(np.asarray([x['lowPrice']['bid'] for x in prices]),length)
-    closes = rolling_window(np.asarray([x['closePrice']['bid'] for x in prices]),length)
+    highs = rolling_window(np.asarray([x['highPrice']['mid'] for x in prices]),length)
+    lows = rolling_window(np.asarray([x['lowPrice']['mid'] for x in prices]),length)
+    closes = rolling_window(np.asarray([x['closePrice']['mid'] for x in prices]),length)
     ks = []
     for i in range(0,len(closes)):
         ks.append(stoch(closes[i],highs[i],lows[i]))
@@ -332,7 +332,7 @@ def tema(window,prices = None, values = None, name = None):
     if values is None:
         if prices is None:
             raise Exception("values or prices or both must be supplied")
-        values = np.asarray([x['closePrice']['bid'] for x in prices])
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
     else:
         values = np.asarray(values)
 
@@ -370,7 +370,7 @@ def trend(values):
     return 0
 
 def vwma(window,prices):
-    closes = np.asarray([x['closePrice']['bid'] for x in prices])
+    closes = np.asarray([x['closePrice']['mid'] for x in prices])
     volume = np.asarray([x['lastTradedVolume'] for x in prices])
 
     weights = ma(window,values = np.multiply(closes, volume))
@@ -398,7 +398,7 @@ def wma(window, prices = None, values = None, name = None):
     if values is None:
         if prices is None:
             raise Exception("values or prices or both must be supplied")
-        values = np.asarray([x['closePrice']['bid'] for x in prices])
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
     else:
         values = np.asarray(values)
     
