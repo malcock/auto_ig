@@ -275,7 +275,18 @@ class Market:
     def sanitise_prices(self,resolution):
         """Checks for None values in price data and sets to previous value"""
         price_groups = ['openPrice','closePrice','highPrice','lowPrice']
-        prev = self.prices[resolution][0]
+        now = self.prices[resolution][0]
+        for g in price_groups:
+            bid = now[g]['bid']
+            ask = now[g]['ask']
+            if bid is None:
+                bid = self.prices[resolution][1][g]['bid']
+            if ask is None:
+                ask = self.prices[resolution][1][g]['ask']
+            mid = (bid + ask)/2
+            now[g]['mid'] = mid
+        prev = now
+
         for i in range(1,len(self.prices[resolution])):
             now = self.prices[resolution][i]
             for g in price_groups:
@@ -287,6 +298,8 @@ class Market:
                     ask = prev[g]['ask']
                 mid = (bid + ask)/2
                 now[g]['mid'] = mid
+
+            prev = now
             
 
     
