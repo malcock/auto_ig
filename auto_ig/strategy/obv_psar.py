@@ -139,16 +139,14 @@ class obv_psar(Strategy):
             if detect.crossover(obv_ma,0):
                 if daydir=="BUY" and isinstance(now['psar_bull'],Number):
                     sig = Sig("OBV_OPEN",now['snapshotTime'],"BUY",4,comment = "ZERO_CROSS",life=1)
-                else:
-                    sig = Sig("OBV_CLOSE",now['snapshotTime'],"BUY",2,comment = "ZERO_CROSS",life=1)
-                super().add_signal(sig,market)
+                
+                    super().add_signal(sig,market)
 
             if detect.crossunder(obv_ma,0):
                 if daydir=="SELL" and isinstance(now['psar_bear'],Number):
                     sig = Sig("OBV_OPEN",now['snapshotTime'],"SELL",4,comment = "ZERO_CROSS",life=1)
-                else:
-                    sig = Sig("OBV_CLOSE",now['snapshotTime'],"SELL",2,comment = "ZERO_CROSS",life=1)
-                super().add_signal(sig,market)
+                
+                    super().add_signal(sig,market)
 
             # now check for flip events
             flip5 = self.psar_flip(now,prev)
@@ -164,10 +162,10 @@ class obv_psar(Strategy):
 
 
             # now check for 3 period PSAR event
-            if self.is_psar_type("psar_bull",prices[-1],prices[-2],prices[-3]) and self.is_psar_type("psar_bear",prices[-4]):
+            if self.is_psar_type("psar_bull",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bear",prices[-5]):
                 sig = Sig("PSAR_CLOSE",now['snapshotTime'],"BUY",2,comment="3 conflicting psar dots", life=1)
                 super().add_signal(sig,market)
-            if self.is_psar_type("psar_bear",prices[-1],prices[-2],prices[-3]) and self.is_psar_type("psar_bull",prices[-4]):
+            if self.is_psar_type("psar_bear",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bull",prices[-4]):
                 sig = Sig("PSAR_CLOSE",now['snapshotTime'],"SELL",2,comment="3 conflicting psar dots", life=1)
                 super().add_signal(sig,market)
                 
