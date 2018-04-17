@@ -108,8 +108,8 @@ class obv_psar(Strategy):
             if isinstance(now30['psar_bear'], Number):
                 dir30 = "SELL"
 
-            market.data['day_wma25'] = day_wma25[-1]
-            market.data['dir30'] = dir30
+            market.data['wma_delta'] = wma_delta
+            market.data['30 min psar'] = dir30
             market.data['min30obvma'] = min30obvma[-1]
             market.data['min30roc'] = roc[-1]
 
