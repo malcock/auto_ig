@@ -37,7 +37,7 @@ class Market:
         self.prices = {}
         
         self.strategy = strategy
-        
+        self.data = {}
         
         self.load_prices()
         self.update_market(market_data)
@@ -136,7 +136,7 @@ class Market:
 
                             
                             self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-                            self.ig.insta_trade(self)
+                            # self.ig.insta_trade(self)
 
                             self.prices["MINUTE_30"].append(new_30_min)
 
@@ -144,7 +144,7 @@ class Market:
                             
                             self.prices["MINUTE_30"][i] = new_30_min
                             self.strategy.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-                            self.ig.insta_trade(self)
+                            # self.ig.insta_trade(self)
 
                         if len(self.prices['MINUTE_30']) > 75:
                             del self.prices['MINUTE_30'][0]
@@ -165,7 +165,7 @@ class Market:
                 self.prices['MINUTE_5'] = []
             
             
-
+            self.save_json()
                 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -393,7 +393,8 @@ class Market:
             "low" : self.low,
             "percentage_change" : self.percentage_change,
             "net_change" : self.net_change,
-            "market_status" : self.market_status
+            "market_status" : self.market_status,
+            "data" : self.data
         }
         if not os.path.exists("markets/"):
                 os.makedirs("markets/")

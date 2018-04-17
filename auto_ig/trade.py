@@ -136,13 +136,13 @@ class Trade:
 
                 # if self.trailing_stop:
 
-                if self.pip_diff < -self.trailing_level:
-                    self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
-                    self.close_trade()
+                # if self.pip_diff < -self.trailing_level:
+                #     self.log_status("Trailing stop loss hit, closing at: {}".format(self.profit_loss))
+                #     self.close_trade()
 
 
                 # STOP LOSS CHECKING
-                if float(self.pip_diff) < -stoploss:
+                if float(self.pip_diff) < -stoploss and timeopen.seconds>120:
                     # price diff has dropped below artifical stop loss! ABORT!
                     self.log_status("TRADE HIT ARTIFICIAL STOPLOSS - ABORTING!")
                     self.close_trade()
@@ -158,7 +158,7 @@ class Trade:
                         self.state = TradeState.CLOSED
 
                 self.loop_counter=0
-                self.save_trade()
+            self.save_trade()
             
             
             return True

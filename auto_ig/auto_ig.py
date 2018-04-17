@@ -149,9 +149,9 @@ class AutoIG:
         open_lightstreamer = False
 
         # let's process our markets and look for signals then
-        # top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
-        # for market in top_markets:
-        #     self.insta_trade(market)
+        top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
+        for market in top_markets:
+            self.insta_trade(market)
             
             
         if not isinstance(self.lightstream, LSClient):
@@ -203,7 +203,7 @@ class AutoIG:
             current_trades = [x for x in self.trades if x.market==market]
             if len(current_trades)==0:
                 if signal.score > 2:
-                    if market.spread < 5:
+                    if market.spread < 4:
                         if len(self.trades)<self.max_concurrent_trades:
                             round_val = 500.0
                             base = 1000.0

@@ -62,7 +62,7 @@ class obv_psar(Strategy):
             "atr_low" : low_range,
             "atr_max" : max_range,
             "stoploss" : stop,
-            "limit_distance" : 5,
+            "limit_distance" : -1,
             "signal" : {
                 "timestamp":signal.timestamp,
                 "name" : signal.name,
@@ -108,10 +108,15 @@ class obv_psar(Strategy):
             if isinstance(now30['psar_bear'], Number):
                 dir30 = "SELL"
 
-            if wma_delta > 0 and roc[-1] > 0 and dir30=="BUY" and min30obvma[-1] > 0:
+            market.data['day_wma25'] = day_wma25
+            market.data['dir30'] = dir30
+            market.data['min30obvma'] = min30obvma[-1]
+            market.data['min30roc'] = roc[-1]
+
+            if wma_delta > 0 and dir30=="BUY" and min30obvma[-1] > 0:
                 daydir = "BUY"
             
-            if wma_delta < 0 and roc[-1] < 0 and dir30=="SELL" and min30obvma[-1] < 0:
+            if wma_delta < 0 and dir30=="SELL" and min30obvma[-1] < 0:
                 daydir = "SELL"
 
             flip30 = self.psar_flip(now30,prev30)
