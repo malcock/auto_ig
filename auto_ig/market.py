@@ -76,10 +76,10 @@ class Market:
             minNum = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%M") #1 or 6? make a new MIN_5
             
             
-            self.bid = float(values['BID_CLOSE']) if not isinstance(values['BID_CLOSE'],str) else self.bid
-            self.offer = float(values['OFR_CLOSE']) if not isinstance(values['OFR_CLOSE'],str) else self.offer
-            self.high = float(values['DAY_HIGH']) if not isinstance(values['DAY_HIGH'],str) else self.high
-            self.low = float(values['DAY_LOW']) if not isinstance(values['DAY_LOW'],str) else self.low
+            self.bid = float(values['BID_CLOSE'])
+            self.offer = float(values['OFR_CLOSE'])
+            self.high = float(values['DAY_HIGH'])
+            self.low = float(values['DAY_LOW'])
             self.spread = float(self.offer) - float(self.bid)
             if "DAY" in self.prices:
                 if len(self.prices['DAY'])>0:
