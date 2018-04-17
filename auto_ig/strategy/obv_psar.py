@@ -158,7 +158,7 @@ class obv_psar(Strategy):
                 sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
                 super().add_signal(sig,market)
             
-            if flip5 ="SELL" and daydir=="SELL" and obv_ma[-1] < 0:
+            if flip5=="SELL" and daydir=="SELL" and obv_ma[-1] < 0:
                 sig = Sig("PSAR_OPEN",now['snapshotTime'],"SELL",4,comment = "PSAR_FLIP",life=1)
                 super().add_signal(sig,market)
 
