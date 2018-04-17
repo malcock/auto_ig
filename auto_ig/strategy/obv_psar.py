@@ -152,6 +152,7 @@ class obv_psar(Strategy):
 
             # now check for flip events
             flip5 = self.psar_flip(now,prev)
+            market.data['flip5'] = flip5
 
             if flip5=="BUY" and daydir=="BUY" and obv_ma[-1] > 0:
                 sig = Sig("PSAR_OPEN",now['snapshotTime'],"BUY",4,comment = "PSAR_FLIP",life=1)
