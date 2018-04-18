@@ -96,9 +96,9 @@ class obv_psar(Strategy):
             wma_delta = day_wma25[-1] - day_wma25[-2]
 
             # also look at the 30 min trends
-            min30obv = ta.obv(market.prices['MINUTE_30'],self.obv_smooth)
-            min30obvma = ta.wma(self.obv_fast, prices = market.prices['MINUTE_30'], values = min30obv, name="obv_wma")
-            min30psar = ta.psar(market.prices['MINUTE_30'])
+            min30obv = ta.obv(market.prices['MINUTE_30'],10)
+            min30obvma = ta.wma(5, prices = market.prices['MINUTE_30'], values = min30obv, name="obv_wma")
+            min30psar = ta.psar(market.prices['MINUTE_30'],0.03,0.2)
 
             # do some 30 min checks
             now30 = market.prices['MINUTE_30'][-1]
@@ -107,11 +107,13 @@ class obv_psar(Strategy):
             dir30 = "BUY"
             if isinstance(now30['psar_bear'], Number):
                 dir30 = "SELL"
-
+            roc_delta = roc[-1] - roc[-2]
             market.data['wma_delta'] = wma_delta
             market.data['30 min psar'] = dir30
             market.data['min30obvma'] = min30obvma[-1]
             market.data['min30roc'] = roc[-1]
+            market.data['roc_delta'] = roc_delta
+
 
             if wma_delta > 0 and dir30=="BUY" and min30obvma[-1] > 0:
                 daydir = "BUY"
@@ -121,20 +123,32 @@ class obv_psar(Strategy):
 
             flip30 = self.psar_flip(now30,prev30)
 
-            # check if min 30 has flipped PSAR, create a close signal
-            # TODO: make an open signal if current 5 mins are looking good already
             
-            if flip30:
-                sig = Sig("PSAR_30_FLIP",now30['snapshotTime'],flip30,2,comment = "MIN 30 PSAR flip",life=1)
-                super().add_signal(sig,market)
             
 
             obv = ta.obv(prices,self.obv_smooth)
             obv_ma = ta.wma(self.obv_fast,prices = prices,values=obv, name="obv_wma")
-            psar = ta.psar(prices)
+            psar = ta.psar(prices,0.01,0.2)
             now = prices[-1]
             prev = prices[-2]
             
+            # check if min 30 has flipped PSAR, create a close signal
+            # TODO: make an open signal if current 5 mins are looking good already
+            
+            if flip30:
+                score = 2
+                com = "MIN 30 PSAR flip - CLOSE"
+                if daydir=="BUY" and obv_ma[-1] > 0 and isinstance(now['psar_bull'],Number):
+                    score = 4
+                    com = "MIN 30 PSAR flip - OPEN"
+                if daydir=="SELL" and obv_ma[-1] < 0 and isinstance(now['psar_bear'],Number):
+                    score = 4
+                    com = "MIN 30 PSAR flip - OPEN"
+
+                sig = Sig("PSAR_30_FLIP",now30['snapshotTime'],flip30,2,comment = com,life=1)
+
+                super().add_signal(sig,market)
+
             # check for obv_ma crossovers
             if detect.crossover(obv_ma,0):
                 if daydir=="BUY" and isinstance(now['psar_bull'],Number):
@@ -165,7 +179,7 @@ class obv_psar(Strategy):
             if self.is_psar_type("psar_bull",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bear",prices[-5]):
                 sig = Sig("PSAR_CLOSE",now['snapshotTime'],"BUY",2,comment="3 conflicting psar dots", life=1)
                 super().add_signal(sig,market)
-            if self.is_psar_type("psar_bear",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bull",prices[-4]):
+            if self.is_psar_type("psar_bear",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bull",prices[-5]):
                 sig = Sig("PSAR_CLOSE",now['snapshotTime'],"SELL",2,comment="3 conflicting psar dots", life=1)
                 super().add_signal(sig,market)
                 
