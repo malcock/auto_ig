@@ -28,12 +28,12 @@ class obv_psar(Strategy):
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_5"""
-        prices = market.prices['MINUTE_5']
-        atr, tr = ta.atr(5,prices)
+        prices = market.prices['MINUTE_30']
+        atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
         
-        stop = (atr[-1] * 2) + (market.spread*1.5)
+        stop = (atr[-1] * 1.5) + (market.spread*2)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -62,7 +62,7 @@ class obv_psar(Strategy):
             "atr_low" : low_range,
             "atr_max" : max_range,
             "stoploss" : stop,
-            "limit_distance" : -1,
+            "limit_distance" : stop/2,
             "signal" : {
                 "timestamp":signal.timestamp,
                 "name" : signal.name,
@@ -88,12 +88,17 @@ class obv_psar(Strategy):
             prices = market.prices['MINUTE_5']
             
             # check longer term and day-ish trend
-            day_wma25 = ta.wma(25,market.prices['DAY'])
+            day_wma = ta.wma(5,market.prices['DAY'])
+            day_psar = ta.psar(market.prices['DAY'],0.01,0.2)
             roc = ta.roc(36,market.prices['MINUTE_30'])
+            now_day = market.prices['DAY'][-1]
+            day_psar_dir = "BUY"
+            if isinstance(now_day['psar_bear'], Number):
+                day_psar_dir = "SELL"
 
             # want to look at the daily trends before even considering opening a position
             daydir = "NONE"
-            wma_delta = day_wma25[-1] - day_wma25[-2]
+            wma_delta = day_wma[-1] - day_wma[-2]
 
             # also look at the 30 min trends
             min30obv = ta.obv(market.prices['MINUTE_30'],10)
@@ -118,10 +123,10 @@ class obv_psar(Strategy):
             market.data['roc_delta'] = roc_delta
 
 
-            if min30wma_delta > 0 and dir30=="BUY" and min30obvma[-1] > 0:
+            if day_psar_dir == "BUY" and wma_delta > 0 and min30wma_delta > 0 and dir30=="BUY" and min30obvma[-1] > 0:
                 daydir = "BUY"
             
-            if min30wma_delta < 0 and dir30=="SELL" and min30obvma[-1] < 0:
+            if day_psar_dir == "SELL" and wma_delta < 0 and min30wma_delta < 0 and dir30=="SELL" and min30obvma[-1] < 0:
                 daydir = "SELL"
 
             flip30 = self.psar_flip(now30,prev30)
@@ -131,7 +136,7 @@ class obv_psar(Strategy):
 
             obv = ta.obv(prices,self.obv_smooth)
             obv_ma = ta.wma(self.obv_fast,prices = prices,values=obv, name="obv_wma")
-            psar = ta.psar(prices,0.01,0.2)
+            psar = ta.psar(prices,0.03,0.2)
             now = prices[-1]
             prev = prices[-2]
             
@@ -144,13 +149,18 @@ class obv_psar(Strategy):
                 if daydir=="BUY" and obv_ma[-1] > 0 and isinstance(now['psar_bull'],Number):
                     score = 4
                     com = "MIN 30 PSAR flip - OPEN"
+                    sig = Sig("PSAR_30_FLIP",now30['snapshotTime'],flip30,4,comment = com,life=1)
+
+                    super().add_signal(sig,market)
+                    
                 if daydir=="SELL" and obv_ma[-1] < 0 and isinstance(now['psar_bear'],Number):
                     score = 4
                     com = "MIN 30 PSAR flip - OPEN"
+                    sig = Sig("PSAR_30_FLIP",now30['snapshotTime'],flip30,4,comment = com,life=1)
 
-                sig = Sig("PSAR_30_FLIP",now30['snapshotTime'],flip30,2,comment = com,life=1)
+                    super().add_signal(sig,market)
 
-                super().add_signal(sig,market)
+                
 
             # check for obv_ma crossovers
             if detect.crossover(obv_ma,0):
@@ -179,12 +189,12 @@ class obv_psar(Strategy):
 
 
             # now check for 3 period PSAR event
-            if self.is_psar_type("psar_bull",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bear",prices[-5]):
-                sig = Sig("PSAR_CLOSE",now['snapshotTime'],"BUY",2,comment="3 conflicting psar dots", life=1)
-                super().add_signal(sig,market)
-            if self.is_psar_type("psar_bear",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bull",prices[-5]):
-                sig = Sig("PSAR_CLOSE",now['snapshotTime'],"SELL",2,comment="3 conflicting psar dots", life=1)
-                super().add_signal(sig,market)
+            # if self.is_psar_type("psar_bull",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bear",prices[-5]):
+            #     sig = Sig("PSAR_CLOSE",now['snapshotTime'],"BUY",2,comment="3 conflicting psar dots", life=1)
+            #     super().add_signal(sig,market)
+            # if self.is_psar_type("psar_bear",prices[-2],prices[-3],prices[-4]) and self.is_psar_type("psar_bull",prices[-5]):
+            #     sig = Sig("PSAR_CLOSE",now['snapshotTime'],"SELL",2,comment="3 conflicting psar dots", life=1)
+            #     super().add_signal(sig,market)
                 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
