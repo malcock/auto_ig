@@ -99,11 +99,14 @@ class obv_psar(Strategy):
             min30obv = ta.obv(market.prices['MINUTE_30'],10)
             min30obvma = ta.wma(5, prices = market.prices['MINUTE_30'], values = min30obv, name="obv_wma")
             min30psar = ta.psar(market.prices['MINUTE_30'],0.03,0.2)
+            min30wma = ta.wma(25,market.prices['MINUTE_30'])
 
             # do some 30 min checks
             now30 = market.prices['MINUTE_30'][-1]
             prev30 = market.prices['MINUTE_30'][-2]
             
+            min30wma_delta = min30wma[-1] - min30wma[-2]
+
             dir30 = "BUY"
             if isinstance(now30['psar_bear'], Number):
                 dir30 = "SELL"
@@ -115,10 +118,10 @@ class obv_psar(Strategy):
             market.data['roc_delta'] = roc_delta
 
 
-            if wma_delta > 0 and dir30=="BUY" and min30obvma[-1] > 0:
+            if min30wma_delta > 0 and dir30=="BUY" and min30obvma[-1] > 0:
                 daydir = "BUY"
             
-            if wma_delta < 0 and dir30=="SELL" and min30obvma[-1] < 0:
+            if min30wma_delta < 0 and dir30=="SELL" and min30obvma[-1] < 0:
                 daydir = "SELL"
 
             flip30 = self.psar_flip(now30,prev30)
