@@ -133,7 +133,7 @@ class mfi(Strategy):
                 sig = Sig("MFI_FAST",now['snapshotTime'],"SELL",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
             if detect.crossover(mfi,20):
-                sig = Sig("MFI_FAST",now['snapshotTime'],"BUY",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
+                sig = Sig("MFI_FAST",now['snapshotTime'],"BUY",1,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
 
             open_sigs = [x for x in self.signals if x.name=="MFI_FAST" and x.market==market.epic]
@@ -180,7 +180,7 @@ class mfi(Strategy):
                 sig = Sig("MFI_SLOW",now['snapshotTime'],"SELL",2,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
             if detect.crossover(mfi,30):
-                sig = Sig("MFI_SLOW",now['snapshotTime'],"BUY",2,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
+                sig = Sig("MFI_SLOW",now['snapshotTime'],"BUY",2,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
 
             open_sigs = [x for x in self.signals if x.name=="MFI_SLOW" and x.market==market.epic]
