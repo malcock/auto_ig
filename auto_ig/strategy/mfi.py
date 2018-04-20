@@ -197,32 +197,8 @@ class mfi(Strategy):
 
         
     def assess_close(self,signal,trade):
-        if signal.name=="PSAR_30_FLIP":
-            trade.log_status("PSAR 30 flipped CLOSE!")
-            trade.close_trade()
-        if signal.name=="PSAR_CLOSE":
-            trade.log_status("3 periods flipped CLOSE!")
+        if signal.name=="MFI_SLOW":
+            trade.log_status("Opposing MFI slow signal found - close!")
             trade.close_trade()
 
-        if signal.name == "OBV_CLOSE" and trade.pip_diff>0:
-            trade.log_status("obv crossed back and in profit")
-            trade.close_trade()
-
-    def is_psar_type(self,typename,*times):
-        ret_val = True
-        for t in times:
-            if not isinstance(t[typename],Number):
-                ret_val = False
-        return ret_val
-
-    def psar_flip(self,now,prev):
-        if isinstance(now['psar_bull'],Number) and not isinstance(prev['psar_bull'],Number):
-            return "BUY"
-        if isinstance(now['psar_bear'],Number) and not isinstance(prev['psar_bear'],Number):
-            return "SELL"
-        
-        return False
     
-   
-    
-
