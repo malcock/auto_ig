@@ -119,8 +119,7 @@ class obv_psar(Strategy):
             market.data['wma_delta'] = wma_delta
             market.data['30 min psar'] = dir30
             market.data['min30obvma'] = min30obvma[-1]
-            market.data['min30roc'] = roc[-1]
-            market.data['roc_delta'] = roc_delta
+            market.data['day_psar'] = day_psar_dir
 
 
             if day_psar_dir == "BUY" and wma_delta > 0 and min30wma_delta > 0 and dir30=="BUY" and min30obvma[-1] > 0:

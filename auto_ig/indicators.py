@@ -106,6 +106,34 @@ def macd(prices,fast=12,slow=26,signal=9):
         prices[i]['macd'] = macd[i]
         prices[i]['macd_histogram'] = histo[i]
 
+def mfi(prices,length=14):
+    closes = np.asarray([x['closePrice']['mid'] for x in prices])
+    highs = np.asarray([x['highPrice']['mid'] for x in prices])
+    lows = np.asarray([x['lowPrice']['mid'] for x in prices])
+    volumes = np.asarray([x['lastTradedVolume'] for x in prices])
+    
+    tp = (closes + highs + lows)/3
+    mf = volumes * tp
+
+    flow = [tp[idx] > tp[idx-1] for idx in range(1, len(tp))]
+    pf = [mf[idx] if flow[idx] else 0 for idx in range(0, len(flow))]
+    nf = [mf[idx] if not flow[idx] else 0 for idx in range(0, len(flow))]
+
+    pmf = [sum(pf[idx+1-length:idx+1]) for idx in range(length-1, len(pf))]
+    nmf = [sum(nf[idx+1-length:idx+1]) for idx in range(length-1, len(nf))]
+    money_ratio = np.array(pmf) / np.array(nmf)
+
+    mfi = 100 - (100 / (1 + money_ratio))
+
+    len_diff = len(prices) - len(mfi)
+
+    for i in range(len_diff,len(prices)):
+        prices[i]['mfi_{}'.format(length)] = mfi[i-len_diff]
+
+    
+    return mfi
+
+
 def obv(prices, smooth=10):
     vals = []
     for i in range(1,len(prices)):
