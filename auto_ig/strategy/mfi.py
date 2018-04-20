@@ -35,6 +35,15 @@ class mfi(Strategy):
         self.mfi_period = mfi_period
         self.ma_len = ma_len
 
+    def backfill(self,market,resolution,lookback=15):
+        prices = market.prices[resolution]
+        price_len = len(prices)
+        if price_len - lookback > 50:
+
+            for i in list(range(lookback,0,-1)):
+                p = price_len - i
+                ps = prices[:p]
+                self.slow_signals(market,ps,resolution)
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
@@ -197,7 +206,7 @@ class mfi(Strategy):
 
         
     def assess_close(self,signal,trade):
-        if signal.name=="MFI_SLOW":
+        if signal.name=="MFI_SLOW" and "SLOW" in trade.prediction['signal']['name']:
             trade.log_status("Opposing MFI slow signal found - close!")
             trade.close_trade()
 
