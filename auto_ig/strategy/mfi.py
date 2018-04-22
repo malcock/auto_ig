@@ -36,7 +36,7 @@ class mfi(Strategy):
         self.mfi_period = mfi_period
         self.ma_len = ma_len
 
-    def backfill(self,market,resolution,lookback=1):
+    def backfill(self,market,resolution,lookback=10):
         prices = market.prices['MINUTE_30']
         price_len = len(prices)
         if price_len - lookback > 50:
@@ -53,7 +53,7 @@ class mfi(Strategy):
             for i in list(range(lookback,0,-1)):
                 p = price_len - i
                 ps = prices[:p]
-                self.slow_signals(market,ps,'MINUTE_5')
+                self.fast_signals(market,ps,'MINUTE_5')
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
