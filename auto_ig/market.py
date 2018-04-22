@@ -49,6 +49,10 @@ class Market:
             base_url = self.ig.api_url + '/markets/' + self.epic
             auth_r = requests.get(base_url, headers=self.ig.authenticate())
             obj = json.loads(auth_r.text)
+        
+        # check if market is tradeable, quit if not
+        self.market_status = obj['snapshot']['marketStatus']
+        
         # maybe we can load some prices?
         self.bid = float(obj['snapshot']['bid'])
         self.offer = float(obj['snapshot']['offer'])
@@ -57,16 +61,21 @@ class Market:
         self.low = float(obj['snapshot']['low'])
         self.percentage_change = float(obj['snapshot']['percentageChange'])
         self.net_change = float(obj['snapshot']['netChange'])
-        self.market_status = obj['snapshot']['marketStatus']
-        if "DAY" in self.prices:
-            self.prices['DAY'][-1]['highPrice']['bid'] = self.high
-            self.prices['DAY'][-1]['lowPrice']['bid'] = self.low
-            self.prices['DAY'][-1]['openPrice']['bid'] = self.bid - self.net_change
-            self.prices['DAY'][-1]['closePrice']['bid'] = self.bid
-        # if this market isn't tradeable, remove all price data - it's a dawn of a brand new day!
-        if not self.market_status=="TRADEABLE":
+        
+        if self.market_status=="TRADEABLE":
+            if "DAY" in self.prices:
+                self.prices['DAY'][-1]['highPrice']['bid'] = self.high
+                self.prices['DAY'][-1]['lowPrice']['bid'] = self.low
+                self.prices['DAY'][-1]['openPrice']['bid'] = self.bid - self.net_change
+                self.prices['DAY'][-1]['closePrice']['bid'] = self.bid
+
+        else:
             self.prices = {}
             self.save_prices()
+            return
+        
+        # if this market isn't tradeable, remove all price data - it's a dawn of a brand new day!
+        
 
 
     def set_latest_price(self,values):

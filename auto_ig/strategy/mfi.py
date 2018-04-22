@@ -6,6 +6,7 @@ from .. import indicators as ta
 from .. import detection as detect
 from .base import Strategy, Sig
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler('faig_debug.log')
@@ -35,31 +36,40 @@ class mfi(Strategy):
         self.mfi_period = mfi_period
         self.ma_len = ma_len
 
-    def backfill(self,market,resolution,lookback=15):
-        prices = market.prices[resolution]
+    def backfill(self,market,resolution,lookback=1):
+        prices = market.prices['MINUTE_30']
         price_len = len(prices)
         if price_len - lookback > 50:
 
             for i in list(range(lookback,0,-1)):
                 p = price_len - i
                 ps = prices[:p]
-                self.slow_signals(market,ps,resolution)
+                self.slow_signals(market,ps,'MINUTE_30')
+        
+        prices = market.prices['MINUTE_5']
+        price_len = len(prices)
+        if price_len - lookback > 50:
+
+            for i in list(range(lookback,0,-1)):
+                p = price_len - i
+                ps = prices[:p]
+                self.slow_signals(market,ps,'MINUTE_5')
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
         res = 'MINUTE_30'
         if "SLOW" in signal.name:
             res = "DAY"
-        prices = market.prices['MINUTE_30']
+        prices = market.prices[res]
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
         
         stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
-        limit = math.ceil(stop/2)
+        limit = math.ceil(stop*2)
         if "SLOW" in signal.name:
             stop = math.ceil((atr[-1] * 0.5) + (market.spread*2))
-            limit = math.ceil(stop*0.75)
+            limit = math.ceil(stop*2)
 
         if signal.position == "BUY":
             # GO LONG
@@ -129,10 +139,10 @@ class mfi(Strategy):
             
             now = prices[-1]
             # detect crossovers
-            if detect.crossunder(mfi,80):
+            if detect.crossunder(mfi,78):
                 sig = Sig("MFI_FAST",now['snapshotTime'],"SELL",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
-            if detect.crossover(mfi,20):
+            if detect.crossover(mfi,22):
                 sig = Sig("MFI_FAST",now['snapshotTime'],"BUY",1,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
 
@@ -164,6 +174,8 @@ class mfi(Strategy):
 
     def slow_signals(self,market,prices, resolution):
         self.fast_signals(market,prices,resolution)
+        if resolution=="DAY":
+            return
         try:
             for s in [x for x in self.signals if x.market == market.epic and "SLOW" in x.name]:
                 if not s.process():
@@ -194,6 +206,9 @@ class mfi(Strategy):
                     if cp<ma[-1]:
                         sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp,ma[-1]),life=4)
         
+            
+
+
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -206,8 +221,8 @@ class mfi(Strategy):
 
         
     def assess_close(self,signal,trade):
-        if signal.name=="MFI_SLOW" and "SLOW" in trade.prediction['signal']['name']:
-            trade.log_status("Opposing MFI slow signal found - close!")
-            trade.close_trade()
+        # if signal.name=="MFI_SLOW" and "SLOW" in trade.prediction['signal']['name']:
+        #     trade.log_status("Opposing MFI slow signal found - close!")
+        #     trade.close_trade()
 
     
