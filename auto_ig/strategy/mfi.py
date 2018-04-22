@@ -41,7 +41,7 @@ class mfi(Strategy):
         price_len = len(prices)
         if price_len - lookback > 50:
 
-            for i in list(range(lookback,0,-1)):
+            for i in list(range(lookback,-1,-1)):
                 p = price_len - i
                 ps = prices[:p]
                 self.slow_signals(market,ps,'MINUTE_30')
@@ -50,7 +50,7 @@ class mfi(Strategy):
         price_len = len(prices)
         if price_len - lookback > 50:
 
-            for i in list(range(lookback,0,-1)):
+            for i in list(range(lookback,-1,-1)):
                 p = price_len - i
                 ps = prices[:p]
                 self.fast_signals(market,ps,'MINUTE_5')
