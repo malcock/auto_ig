@@ -221,6 +221,7 @@ class mfi(Strategy):
 
         
     def assess_close(self,signal,trade):
+        pass
         # if signal.name=="MFI_SLOW" and "SLOW" in trade.prediction['signal']['name']:
         #     trade.log_status("Opposing MFI slow signal found - close!")
         #     trade.close_trade()
