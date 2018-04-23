@@ -58,8 +58,8 @@ class mfi(Strategy):
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
         res = 'MINUTE_30'
-        if "SLOW" in signal.name:
-            res = "DAY"
+        # if "SLOW" in signal.name:
+        #     res = "DAY"
         prices = market.prices[res]
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
@@ -68,7 +68,7 @@ class mfi(Strategy):
         stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
         limit = math.ceil(stop*2)
         if "SLOW" in signal.name:
-            stop = math.ceil((atr[-1] * 0.5) + (market.spread*2))
+            stop = math.ceil((atr[-1] * 2.5) + (market.spread*2))
             limit = math.ceil(stop*2)
 
         if signal.position == "BUY":
@@ -138,12 +138,20 @@ class mfi(Strategy):
             ma = ta.wma(self.ma_len,prices)
             
             now = prices[-1]
+            cp = now['closePrice']['mid']
             # detect crossovers
             if detect.crossunder(mfi,78):
-                sig = Sig("MFI_FAST",now['snapshotTime'],"SELL",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
+                if cp < ma[-1]:
+                    sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
+                else:
+                    sig = Sig("MFI_FAST",now['snapshotTime'],"SELL",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
+                
                 super().add_signal(sig,market)
             if detect.crossover(mfi,22):
-                sig = Sig("MFI_FAST",now['snapshotTime'],"BUY",1,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
+                if cp > ma[-1]:
+                    sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
+                else:
+                    sig = Sig("MFI_FAST",now['snapshotTime'],"BUY",1,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
 
             open_sigs = [x for x in self.signals if x.name=="MFI_FAST" and x.market==market.epic]
@@ -190,12 +198,20 @@ class mfi(Strategy):
             ma = ta.wma(self.ma_len,prices)
             
             now = prices[-1]
+            cp = now['closePrice']['mid']
             # detect crossovers
             if detect.crossunder(mfi,70):
-                sig = Sig("MFI_SLOW",now['snapshotTime'],"SELL",2,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
+                if cp < ma[-1]:
+                    sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
+                else:
+                    sig = Sig("MFI_SLOW",now['snapshotTime'],"SELL",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
+                
                 super().add_signal(sig,market)
             if detect.crossover(mfi,30):
-                sig = Sig("MFI_SLOW",now['snapshotTime'],"BUY",2,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
+                if cp > ma[-1]:
+                    sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
+                else:
+                    sig = Sig("MFI_SLOW",now['snapshotTime'],"BUY",1,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
                 super().add_signal(sig,market)
 
             open_sigs = [x for x in self.signals if x.name=="MFI_SLOW" and x.market==market.epic]
