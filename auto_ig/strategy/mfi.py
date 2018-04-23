@@ -66,7 +66,7 @@ class mfi(Strategy):
         max_range = max(tr)
         
         stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
-        limit = math.ceil(stop*2)
+        limit = math.ceil(stop*1.5)
         if "SLOW" in signal.name:
             stop = math.ceil((atr[-1] * 2.5) + (market.spread*2))
             limit = math.ceil(stop*2)
@@ -161,11 +161,11 @@ class mfi(Strategy):
                 if s.position=="BUY":
                     # looking for close above
                     if detect.crossover(cp,ma):
-                        sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp,ma[-1]),life=4)
+                        sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp[-1],ma[-1]),life=4)
                         super().add_signal(sig,market)
                 else:
                     if detect.crossunder(cp,ma):
-                        sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp,ma[-1]),life=4)
+                        sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp[-1],ma[-1]),life=4)
                         super().add_signal(sig,market)
             
             
@@ -220,11 +220,11 @@ class mfi(Strategy):
                 if s.position=="BUY":
                     # looking for close above
                     if detect.crossover(cp,ma):
-                        sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp,ma[-1]),life=4)
+                        sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp[-1],ma[-1]),life=4)
                         super().add_signal(sig,market)
                 else:
                     if detect.crossunder(cp,ma):
-                        sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp,ma[-1]),life=4)
+                        sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp[-1],ma[-1]),life=4)
                         super().add_signal(sig,market)
         
             
