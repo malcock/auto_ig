@@ -148,15 +148,15 @@ class mfi(Strategy):
 
             open_sigs = [x for x in self.signals if x.name=="MFI_FAST" and x.market==market.epic]
             for s in open_sigs:
-                cp = now['closePrice']['mid']
+                cp = [x['closePrice']['mid'] for x in prices]
                 
                 if s.position=="BUY":
                     # looking for close above
-                    if cp>ma[-1]:
+                    if detect.crossover(cp,ma):
                         sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp,ma[-1]),life=4)
                         super().add_signal(sig,market)
                 else:
-                    if cp<ma[-1]:
+                    if detect.crossunder(cp,ma):
                         sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp,ma[-1]),life=4)
                         super().add_signal(sig,market)
             
@@ -200,14 +200,14 @@ class mfi(Strategy):
 
             open_sigs = [x for x in self.signals if x.name=="MFI_SLOW" and x.market==market.epic]
             for s in open_sigs:
-                cp = now['closePrice']['mid']
+                cp = [x['closePrice']['mid'] for x in prices]
                 if s.position=="BUY":
                     # looking for close above
-                    if cp>ma[-1]:
+                    if detect.crossover(cp,ma):
                         sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp,ma[-1]),life=4)
                         super().add_signal(sig,market)
                 else:
-                    if cp<ma[-1]:
+                    if detect.crossunder(cp,ma):
                         sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp,ma[-1]),life=4)
                         super().add_signal(sig,market)
         
