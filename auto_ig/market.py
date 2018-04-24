@@ -294,7 +294,7 @@ class Market:
                 ask = self.prices[resolution][1][g]['ask']
             mid = (bid + ask)/2
             now[g]['mid'] = mid
-            self.typical_price(now,"mid")
+        self.typical_price(now,"mid")
         prev = now
 
         for i in range(1,len(self.prices[resolution])):
@@ -308,7 +308,7 @@ class Market:
                     ask = prev[g]['ask']
                 mid = (bid + ask)/2
                 now[g]['mid'] = mid
-                self.typical_price(now,"mid")
+            self.typical_price(now,"mid")
             prev = now
             
 
