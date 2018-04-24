@@ -319,7 +319,7 @@ class Market:
         low = bar['lowPrice'][price]
         high = bar['highPrice'][price]
         closeP = bar['closePrice'][price]
-        if 'typicalPrice' in bar:
+        if 'typicalPrice' not in bar:
             bar['typicalPrice'] = {}
         bar['typicalPrice'][price] = (low + high + closeP)/3
 
