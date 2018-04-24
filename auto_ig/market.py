@@ -319,6 +319,8 @@ class Market:
         low = bar['lowPrice'][price]
         high = bar['highPrice'][price]
         closeP = bar['closePrice'][price]
+        if 'typicalPrice' in bar:
+            bar['typicalPrice'] = {}
         bar['typicalPrice'][price] = (low + high + closeP)/3
 
     def perform_regression(self, x, y,mins=5):
