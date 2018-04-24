@@ -108,7 +108,7 @@ class Market:
                     "highPrice": {"bid": float(values['BID_HIGH']), "ask": float(values['OFR_HIGH']), "mid": (float(values['BID_HIGH']) + float(values['OFR_HIGH']))/2, "lastTraded": None}, 
                     "lowPrice": {"bid": float(values['BID_LOW']), "ask": float(values['OFR_LOW']), "mid": (float(values['BID_LOW']) + float(values['OFR_LOW']))/2, "lastTraded": None}, 
                     "lastTradedVolume": int(values['LTV'])}
-            
+            self.typical_price(current_price,"mid")
 
             if "MINUTE_5" in self.prices:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
@@ -139,7 +139,7 @@ class Market:
                             "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "mid": (float(bid_high) + float(ask_high))/2, "lastTraded": None}, 
                             "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "mid": (float(bid_low) + float(ask_low))/2, "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
-
+                        self.typical_price(new_30_min,"mid")
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
                         if i==None:
 
@@ -294,6 +294,7 @@ class Market:
                 ask = self.prices[resolution][1][g]['ask']
             mid = (bid + ask)/2
             now[g]['mid'] = mid
+            self.typical_price(now,"mid")
         prev = now
 
         for i in range(1,len(self.prices[resolution])):
@@ -307,11 +308,15 @@ class Market:
                     ask = prev[g]['ask']
                 mid = (bid + ask)/2
                 now[g]['mid'] = mid
-
+                self.typical_price(now,"mid")
             prev = now
             
 
-    
+    def typical_price(self,bar,price):
+        """ bar - a single price point
+            price - "ask", "bid", "mid"
+        """
+        bar['typicalPrice'][price] = (bar['lowPrice'][price] + bar['highPrice'][price] + bar['closePrice'])/3
 
     def perform_regression(self, x, y,mins=5):
         epoch = datetime.datetime.strptime("2010-01-01","%Y-%m-%d")

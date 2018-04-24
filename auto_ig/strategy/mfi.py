@@ -111,15 +111,7 @@ class mfi(Strategy):
 
         return prediction_object
 
-    def match_lens(self,a,b):
-        diff = len(a) - len(b)
-        if diff==0:
-            return a,b
-        elif diff>0:
-            a = a[-diff:]
-        else:
-            b = b[diff:]
-        return a,b
+    
 
     def fast_signals(self,market,prices,resolution):
         

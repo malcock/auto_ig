@@ -107,12 +107,11 @@ def macd(prices,fast=12,slow=26,signal=9):
         prices[i]['macd_histogram'] = histo[i]
 
 def mfi(prices,length=14):
-    closes = np.asarray([x['closePrice']['mid'] for x in prices])
-    highs = np.asarray([x['highPrice']['mid'] for x in prices])
-    lows = np.asarray([x['lowPrice']['mid'] for x in prices])
+
     volumes = np.asarray([x['lastTradedVolume'] for x in prices])
     
-    tp = (closes + highs + lows)/3
+    tp = np.asarray([x['typicalPrice']['mid'] for x in prices])
+
     diff = np.diff(tp)
     len_diff = len(prices) - len(diff)
 
