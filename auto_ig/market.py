@@ -316,7 +316,10 @@ class Market:
         """ bar - a single price point
             price - "ask", "bid", "mid"
         """
-        bar['typicalPrice'][price] = (bar['lowPrice'][price] + bar['highPrice'][price] + bar['closePrice'])/3
+        low = bar['lowPrice'][price]
+        high = bar['highPrice'][price]
+        closeP = bar['closePrice'][price]
+        bar['typicalPrice'][price] = (low + high + closeP)/3
 
     def perform_regression(self, x, y,mins=5):
         epoch = datetime.datetime.strptime("2010-01-01","%Y-%m-%d")
