@@ -30,10 +30,11 @@ class mfi(Strategy):
             - if close price < ema40
     """
 
-    def __init__(self, mfi_period= 14, ma_len = 40):
+    def __init__(self, slow_mfi= 9, fast_mfi = 9, ma_len = 40):
         name = "mfi"
         super().__init__(name)
-        self.mfi_period = mfi_period
+        self.slow_mfi = slow_mfi
+        self.fast_mfi = fast_mfi
         self.ma_len = ma_len
 
     def backfill(self,market,resolution,lookback=10):
@@ -57,19 +58,19 @@ class mfi(Strategy):
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
-        res = 'MINUTE_30'
-        # if "SLOW" in signal.name:
-        #     res = "DAY"
+        res = 'MINUTE_5'
+        if "SLOW" in signal.name:
+            res = "MINUTE_30"
         prices = market.prices[res]
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
         
-        stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
-        limit = math.ceil(stop*1.5)
+        stop = math.ceil((atr[-1] * 2) + (market.spread*2))
+        limit = math.ceil(stop*2)
         if "SLOW" in signal.name:
-            stop = math.ceil((atr[-1] * 2.5) + (market.spread*2))
-            limit = math.ceil(stop*2)
+            stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
+            limit = math.ceil(stop*1.75)
 
         if signal.position == "BUY":
             # GO LONG
@@ -124,41 +125,27 @@ class mfi(Strategy):
             if 'MINUTE_5' not in market.prices:
                 return
 
+            maindir = self.maindir(market,"MINUTE_30")
             prices = market.prices['MINUTE_5']
 
-            mfi = ta.mfi(prices,self.mfi_period)
+            mfi = ta.mfi(prices,self.slow_mfi)
             ma = ta.wma(self.ma_len,prices)
             
             now = prices[-1]
-            cp = now['closePrice']['mid']
-            # detect crossovers
-            if detect.crossunder(mfi,78):
-                if cp < ma[-1]:
-                    sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
-                else:
-                    sig = Sig("MFI_FAST",now['snapshotTime'],"SELL",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
-                
-                super().add_signal(sig,market)
-            if detect.crossover(mfi,22):
-                if cp > ma[-1]:
-                    sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
-                else:
-                    sig = Sig("MFI_FAST",now['snapshotTime'],"BUY",1,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
-                super().add_signal(sig,market)
-
-            open_sigs = [x for x in self.signals if x.name=="MFI_FAST" and x.market==market.epic]
-            for s in open_sigs:
-                cp = [x['closePrice']['mid'] for x in prices]
-                
-                if s.position=="BUY":
-                    # looking for close above
-                    if detect.crossover(cp,ma):
-                        sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp[-1],ma[-1]),life=4)
-                        super().add_signal(sig,market)
-                else:
-                    if detect.crossunder(cp,ma):
-                        sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp[-1],ma[-1]),life=4)
-                        super().add_signal(sig,market)
+            cp = [x['closePrice']['mid'] for x in prices]
+            # detect ma crosses
+            if detect.crossover(ma,cp) and maindir=="BUY":
+                # get the previous mfi points to see if we've been under mfi threshold
+                minmfi = min(mfi[-6:])
+                if minmfi<30 and mfi[-1]>minmfi:
+                    sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5min price crossed over ma", life=2)
+                    super().add_signal(sig,market)
+            
+            if detect.crossunder(ma,cp) and maindir=="SELL":
+                maxmfi = max(mfi[-6:])
+                if maxmfi>70 and mfi[-1]<maxmfi:
+                    sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5min price crossed under ma", life=2)
+                    super().add_signal(sig,market)
             
             
                 
@@ -177,50 +164,34 @@ class mfi(Strategy):
 
     def slow_signals(self,market,prices, resolution):
         self.fast_signals(market,prices,resolution)
-        if resolution=="DAY":
+        if resolution in ["DAY","MINUTE_5"]:
             return
         try:
             for s in [x for x in self.signals if x.market == market.epic and "SLOW" in x.name]:
                 if not s.process():
                     print("{} timed out".format(s.name))
                     self.signals.remove(s)
+                
+            maindir = self.maindir(market,"DAY")
 
-
-            mfi = ta.mfi(prices,self.mfi_period)
+            mfi = ta.mfi(prices,self.slow_mfi)
             ma = ta.wma(self.ma_len,prices)
             
             now = prices[-1]
-            cp = now['closePrice']['mid']
-            # detect crossovers
-            if detect.crossunder(mfi,70):
-                if cp < ma[-1]:
-                    sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
-                else:
-                    sig = Sig("MFI_SLOW",now['snapshotTime'],"SELL",1,comment = "crossed back from overbought {}".format(mfi[-1]),life=8)
-                
-                super().add_signal(sig,market)
-            if detect.crossover(mfi,30):
-                if cp > ma[-1]:
-                    sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed back from overbought {} and under ma".format(mfi[-1]),life=2)
-                else:
-                    sig = Sig("MFI_SLOW",now['snapshotTime'],"BUY",1,comment = "crossed back from oversold {}".format(mfi[-1]),life=8)
-                super().add_signal(sig,market)
-
-            open_sigs = [x for x in self.signals if x.name=="MFI_SLOW" and x.market==market.epic]
-            for s in open_sigs:
-                cp = [x['closePrice']['mid'] for x in prices]
-                if s.position=="BUY":
-                    # looking for close above
-                    if detect.crossover(cp,ma):
-                        sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment = "crossed over ma {} {}".format(cp[-1],ma[-1]),life=4)
-                        super().add_signal(sig,market)
-                else:
-                    if detect.crossunder(cp,ma):
-                        sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment = "crossed under ma {} {}".format(cp[-1],ma[-1]),life=4)
-                        super().add_signal(sig,market)
-        
+            cp = [x['closePrice']['mid'] for x in prices]
+            # detect ma crosses
+            if detect.crossover(ma,cp) and maindir=="BUY":
+                # get the previous mfi points to see if we've been under mfi threshold
+                minmfi = min(mfi[-8:])
+                if minmfi<30 and mfi[-1]>minmfi:
+                    sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="30 min price crossed over ma", life=2)
+                    super().add_signal(sig,market)
             
-
+            if detect.crossunder(ma,cp) and maindir=="SELL":
+                maxmfi = max(mfi[-8:])
+                if maxmfi>70 and mfi[-1]<maxmfi:
+                    sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="30min price crossed under ma", life=2)
+                    super().add_signal(sig,market)
 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -232,6 +203,27 @@ class mfi(Strategy):
             logger.info(exc_obj)
             pass
 
+    def maindir(self,market,res,include_price_delta=False):
+        direction = "NONE"
+        prices = market.prices[res]
+        wma = ta.wma(5,prices)
+        wma_delta = wma[-1] - wma[-2]
+        price_delta = prices[-1]['closePrice']['mid'] - prices[-2]['closePrice']['mid']
+
+        if wma_delta>0:
+            direction="BUY"
+        elif wma_delta<0:
+            direction="SELL"
+        else:
+            direction="NONE"
+        
+        if include_price_delta:
+            if direction=="BUY" and price_delta<0:
+                direction = "NONE"
+            elif direction=="SELL" and price_delta>0:
+                direction="NONE"
+
+        return direction
         
     def assess_close(self,signal,trade):
         pass

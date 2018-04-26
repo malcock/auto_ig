@@ -38,6 +38,7 @@ class Market:
         
         self.strategy = strategy
         self.data = {}
+        self.last_bigstamp = ""
         
         self.load_prices()
         self.update_market(market_data)
@@ -83,7 +84,7 @@ class Market:
         try:
             timestamp = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:%M:00")
             minNum = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%M") #1 or 6? make a new MIN_5
-            
+            minNum = float(minNum)
             
             self.bid = float(values['BID_CLOSE'])
             self.offer = float(values['OFR_CLOSE'])
@@ -119,7 +120,7 @@ class Market:
                     
 
                     if "MINUTE_30" in self.prices:
-                        last_30_min = int(30 * math.floor(float(minNum)/30))
+                        last_30_min = int(30 * math.floor(minNum/30))
                         timestamp_30 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_30_min))
                         
                         # get all elements from MINUTE list since last 5min mark
@@ -140,8 +141,36 @@ class Market:
                             "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "mid": (float(bid_low) + float(ask_low))/2, "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
                         self.typical_price(new_30_min,"mid")
+ 
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
                         if i==None:
+                            # update the previous bar with last bars
+                            last_period = self.prices['MINUTE_30'][-1]
+                            last_timestamp = last_period['snapshotTime']
+                            i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == last_timestamp), None)
+                            mins = self.prices['MINUTE_5'][i:]
+                            open_price = mins[0]['openPrice']
+                            close_price = mins[-1]['closePrice']
+                            vol = sum([x['lastTradedVolume'] for x in mins])
+                            ask_low = min([x['lowPrice']['ask'] for x in mins])
+                            ask_high = max([x['highPrice']['ask'] for x in mins])
+                            bid_low = min([x['lowPrice']['bid'] for x in mins])
+                            bid_high = max([x['highPrice']['bid'] for x in mins])
+                            last_period['closePrice'] = close_price
+                            last_period['openPrice'] = open_price
+                            last_period['highPrice']['bid'] = bid_high
+                            last_period['highPrice']['ask'] = ask_high
+                            last_period['highPrice']['mid'] = (bid_high+ask_high)/2
+
+                            last_period['lowPrice']['bid'] = bid_low
+                            last_period['lowPrice']['ask'] = ask_low
+                            last_period['lowPrice']['mid'] = (bid_low+ask_low)/2
+                            last_period['lastTradedVolume'] = int(vol)
+
+                            
+                            self.typical_price(last_period,"mid")
+
+                            # self.prices['MINUTE_30'][-1] = last_30_min
 
                             
                             self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
@@ -158,13 +187,13 @@ class Market:
                         if len(self.prices['MINUTE_30']) > 75:
                             del self.prices['MINUTE_30'][0]
 
-
+                    
                     self.save_prices()
                     
                 else:
                     self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE_5'])>50:
+                if len(self.prices['MINUTE_5'])>75:
                     del self.prices['MINUTE_5'][0]
                     
 

@@ -39,7 +39,7 @@ settings = {"username":"admin","password":"admin", "api_live":False,
 EPIC_IDS = ["CS.D.GBPUSD.TODAY.IP","CS.D.EURUSD.TODAY.IP","CS.D.USDJPY.TODAY.IP","CS.D.GBPAUD.TODAY.IP","CS.D.EURCAD.TODAY.IP",
             "CS.D.AUDUSD.TODAY.IP","CS.D.GBPEUR.TODAY.IP","CS.D.EURJPY.TODAY.IP","CS.D.GBPJPY.TODAY.IP","CS.D.CHFJPY.TODAY.IP",
             "CS.D.USDCAD.TODAY.IP", "CS.D.USDCHF.TODAY.IP","CS.D.EURCHF.TODAY.IP" ]
-# EPIC_IDS = ["CS.D.AUDUSD.TODAY.IP"]
+# EPIC_IDS = ["CS.D.AUDUSD.TODAY.IP"] 
 START_TIME = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
 LAST_TRADE = START_TIME
 
@@ -165,7 +165,7 @@ def get_prices(epic,res):
         line = []
         for k in keys:
             val = p.get(k,'')
-            if k in ['lowPrice','openPrice','closePrice','highPrice']:
+            if k in ['lowPrice','openPrice','closePrice','highPrice','typicalPrice']:
                 val = p[k]['mid']
             line.append(val)
         line = [str(x) for x in line]
@@ -216,7 +216,7 @@ def get_prices_table(epic,res):
         line = []
         for k in keys:
             val = p.get(k,'')
-            if k in ['lowPrice','openPrice','closePrice','highPrice']:
+            if k in ['lowPrice','openPrice','closePrice','highPrice','typicalPrice']:
                 val = p[k]['mid']
             line.append(val)
         

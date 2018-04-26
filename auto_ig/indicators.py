@@ -1,5 +1,20 @@
+import logging
+import os,sys
 import operator
 import numpy as np
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler('faig_debug.log')
+fh.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 def atr(window, prices, name = None):
     if name is None:
@@ -107,42 +122,58 @@ def macd(prices,fast=12,slow=26,signal=9):
         prices[i]['macd_histogram'] = histo[i]
 
 def mfi(prices,length=14):
+    try:
+        name = 'mfi_{}'.format(length)
 
-    volumes = np.asarray([x['lastTradedVolume'] for x in prices])
-    
-    tp = np.asarray([x['typicalPrice']['mid'] for x in prices])
+        unassigned = [x for x in prices if name not in x]
 
-    diff = np.diff(tp)
-    len_diff = len(prices) - len(diff)
+        required = len(unassigned) - length
+        need_len = required * length
 
-    for i in range(len_diff,len(prices)):
-        prices[i]['diff'] = diff[i-len_diff]
+        volumes = np.asarray([x['lastTradedVolume'] for x in prices])
+        tp = np.asarray([x['typicalPrice']['mid'] for x in prices])
 
-    upper = []
-    lower = []
-    for i in range(1,len(tp)):
-        if tp[i-1] < tp[i]:
-            u = volumes[i] * tp[i]
-            l = 0
-        else:
-            u = 0
-            l = volumes[i] * tp[i]
+        if(len(unassigned)<len(prices)):
+
+            volumes = volumes[-need_len:]
+            tp = tp[-need_len:] 
+
+
+        upper = []
+        lower = []
+        for i in range(1,len(tp)):
+            if tp[i-1] < tp[i]:
+                u = volumes[i] * tp[i]
+                l = 0
+            else:
+                u = 0
+                l = volumes[i] * tp[i]
+            
+            upper.append(u)
+            lower.append(l)
+        upper = rolling_sum(upper,length)
+        lower = rolling_sum(lower,length)
+        ratio = np.array(upper)/np.array(lower)
+
+        mfi = 100. - (100. / (1. + ratio))
+
+        len_diff = len(prices) - len(mfi)
+
+        for i in range(len_diff,len(prices)):
+
+            prices[i][name] = mfi[i-len_diff]
         
-        upper.append(u)
-        lower.append(l)
-    upper = rolling_sum(upper,length)
-    lower = rolling_sum(lower,length)
-    ratio = np.array(upper)/np.array(lower)
+        outmfi = [x[name] for x in prices if name in x]
 
-    mfi = 100. - (100. / (1. + ratio))
-
-    len_diff = len(prices) - len(mfi)
-
-    for i in range(len_diff,len(prices)):
-        prices[i]['mfi_{}'.format(length)] = mfi[i-len_diff]
-
-
-    return mfi
+        return outmfi
+    except Exception as e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        logger.info(exc_type)
+        logger.info(fname)
+        logger.info(exc_tb.tb_lineno)
+        logger.info(exc_obj)
+        pass
 
 
 def obv(prices, smooth=10):
