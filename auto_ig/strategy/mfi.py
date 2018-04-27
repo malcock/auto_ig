@@ -40,7 +40,7 @@ class mfi(Strategy):
     def backfill(self,market,resolution,lookback=10):
         prices = market.prices['MINUTE_30']
         price_len = len(prices)
-        if price_len - lookback > 50:
+        if price_len - lookback > 40:
 
             for i in list(range(lookback,-1,-1)):
                 p = price_len - i
@@ -49,7 +49,7 @@ class mfi(Strategy):
         
         prices = market.prices['MINUTE_5']
         price_len = len(prices)
-        if price_len - lookback > 50:
+        if price_len - lookback > 40:
 
             for i in list(range(lookback,-1,-1)):
                 p = price_len - i
@@ -70,7 +70,7 @@ class mfi(Strategy):
         limit = math.ceil(stop*2)
         if "SLOW" in signal.name:
             stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
-            limit = math.ceil(stop*1.75)
+            limit = math.ceil(atr[-1]*3)
 
         if signal.position == "BUY":
             # GO LONG
