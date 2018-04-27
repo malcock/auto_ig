@@ -35,7 +35,7 @@ class Market:
         self.ig = ig_obj
         # raw data and signal producers
         self.prices = {}
-        
+        self.strategies = {}
         self.strategy = strategy
         self.data = {}
         self.last_bigstamp = ""
@@ -43,6 +43,9 @@ class Market:
         self.load_prices()
         self.update_market(market_data)
 
+    def add_strategy(self, strategy):
+        if strategy.name not in self.strategies:
+            self.strategies[strategy.name] = strategy
 
     def update_market(self, obj = None):
         if obj is None:
@@ -172,8 +175,10 @@ class Market:
 
                             # self.prices['MINUTE_30'][-1] = last_30_min
 
-                            
-                            self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
+                            for s in self.strategies.values():
+                                s.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
+
+                            # self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                             # self.ig.insta_trade(self)
 
                             self.prices["MINUTE_30"].append(new_30_min)
@@ -181,7 +186,9 @@ class Market:
                         else:
                             
                             self.prices["MINUTE_30"][i] = new_30_min
-                            self.strategy.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
+                            for s in self.strategies.values():
+                                s.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
+                            # self.strategy.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                             # self.ig.insta_trade(self)
 
                         if len(self.prices['MINUTE_30']) > 75:
@@ -298,7 +305,9 @@ class Market:
         # sanitise the price data incase it contains a None type because of retardation at IG
         self.sanitise_prices(resolution)
         # whether we updated prices or not, lets recalculate our rsi and emas
-        self.strategy.slow_signals(self,self.prices[resolution],resolution)
+        for s in self.strategies.values():
+            s.slow_signals(self,self.prices[resolution],resolution)
+        # self.strategy.slow_signals(self,self.prices[resolution],resolution)
 
 
 

@@ -46,7 +46,7 @@ class AutoIG:
         self.is_open = True
         self.strategy = {}
         # self.strategy['wma_cross'] = wma_cross(10,25,50,14)
-        # self.strategy['stoch'] = stoch(14,3,3)
+        self.strategy['stoch'] = stoch(14,3,3)
         # self.strategy['obv_psar'] = obv_psar(14,7)
         self.strategy['mfi'] = mfi(9,9,40)
 
@@ -61,7 +61,8 @@ class AutoIG:
     def fill_signals(self):
         for m in self.markets.values():
             print('backfilling {}'.format(m.epic))
-            m.strategy.backfill(m,'MINUTE_30')
+            for s in m.strategies.values():
+                s.backfill(m,'MINUTE_30')
 
     def get_signals(self):
         
@@ -137,12 +138,12 @@ class AutoIG:
             if m.get_update_cost("DAY",30)>0:
                 m.update_prices("DAY",30)
 
-            if m.get_update_cost("MINUTE_30",75)>0:
-                m.update_prices("MINUTE_30",75)
+            if m.get_update_cost("MINUTE_30",50)>0:
+                m.update_prices("MINUTE_30",50)
                 # # only want to analyse the last 3 points - everything before is probably irrelevant now
                 # self.fill_signals()
-            if m.get_update_cost("MINUTE_5",60)>0:
-                m.update_prices("MINUTE_5",60)
+            if m.get_update_cost("MINUTE_5",50)>0:
+                m.update_prices("MINUTE_5",50)
             
             # m.calculate_relative_vigor("MINUTE_30",10)
 
@@ -199,41 +200,43 @@ class AutoIG:
         return True, "hello"
 
     def insta_trade(self,market):
-        signals = [x for x in market.strategy.signals if x.score>1 and x.unused and x.market==market.epic]
-        for signal in signals:
-            current_trades = [x for x in self.trades if x.market==market]
-            if len(current_trades)==0:
-                if signal.score > 2:
-                    if market.spread < 4:
-                        if len(self.trades)<self.max_concurrent_trades:
-                            round_val = 500.0
-                            base = 1000.0
-                            trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
-                            logger.info("proposed bet size: {}".format(trade_size))
+        for strategy in market.strategies.values():
+            # signals = [x for x in market.strategy.signals if x.score>1 and x.unused and x.market==market.epic]
+            signals = [x for x in strategy.signals if x.score>1 and x.unused and x.market==market.epic]
+            for signal in signals:
+                current_trades = [x for x in self.trades if x.market==market]
+                if len(current_trades)==0:
+                    if signal.score > 2:
+                        if market.spread < 4:
+                            if len(self.trades)<self.max_concurrent_trades:
+                                round_val = 500.0
+                                base = 1000.0
+                                trade_size = max(0.5,(round_val*math.floor((float(self.account['balance']['balance'])/round_val))-500)/base)
+                                logger.info("proposed bet size: {}".format(trade_size))
 
-                            signal.unused = False
-                            prediction = market.strategy.prediction(signal,market,'MINUTE_30')
-                            self.make_trade(1,market,prediction)
-                            signal.score = 1
+                                signal.unused = False
+                                prediction = strategy.prediction(signal,market,'MINUTE_30')
+                                self.make_trade(1,market,prediction)
+                                signal.score = 1
+                            else:
+                                logger.info("Can't open any more trades already maxed out")
                         else:
-                            logger.info("Can't open any more trades already maxed out")
-                    else:
-                        logger.info("{} : market spread too wide!".format(market.epic))
-            else:
-                logger.info("{} trade already open on this market".format(market.epic))
-                for t in current_trades:
-                    if signal.position == t.prediction['direction_to_trade']:
-                        t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
-                        signal.unused = False
-                        signal.score-=1
-                    else:
-                        
-                        # t.assess_close(signal)
-                        market.strategy.assess_close(signal,t)
-                        
-                        signal.score-=1
-                        if signal.score > 2:
-                            signal.unused = True
+                            logger.info("{} : market spread too wide!".format(market.epic))
+                else:
+                    logger.info("{} trade already open on this market".format(market.epic))
+                    for t in current_trades:
+                        if signal.position == t.prediction['direction_to_trade']:
+                            t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
+                            signal.unused = False
+                            signal.score-=1
+                        else:
+                            
+                            # t.assess_close(signal)
+                            strategy.assess_close(signal,t)
+                            
+                            signal.score-=1
+                            if signal.score > 2:
+                                signal.unused = True
 
     def live_update(self,data):
         # get the epic
@@ -259,7 +262,11 @@ class AutoIG:
                 for epic in epics_data:
                     epic_id = epic['instrument']['epic']
                     if not epic_id in self.markets:
-                        self.markets[epic_id] = Market(epic_id,self,self.strategy['mfi'],epic)
+                        m = Market(epic_id,self,self.strategy['mfi'],epic)
+                        for s in self.strategy.values():
+                            m.add_strategy(s)
+                        self.markets[epic_id] = m 
+                        
                     else:
                         self.markets[epic_id].update_market(epic)
             else:

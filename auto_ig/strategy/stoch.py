@@ -32,11 +32,12 @@ class stoch(Strategy):
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_5"""
         prices = market.prices['MINUTE_5']
-        atr, tr = ta.atr(5,prices)
+        atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
         
         stop = (atr[-1] * 2) + (market.spread*1.5)
+        limit = atr[-1] * 3
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -65,7 +66,7 @@ class stoch(Strategy):
             "atr_low" : low_range,
             "atr_max" : max_range,
             "stoploss" : stop,
-            "limit_distance" : -1,
+            "limit_distance" : limit,
             "signal" : {
                 "timestamp":signal.timestamp,
                 "name" : signal.name,
@@ -80,92 +81,37 @@ class stoch(Strategy):
 
     def fast_signals(self,market,prices,resolution):
         try:
-            for s in [x for x in self.signals if x.market == market.epic]:
+            for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
                 if not s.process():
                     print("{} timed out".format(s.name))
                     self.signals.remove(s)
+
             if 'MINUTE_5' not in market.prices:
                 return
 
+            maindir = self.maindir(market,"MINUTE_30")
+
             prices = market.prices['MINUTE_5']
-            if resolution == "MINUTE_30":
-                stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
-                prev_avg = (stoch_k[-2] + stoch_d[-2]) / 2
-                now_avg = (stoch_k[-1] + stoch_d[-1]) / 2
-                
-                series = [prev_avg,now_avg]
 
-                now = prices[-1]
-
-                if detect.crossunder(stoch_k,79):
-                    sig = Sig("STOCH_CLOSE",now['snapshotTime'],"SELL",2,life=1)
-                    super().add_signal(sig,market)
-                
-                if detect.crossover(stoch_k,21):
-                    sig = Sig("STOCH_CLOSE",now['snapshotTime'],"BUY",2,life=1)
-                    super().add_signal(sig,market)
-
-                # what's the dailies saying?
-            
-            day_wma25 = ta.wma(25,market.prices['DAY'])
-
-            # want to look at the daily trends before even considering opening a position
-            daydir = "NONE"
-            wma_delta = day_wma25[-1] - day_wma25[-2]
-            if wma_delta > 0:
-                daydir = "BUY"
-            
-            if wma_delta < 0:
-                daydir = "SELL"
+            stoch_k,stoch_d = ta.stochastic(prices,14,3,3)
+            ma = ta.wma(40,prices)
 
             now = prices[-1]
+            cp = [x['closePrice']['mid'] for x in prices]
+
+            if detect.crossover(ma,cp) and maindir=="BUY":
+                mink = min(stoch_k[-3:])
+                if mink<25 and stoch_k[-1]>mink:
+                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5 min price crossed over ma and low stoch")
+                    self.add_signal(sig,market)
             
-            if resolution=="MINUTE_30":
-                obv = ta.obv(prices,10)
-                wma25 = ta.wma(25,prices)
-                # check if the price action is matching the day wma
-                roc = ta.roc(36,market.prices['MINUTE_30'])
-                if daydir=="BUY" and roc[-1] < 0:
-                    daydir = "NONE"
-                if daydir=="SELL" and roc[-1] > 0:
-                    daydir = "NONE"
+            if detect.crossunder(ma,cp) and maindir=="SELL":
+                maxk = max(stoch_k[-3:])
+                if maxk>75 and stoch_k[-1]<maxk:
+                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5 min price crossed under ma and high stoch")
+                    self.add_signal(sig,market)
 
-                stoch_k, stoch_d = ta.stochastic(prices,self.stoch,self.ksmooth,self.dsmooth)
-                stoch_k_delta = stoch_k[-1] - stoch_k[-3]
-                obv_fig = ", obv: {}".format(obv[-1])
-                if daydir =="BUY":
-                        if detect.crossover(stoch_k,55) and stoch_k[-3] < 50:
-                            sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "mid cross {}".format(obv_fig),life=2)
-                            super().add_signal(sig,market)
-                        
-                        # if detect.crossover(stoch_k,stoch_d) and 80 > stoch_d[-3] > 50:
-                        #     sig = Sig("STOCH_OPEN",now['snapshotTime'],"BUY",1,comment = "mini reversal {}".format(obv_fig),life=2)
-                        #     super().add_signal(sig,market)
-                        
-                elif daydir=="SELL":
-                        if detect.crossunder(stoch_k,45) and stoch_k[-3] < 50:
-                            sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "mid cross {}".format(obv_fig),life=2)
-                            super().add_signal(sig,market)
-                        
-                        # if detect.crossunder(stoch_k,stoch_d) and 50 > stoch_d[-3] > 20:
-                        #     sig = Sig("STOCH_OPEN",now['snapshotTime'],"SELL",1,comment = "mini reversal {}".format(obv_fig),life=2)
-                        #     super().add_signal(sig,market)
-                    
 
-                open_sigs = [x for x in self.signals if x.name=="STOCH_OPEN" and x.market==market.epic]
-                wma_delt = wma25[-1] - wma25[-2]
-                for s in open_sigs:
-                    if s.position=="BUY":
-                        if wma_delt > 0 and obv[-1]>0:
-                            sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"BUY",4,comment = "orig: {} | {} | {}".format(s.timestamp, obv_fig, s.comment),life=1)
-                            super().add_signal(sig,market)
-                            self.signals.remove(s)
-                    else:
-                        if wma_delt < 0 and obv[-1]<0:
-                            sig = Sig("STOCH_CONFIRM",now['snapshotTime'],"SELL",4,comment = "orig: {} | {} | {}".format(s.timestamp, obv_fig, s.comment),life=1)
-                            super().add_signal(sig,market)
-                            self.signals.remove(s)
-        
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -177,10 +123,34 @@ class stoch(Strategy):
             pass
 
 
+
     def slow_signals(self,market,prices, resolution):
         self.fast_signals(market,prices,resolution)
         
+    def assess_close(self,signal,trade):
+        pass
 
+    def maindir(self,market,res,include_price_delta=False):
+        direction = "NONE"
+        prices = market.prices[res]
+        wma = ta.wma(5,prices)
+        wma_delta = wma[-1] - wma[-2]
+        price_delta = prices[-1]['closePrice']['mid'] - prices[-2]['closePrice']['mid']
+
+        if wma_delta>0:
+            direction="BUY"
+        elif wma_delta<0:
+            direction="SELL"
+        else:
+            direction="NONE"
+        
+        if include_price_delta:
+            if direction=="BUY" and price_delta<0:
+                direction = "NONE"
+            elif direction=="SELL" and price_delta>0:
+                direction="NONE"
+
+        return direction
 
 
     
