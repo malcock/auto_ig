@@ -137,7 +137,7 @@ class AutoIG:
         
         for m in self.markets.values():
             # if state has changed force an update to the lightstream obj
-            if m.market_status!=m.last_state:
+            if m.market_status!=m.last_status:
                 open_lightstreamer = True
 
             if m.market_status == "TRADEABLE":
