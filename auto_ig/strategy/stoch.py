@@ -110,7 +110,7 @@ class stoch(Strategy):
 
             if detect.crossover(cp,ma) and maindir=="BUY":
                 mink = min(stoch_k[-8:])
-                logger.info("{} : stoch crossover!".format(market.epic))
+                
                 if mink<25 and stoch_k[-1]>mink:
                     
                     sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5 min price crossed over ma and low stoch",life=2)
@@ -118,12 +118,12 @@ class stoch(Strategy):
             
             if detect.crossunder(cp,ma) and maindir=="SELL":
                 maxk = max(stoch_k[-8:])
-                logger.info("{} : stoch crossunder!".format(market.epic))
+                
                 if maxk>75 and stoch_k[-1]<maxk:
                     
                     sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5 min price crossed under ma and high stoch",life=2)
                     self.add_signal(sig,market)
-            logger.info("{} : stoch fast sig complete".format(market.epic))
+            
 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()

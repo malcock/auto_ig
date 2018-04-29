@@ -159,7 +159,7 @@ def get_prices(epic,res):
 
     # get keys from 2nd to last prices - as this is guaranteed to have all indicators applied
     keys = prices[-2].keys()
-    
+    keys.append("spread")
     output = ",".join(keys) + "\r\n"
     for p in prices:
         line = []
@@ -167,6 +167,8 @@ def get_prices(epic,res):
             val = p.get(k,'')
             if k in ['lowPrice','openPrice','closePrice','highPrice','typicalPrice']:
                 val = p[k]['mid']
+            if k == "spread":
+                val = p['closePrice']['spread']
             line.append(val)
         line = [str(x) for x in line]
         output+= ",".join(line) + "\r\n"

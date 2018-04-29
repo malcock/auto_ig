@@ -114,7 +114,8 @@ class Market:
                     "lowPrice": {"bid": float(values['BID_LOW']), "ask": float(values['OFR_LOW']), "mid": (float(values['BID_LOW']) + float(values['OFR_LOW']))/2, "lastTraded": None}, 
                     "lastTradedVolume": int(values['LTV'])}
             self.typical_price(current_price,"mid")
-
+            self.price_spread(current_price)
+            
             if "MINUTE_5" in self.prices:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
                 i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
@@ -145,6 +146,7 @@ class Market:
                             "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "mid": (float(bid_low) + float(ask_low))/2, "lastTraded": None}, 
                             "lastTradedVolume": int(vol)}
                         self.typical_price(new_30_min,"mid")
+                        self.price_spread(new_30_min)
  
                         i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
                         if i==None:
@@ -173,7 +175,7 @@ class Market:
 
                             
                             self.typical_price(last_period,"mid")
-
+                            self.price_spread(last_period)
                             # self.prices['MINUTE_30'][-1] = last_30_min
 
                             for s in self.strategies.values():
@@ -330,6 +332,8 @@ class Market:
                 ask = self.prices[resolution][1][g]['ask']
             mid = (bid + ask)/2
             now[g]['mid'] = mid
+    
+        self.price_spread(now)
         self.typical_price(now,"mid")
         prev = now
 
@@ -344,9 +348,15 @@ class Market:
                     ask = prev[g]['ask']
                 mid = (bid + ask)/2
                 now[g]['mid'] = mid
+            
+            self.price_spread(now)
             self.typical_price(now,"mid")
             prev = now
             
+    def price_spread(self,bar):
+        price_groups = ['openPrice','closePrice','highPrice','lowPrice']
+        for g in price_groups:
+            bar[g]['spread'] = bar[g]['ask'] - bar[g]['bid']
 
     def typical_price(self,bar,price):
         """ bar - a single price point
