@@ -1,5 +1,6 @@
 import logging
 import os,sys
+import math
 from .. import indicators as ta
 from .. import detection as detect
 from .base import Strategy, Sig
@@ -44,8 +45,8 @@ class stoch(Strategy):
         low_range = min(tr)
         max_range = max(tr)
         
-        stop = (atr[-1] * 2) + (market.spread*1.5)
-        limit = atr[-1] * 3
+        stop = math.ceil((atr[-1] * 2) + (market.spread*1.5))
+        limit = math.ceil(atr[-1] * 3)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -96,9 +97,9 @@ class stoch(Strategy):
 
             if 'MINUTE_5' not in market.prices:
                 return
-
+            
             maindir = self.maindir(market,"MINUTE_30")
-
+            market.data['maindir_30'] = maindir
             prices = market.prices['MINUTE_5']
 
             stoch_k,stoch_d = ta.stochastic(prices,14,3,3)
@@ -107,18 +108,22 @@ class stoch(Strategy):
             now = prices[-1]
             cp = [x['closePrice']['mid'] for x in prices]
 
-            if detect.crossover(ma,cp) and maindir=="BUY":
-                mink = min(stoch_k[-3:])
+            if detect.crossover(cp,ma) and maindir=="BUY":
+                mink = min(stoch_k[-8:])
+                logger.info("{} : stoch crossover!".format(market.epic))
                 if mink<25 and stoch_k[-1]>mink:
-                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5 min price crossed over ma and low stoch")
+                    
+                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5 min price crossed over ma and low stoch",life=2)
                     self.add_signal(sig,market)
             
-            if detect.crossunder(ma,cp) and maindir=="SELL":
-                maxk = max(stoch_k[-3:])
+            if detect.crossunder(cp,ma) and maindir=="SELL":
+                maxk = max(stoch_k[-8:])
+                logger.info("{} : stoch crossunder!".format(market.epic))
                 if maxk>75 and stoch_k[-1]<maxk:
-                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5 min price crossed under ma and high stoch")
+                    
+                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5 min price crossed under ma and high stoch",life=2)
                     self.add_signal(sig,market)
-
+            logger.info("{} : stoch fast sig complete".format(market.epic))
 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()

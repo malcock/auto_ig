@@ -54,7 +54,12 @@ class Market:
             auth_r = requests.get(base_url, headers=self.ig.authenticate())
             obj = json.loads(auth_r.text)
         
-        # check if market is tradeable, quit if not
+        # store the status of the market from the obj, use a change in state to trigger an update to lightstreamer in auto_ig.py
+        self.last_status = ""
+        try:
+            self.last_status = self.market_status
+        except AttributeError:
+            pass
         self.market_status = obj['snapshot']['marketStatus']
         
         # maybe we can load some prices?

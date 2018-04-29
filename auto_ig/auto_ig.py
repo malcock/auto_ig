@@ -48,7 +48,7 @@ class AutoIG:
         # self.strategy['wma_cross'] = wma_cross(10,25,50,14)
         self.strategy['stoch'] = stoch(14,3,3)
         # self.strategy['obv_psar'] = obv_psar(14,7)
-        self.strategy['mfi'] = mfi(9,9,40)
+        # self.strategy['mfi'] = mfi(9,9,40)
 
     def make_trade(self, size, market, prediction, json_data = None):
         """Make a new trade"""
@@ -113,7 +113,7 @@ class AutoIG:
             trades_on_file = [name for name in os.listdir(path) if name.endswith(".json")]
             logger.info("number of trades found: {}, trades in memory: {}".format(len(trades_on_file),len(self.trades)))
             if len(self.trades)<len(trades_on_file):
-                logger.info("trades on file dispairity")
+                logger.info("trades on file disparity")
                 for name in trades_on_file:
                     fh = open(os.path.join(path,name),"r")
                     json_trade = json.load(fh)
@@ -132,23 +132,25 @@ class AutoIG:
 
         except Exception as e:
             logger.error(e)
-
+        
+        open_lightstreamer = False
         
         for m in self.markets.values():
-            if m.get_update_cost("DAY",30)>0:
-                m.update_prices("DAY",30)
+            # if state has changed force an update to the lightstream obj
+            if m.market_status!=m.last_state:
+                open_lightstreamer = True
 
-            if m.get_update_cost("MINUTE_30",60)>0:
-                m.update_prices("MINUTE_30",60)
-                # # only want to analyse the last 3 points - everything before is probably irrelevant now
-                # self.fill_signals()
-            if m.get_update_cost("MINUTE_5",60)>0:
-                m.update_prices("MINUTE_5",60)
+            if m.market_status == "TRADEABLE":
+                if m.get_update_cost("DAY",30)>0:
+                    m.update_prices("DAY",30)
+
+                if m.get_update_cost("MINUTE_30",60)>0:
+                    m.update_prices("MINUTE_30",60)
+
+                if m.get_update_cost("MINUTE_5",60)>0:
+                    m.update_prices("MINUTE_5",60)
             
-            # m.calculate_relative_vigor("MINUTE_30",10)
-
-
-        open_lightstreamer = False
+        
 
         # let's process our markets and look for signals then
         top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
@@ -161,7 +163,8 @@ class AutoIG:
 
         # either no lightstreamer object was found, or the epics have changed
         if open_lightstreamer:
-            epic_list = self.markets.keys()
+            epic_list = [x.epic for x in self.markets if x.market_status=="TRADEABLE"]
+            # epic_list = self.markets.keys()
             if len(epic_list)==0:
                 return False, "No epics to open lightstream with, weird huh"
             if isinstance(self.lightstream, LSClient):
