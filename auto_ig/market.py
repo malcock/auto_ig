@@ -330,6 +330,9 @@ class Market:
                 bid = self.prices[resolution][1][g]['bid']
             if ask is None:
                 ask = self.prices[resolution][1][g]['ask']
+            now[g]['bid'] = bid
+            now[g]['ask'] = ask
+            
             mid = (bid + ask)/2
             now[g]['mid'] = mid
     
@@ -346,6 +349,9 @@ class Market:
                     bid = prev[g]['bid']
                 if ask is None:
                     ask = prev[g]['ask']
+                now[g]['bid'] = bid
+                now[g]['ask'] = ask
+                
                 mid = (bid + ask)/2
                 now[g]['mid'] = mid
             

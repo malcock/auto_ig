@@ -28,15 +28,15 @@ class stoch(Strategy):
         self.dsmooth = d_smooth
 
     def backfill(self,market,resolution,lookback=10):
+        if 'MINUTE_5' in market.prices:
+            prices = market.prices['MINUTE_5']
+            price_len = len(prices)
+            if price_len - lookback > 40:
 
-        prices = market.prices['MINUTE_5']
-        price_len = len(prices)
-        if price_len - lookback > 40:
-
-            for i in list(range(lookback,-1,-1)):
-                p = price_len - i
-                ps = prices[:p]
-                self.fast_signals(market,ps,'MINUTE_5')
+                for i in list(range(lookback,-1,-1)):
+                    p = price_len - i
+                    ps = prices[:p]
+                    self.fast_signals(market,ps,'MINUTE_5')
     
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_5"""
