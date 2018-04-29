@@ -75,10 +75,10 @@ class AutoIG:
 
     def process(self,epic_ids):
         """Do the process"""
-        timenow = datetime.datetime.now()
+        timenow = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
 
-        # if timenow.weekday() == 5:
-        #     return False, "We don't play on weekends"
+        if timenow.weekday() == 5:
+            return False, "We don't play on weekends"
 
         # if timenow.weekday() == 4:
         #     if timenow.time() > datetime.time(21):
@@ -96,12 +96,12 @@ class AutoIG:
         #             self.is_open = False
         #         return False, "Markets closed on Friday"
 
-        # if timenow.weekday() ==6:
-        #     if timenow.time() > datetime.time(21):
-        #         if not self.is_open:
-        #             self.is_open = True
-        #     else:
-        #         return False, "Market still closed on Sunday"
+        if timenow.weekday() ==6:
+            if timenow.time() > datetime.time(22):
+                if not self.is_open:
+                    self.is_open = True
+            else:
+                return False, "Market still closed on Sunday"
 
 
         self.update_markets(epic_ids)
