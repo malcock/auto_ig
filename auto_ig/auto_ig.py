@@ -204,7 +204,7 @@ class AutoIG:
 
     def insta_trade(self,market):
         for strategy in market.strategies.values():
-            # signals = [x for x in market.strategy.signals if x.score>1 and x.unused and x.market==market.epic]
+            
             signals = [x for x in strategy.signals if x.score>1 and x.unused and x.market==market.epic]
             for signal in signals:
                 current_trades = [x for x in self.trades if x.market==market]
@@ -265,7 +265,7 @@ class AutoIG:
                 for epic in epics_data:
                     epic_id = epic['instrument']['epic']
                     if not epic_id in self.markets:
-                        m = Market(epic_id,self,self.strategy['mfi'],epic)
+                        m = Market(epic_id,self,epic)
                         for s in self.strategy.values():
                             m.add_strategy(s)
                         self.markets[epic_id] = m 

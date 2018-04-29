@@ -29,14 +29,13 @@ logger.addHandler(ch)
 class Market:
     """Main class for handling monitoring of markets and producing signals"""
     
-    def __init__(self, epic, ig_obj, strategy, market_data = None):
+    def __init__(self, epic, ig_obj, market_data = None):
         self.epic = epic
         self.cooldown = datetime.datetime(2000,1,1,0,0,0,0)
         self.ig = ig_obj
         # raw data and signal producers
         self.prices = {}
         self.strategies = {}
-        self.strategy = strategy
         self.data = {}
         self.last_bigstamp = ""
         
@@ -183,8 +182,7 @@ class Market:
                             for s in self.strategies.values():
                                 s.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
 
-                            # self.strategy.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-                            # self.ig.insta_trade(self)
+           
 
                             self.prices["MINUTE_30"].append(new_30_min)
 
@@ -193,8 +191,7 @@ class Market:
                             self.prices["MINUTE_30"][i] = new_30_min
                             for s in self.strategies.values():
                                 s.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-                            # self.strategy.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-                            # self.ig.insta_trade(self)
+                          
 
                         if len(self.prices['MINUTE_30']) > 75:
                             del self.prices['MINUTE_30'][0]
@@ -309,12 +306,11 @@ class Market:
         
         # sanitise the price data incase it contains a None type because of retardation at IG
         self.sanitise_prices(resolution)
-        # whether we updated prices or not, lets recalculate our rsi and emas
+        
+        # process our strategies
         for s in self.strategies.values():
             s.slow_signals(self,self.prices[resolution],resolution)
-        # self.strategy.slow_signals(self,self.prices[resolution],resolution)
-
-
+        
 
         if data_count > 0:
             logger.info("{} updated: used api calls {} remaining {}/{} - time till reset {}".format(self.epic, data_count, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
