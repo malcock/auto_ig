@@ -163,7 +163,7 @@ class AutoIG:
 
         # either no lightstreamer object was found, or the epics have changed
         if open_lightstreamer:
-            epic_list = [x.epic for x in self.markets if x.market_status=="TRADEABLE"]
+            epic_list = [x.epic for x in self.markets.values() if x.market_status=="TRADEABLE"]
             # epic_list = self.markets.keys()
             if len(epic_list)==0:
                 return False, "No epics to open lightstream with, weird huh"
