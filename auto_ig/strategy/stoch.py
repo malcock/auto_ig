@@ -103,26 +103,20 @@ class stoch(Strategy):
             prices = market.prices['MINUTE_5']
 
             stoch_k,stoch_d = ta.stochastic(prices,14,3,3)
-            ma = ta.wma(40,prices)
+            # ma = ta.wma(40,prices)
 
             now = prices[-1]
-            cp = [x['closePrice']['mid'] for x in prices]
+            # cp = [x['closePrice']['mid'] for x in prices]
 
-            if detect.crossover(cp,ma) and maindir=="BUY":
-                mink = min(stoch_k[-8:])
-                
-                if mink<25 and stoch_k[-1]>mink:
-                    
-                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5 min price crossed over ma and low stoch",life=2)
-                    self.add_signal(sig,market)
+            if detect.crossover(stoch_k,stoch_d) and maindir=="BUY":
+
+                sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5 min stoch cross",life=2)
+                self.add_signal(sig,market)
             
-            if detect.crossunder(cp,ma) and maindir=="SELL":
-                maxk = max(stoch_k[-8:])
-                
-                if maxk>75 and stoch_k[-1]<maxk:
-                    
-                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5 min price crossed under ma and high stoch",life=2)
-                    self.add_signal(sig,market)
+            if detect.crossunder(stoch_k,stoch_d) and maindir=="SELL":
+
+                sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5 min stoch cross",life=2)
+                self.add_signal(sig,market)
             
 
         except Exception as e:
@@ -146,22 +140,19 @@ class stoch(Strategy):
     def maindir(self,market,res,include_price_delta=False):
         direction = "NONE"
         prices = market.prices[res]
-        wma = ta.wma(5,prices)
-        wma_delta = wma[-1] - wma[-2]
-        price_delta = prices[-1]['closePrice']['mid'] - prices[-2]['closePrice']['mid']
+        wma = ta.wma(20,prices)
+        stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
 
-        if wma_delta>0:
-            direction="BUY"
-        elif wma_delta<0:
-            direction="SELL"
+        now = prices[-1]['closePrice']['mid']
+
+        if now > wma[-1]:
+            if stoch_k[-1] > stoch_d[-1]:
+                direction = "BUY"
         else:
-            direction="NONE"
-        
-        if include_price_delta:
-            if direction=="BUY" and price_delta<0:
-                direction = "NONE"
-            elif direction=="SELL" and price_delta>0:
-                direction="NONE"
+            if stoch_k[-1] < stoch_d[-1]:
+                direction = "SELL"
+
+
 
         return direction
 
