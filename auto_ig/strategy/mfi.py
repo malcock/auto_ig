@@ -67,10 +67,10 @@ class mfi(Strategy):
         max_range = max(tr)
         
         stop = math.ceil((atr[-1] * 2) + (market.spread*2))
-        limit = math.ceil(stop*2)
+        limit = math.ceil(stop*1.25)
         if "SLOW" in signal.name:
             stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
-            limit = math.ceil(atr[-1]*3)
+            limit = math.ceil(atr[-1]*1.25)
 
         if signal.position == "BUY":
             # GO LONG
@@ -134,14 +134,14 @@ class mfi(Strategy):
             now = prices[-1]
             cp = [x['closePrice']['mid'] for x in prices]
             # detect ma crosses
-            if detect.crossover(ma,cp) and maindir=="BUY":
+            if detect.crossover(cp,ma) and maindir=="BUY":
                 # get the previous mfi points to see if we've been under mfi threshold
                 minmfi = min(mfi[-6:])
                 if minmfi<30 and mfi[-1]>minmfi:
                     sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5min price crossed over ma", life=2)
                     super().add_signal(sig,market)
             
-            if detect.crossunder(ma,cp) and maindir=="SELL":
+            if detect.crossunder(cp,ma) and maindir=="SELL":
                 maxmfi = max(mfi[-6:])
                 if maxmfi>70 and mfi[-1]<maxmfi:
                     sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5min price crossed under ma", life=2)
@@ -180,14 +180,14 @@ class mfi(Strategy):
             now = prices[-1]
             cp = [x['closePrice']['mid'] for x in prices]
             # detect ma crosses
-            if detect.crossover(ma,cp) and maindir=="BUY":
+            if detect.crossover(cp,ma) and maindir=="BUY":
                 # get the previous mfi points to see if we've been under mfi threshold
                 minmfi = min(mfi[-8:])
                 if minmfi<30 and mfi[-1]>minmfi:
                     sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="30 min price crossed over ma", life=2)
                     super().add_signal(sig,market)
             
-            if detect.crossunder(ma,cp) and maindir=="SELL":
+            if detect.crossunder(cp,ma) and maindir=="SELL":
                 maxmfi = max(mfi[-8:])
                 if maxmfi>70 and mfi[-1]<maxmfi:
                     sig = Sig("MFI_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="30min price crossed under ma", life=2)
