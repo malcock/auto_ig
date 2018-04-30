@@ -1,5 +1,32 @@
 import numpy as np
 
+def crossover_hold(series_1, series_2, lookback=3):
+    now = series_1[-1] - series_2[-1]
+    orig =  series_1[-lookback] - series_2[-lookback]
+    if now >0 and orig<0:
+        # first test passed now check periods between
+        for i in range(2,lookback):
+            now=  series_1[-i] - series_2[-i]
+            if now < 0:
+                return False
+        return True
+    return False
+
+def crossunder_hold(series_1, series_2, lookback=3):
+    now = series_1[-1] - series_2[-1]
+    orig =  series_1[-lookback] - series_2[-lookback]
+    if now <0 and orig>0:
+        # first test passed now check periods between
+        for i in range(2,lookback):
+            now = series_1[-i] - series_2[-i]
+            if now > 0:
+                return False
+        return True
+    return False
+
+
+
+
 def crossover(series, value=0):
     """series = the series we want to compare
         value or list that the series must cross over

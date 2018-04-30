@@ -155,6 +155,9 @@ def get_prices(epic,res):
     open_level = ''
     if len(trade)>0:
         open_level = trade[0].open_level
+    
+    if epic not in auto_ig.markets:
+        return False
     prices = auto_ig.markets[epic].prices[res]
 
     # get keys from 2nd to last prices - as this is guaranteed to have all indicators applied
@@ -207,6 +210,8 @@ def do_backtest(epic, start_date, end_date):
 
 @app.route('/prices/<epic>/<res>/table')
 def get_prices_table(epic,res):
+    if epic not in auto_ig.markets:
+        return False
 
     prices = auto_ig.markets[epic].prices[res]
     output = "<table><tr>"

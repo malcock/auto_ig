@@ -108,12 +108,12 @@ class stoch(Strategy):
             now = prices[-1]
             # cp = [x['closePrice']['mid'] for x in prices]
 
-            if detect.crossover(stoch_k,stoch_d) and maindir=="BUY":
+            if detect.crossover_hold(stoch_k,stoch_d) and maindir=="BUY":
 
                 sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="5 min stoch cross",life=2)
                 self.add_signal(sig,market)
             
-            if detect.crossunder(stoch_k,stoch_d) and maindir=="SELL":
+            if detect.crossunder_hold(stoch_k,stoch_d) and maindir=="SELL":
 
                 sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="5 min stoch cross",life=2)
                 self.add_signal(sig,market)
