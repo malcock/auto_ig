@@ -47,6 +47,7 @@ class stoch(Strategy):
         
         stop = math.ceil((atr[-1] * 2) + (market.spread*1.5))
         limit = math.ceil(atr[-1]*1.5)
+        limit = min(limit,20)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"

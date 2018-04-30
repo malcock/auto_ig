@@ -46,9 +46,10 @@ class AutoIG:
         self.is_open = True
         self.strategy = {}
         # self.strategy['wma_cross'] = wma_cross(10,25,50,14)
-        self.strategy['stoch'] = stoch(14,3,3)
+        # self.strategy['stoch'] = stoch(14,3,3)
         # self.strategy['obv_psar'] = obv_psar(14,7)
-        self.strategy['mfi'] = mfi(9,9,40)
+        # self.strategy['mfi'] = mfi(9,9,40)
+        self.strategy['obv'] = obv()
 
     def make_trade(self, size, market, prediction, json_data = None):
         """Make a new trade"""

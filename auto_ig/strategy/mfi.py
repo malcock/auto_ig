@@ -71,7 +71,7 @@ class mfi(Strategy):
         if "SLOW" in signal.name:
             stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
             limit = math.ceil(atr[-1]*1.25)
-
+        limit = min(limit,20)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
