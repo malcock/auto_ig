@@ -67,7 +67,7 @@ class mfi(Strategy):
         max_range = max(tr)
         
         stop = math.ceil((atr[-1] * 2) + (market.spread*2))
-        limit = math.ceil(stop*1.25)
+        limit = math.ceil(atr[-1] *1.25)
         if "SLOW" in signal.name:
             stop = math.ceil((atr[-1] * 1.5) + (market.spread*2))
             limit = math.ceil(atr[-1]*1.25)
