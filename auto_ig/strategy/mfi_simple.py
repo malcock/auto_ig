@@ -119,13 +119,13 @@ class mfi_simple(Strategy):
             maindir = self.maindir(market,"MINUTE_30")
             prices = market.prices['MINUTE_5']
 
-            
+            stoch_k,stoch_d = ta.stochastic(prices,14,3,3)
             now = prices[-1]
             
-            if maindir=="BUY":
+            if stoch_k[-1] < 80 and stoch_k[-1] > stoch_d[-1] and maindir=="BUY":
                 sig = Sig("MFI_SIMPLE_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="market is going up",life=0)
                 super().add_signal(sig,market)
-            elif maindir=="SELL":
+            elif stoch_k[-1] > 20 and stoch_k[-1] < stoch_d[-1] and maindir=="SELL":
                 sig = Sig("MFI_SIMPLE_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="market is going down",life=0)
                 super().add_signal(sig,market)
 
