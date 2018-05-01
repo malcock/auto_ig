@@ -231,11 +231,14 @@ class AutoIG:
                     logger.info("{} trade already open on this market".format(market.epic))
                     for t in current_trades:
                         if signal.position == t.prediction['direction_to_trade']:
-                            t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
-                            signal.unused = False
+                            
                             if signal.name == 'MFI_SIMPLE_FAST_OPEN':
                                 signal.unused = True
-                            signal.score-=1
+                                signal.score-=1
+                            else:
+                                t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
+                                signal.unused = False
+                            
                         else:
                             
                             # t.assess_close(signal)
