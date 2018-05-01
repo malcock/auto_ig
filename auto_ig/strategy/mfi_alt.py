@@ -161,10 +161,16 @@ class mfi_alt(Strategy):
 
         sm_delta = sm[-1] - sm[-2]
 
-        if sm_delta>0:
+        wma = ta.wma(14,prices)
+
+        wma_delta = wma[-1] - wma[-2]
+
+        if sm_delta>0 and wma_delta > 0:
             direction = "BUY"
-        else:
+        elif sm_delta < 0 and wma_delta < 0:
             direction = "SELL"
+        else:
+            direction = "NONE"
 
         return direction
         
