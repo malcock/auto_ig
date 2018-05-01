@@ -171,7 +171,8 @@ class mfi_alt(Strategy):
             direction = "SELL"
         else:
             direction = "NONE"
-
+        
+        market.data['{} mfi_alt direction'.format(res)] = direction
         return direction
         
     def assess_close(self,signal,trade):
