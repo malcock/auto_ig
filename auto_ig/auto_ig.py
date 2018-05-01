@@ -48,7 +48,7 @@ class AutoIG:
         # self.strategy['wma_cross'] = wma_cross(10,25,50,14)
         # self.strategy['stoch'] = stoch(14,3,3)
         # self.strategy['obv_psar'] = obv_psar(14,7)
-        self.strategy['mfi_alt'] = mfi_alt(14,5,12,9)
+        self.strategy['mfi_alt'] = mfi_alt(14,9,12,9)
         # self.strategy['obv'] = obv()
 
     def make_trade(self, size, market, prediction, json_data = None):
