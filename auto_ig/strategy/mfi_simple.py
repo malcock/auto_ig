@@ -20,7 +20,7 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-class mfi_alt(Strategy):
+class mfi_simple(Strategy):
     """Creates open signals 
         - checking for MFI cross back from 25 or 75
             - create a signal that lasts 8 periods
