@@ -5,3 +5,4 @@ from .obv_psar import obv_psar
 from .mfi import mfi
 from .obv import obv
 from .mfi_alt import mfi_alt
+from .mfi_simple import mfi_simple
