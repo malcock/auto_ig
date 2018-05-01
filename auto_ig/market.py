@@ -79,8 +79,8 @@ class Market:
             self.save_prices()
             return
         
-        # if this market isn't tradeable, remove all price data - it's a dawn of a brand new day!
         
+        self.save_json()
 
 
     def set_latest_price(self,values):
@@ -211,7 +211,7 @@ class Market:
                 self.prices['MINUTE_5'] = []
             
             
-            self.save_json()
+            
                 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -332,7 +332,7 @@ class Market:
                 ask = self.prices[resolution][1][g]['ask']
             now[g]['bid'] = bid
             now[g]['ask'] = ask
-            
+
             mid = (bid + ask)/2
             now[g]['mid'] = mid
     

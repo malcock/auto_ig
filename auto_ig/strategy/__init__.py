@@ -4,3 +4,4 @@ from .stoch import stoch
 from .obv_psar import obv_psar
 from .mfi import mfi
 from .obv import obv
+from .mfi_alt import mfi_alt

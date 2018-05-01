@@ -158,7 +158,7 @@ class Trade:
                         self.state = TradeState.CLOSED
 
                 self.loop_counter=0
-            self.save_trade()
+                self.save_trade()
             
             
             return True
