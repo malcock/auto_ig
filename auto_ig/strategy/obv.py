@@ -53,9 +53,9 @@ class obv(Strategy):
         max_range = max(tr)
         
         stop = math.ceil((atr[-1] * 2) + (market.spread*2))
-        limit = math.ceil(atr[-1] *1.25)
+        limit = math.ceil(atr[-1] * 1.5)
 
-        limit = min(limit,16)
+        limit = min(limit,18)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -152,12 +152,13 @@ class obv(Strategy):
         obv = ta.obv(prices,14)
         obvema = ta.ema(7,prices,name="obv_ema_7",values=obv)
         obvsig = ta.wma(3,prices,name="obv_wma_3",values=obvema)
-
-        if obvsig[-1] > 0:
+        sigdelta = obvsig[-1] - obvsig[-2]
+        if sigdelta > 0:
             direction = "BUY"
         else:
             direction = "SELL"
 
+        market.data['{} direction'.format(res)] = direction
 
         return direction
         
