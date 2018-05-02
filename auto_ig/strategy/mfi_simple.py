@@ -220,9 +220,9 @@ class mfi_simple(Strategy):
 
         wma_delta = wma[-1] - wma[-2]
 
-        if sm_delta>0 and wma_delta > 0 and day_delta > 0:
+        if sm_delta>0 and wma_delta > 0:
             direction = "BUY"
-        elif sm_delta < 0 and wma_delta < 0 and day_delta < 0:
+        elif sm_delta < 0 and wma_delta < 0:
             direction = "SELL"
         else:
             direction = "NONE"
