@@ -59,7 +59,7 @@ class mfi_simple(Strategy):
         low_range = min(tr)
         max_range = max(tr)
         dayatr,tr = ta.atr(14,market.prices['DAY'])
-        stop = math.ceil((dayatr[-1] * / 2) + (market.spread*2))
+        stop = math.ceil((dayatr[-1] / 2) + (market.spread*2))
         limit = math.ceil(atr[-1]*2)
 
 
