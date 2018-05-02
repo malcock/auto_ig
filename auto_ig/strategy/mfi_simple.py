@@ -60,9 +60,9 @@ class mfi_simple(Strategy):
         max_range = max(tr)
         
         stop = math.ceil((atr[-1] * 2) + (market.spread*2))
-        limit = math.ceil(atr[-1] *0.75)
+        limit = math.ceil(atr[-1])
 
-        limit = min(limit,10)
+        limit = min(limit,16)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -167,7 +167,7 @@ class mfi_simple(Strategy):
 
         sm_delta = sm[-1] - sm[-2]
 
-        wma = ta.wma(14,prices)
+        wma = ta.wma(23,prices)
 
         wma_delta = wma[-1] - wma[-2]
 
