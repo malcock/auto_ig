@@ -30,7 +30,7 @@ class mfi_simple(Strategy):
             - if close price < ema40
     """
 
-    def __init__(self, slow_mfi= 14, smooth_slow = 12):
+    def __init__(self, slow_mfi= 12, smooth_slow = 6):
         name = "mfi_simple"
         super().__init__(name)
         self.slow_mfi = slow_mfi
@@ -119,13 +119,22 @@ class mfi_simple(Strategy):
             maindir = self.maindir(market,"MINUTE_30")
             prices = market.prices['MINUTE_5']
 
-            stoch_k,stoch_d = ta.stochastic(prices,14,3,3)
+            
+            mfi = ta.mfi(prices,12)
+            sm = ta.ma(5,prices,values=mfi,name="sma_mfi_{}".format(12))
+            sm_delta = sm[-1] - sm[-2]
+
+            wma1 = ta.wma(12,prices)
+            wma2 = ta.wma(5,prices,values=wma1,name="smoothed wma_12")
+
+            wma_delta = wma2[-1] - wma2[-2]
+
             now = prices[-1]
             
-            if stoch_k[-1] < 80 and stoch_k[-1] > stoch_d[-1] and maindir=="BUY":
+            if wma_delta > 0 and sm_delta > 0 and maindir=="BUY":
                 sig = Sig("MFI_SIMPLE_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="market is going up",life=0)
                 super().add_signal(sig,market)
-            elif stoch_k[-1] > 20 and stoch_k[-1] < stoch_d[-1] and maindir=="SELL":
+            elif wma_delta < 0 and sm_delta < 0 and maindir=="SELL":
                 sig = Sig("MFI_SIMPLE_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="market is going down",life=0)
                 super().add_signal(sig,market)
 
