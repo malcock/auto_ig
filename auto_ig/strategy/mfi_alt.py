@@ -30,7 +30,7 @@ class mfi_alt(Strategy):
             - if close price < ema40
     """
 
-    def __init__(self, slow_mfi= 14, fast_mfi = 9, smooth_slow = 12, smooth_fast = 9):
+    def __init__(self, slow_mfi= 14, fast_mfi = 12, smooth_slow = 12, smooth_fast = 9):
         name = "mfi_alt"
         super().__init__(name)
         self.slow_mfi = slow_mfi

@@ -58,11 +58,11 @@ class mfi_simple(Strategy):
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
-        
-        stop = math.ceil((atr[-1] * 2) + (market.spread*2))
-        limit = math.ceil(atr[-1])
+        dayatr,tr = ta.atr(14,market.prices['DAY'])
+        stop = math.ceil((dayatr[-1] * / 2) + (market.spread*2))
+        limit = math.ceil(atr[-1]*2)
 
-        limit = min(limit,16)
+
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -88,8 +88,6 @@ class mfi_simple(Strategy):
             "direction_to_trade" : DIRECTION_TO_TRADE,
             "direction_to_close" : DIRECTION_TO_CLOSE,
             "direction_to_compare" : DIRECTION_TO_COMPARE,
-            "atr_low" : low_range,
-            "atr_max" : max_range,
             "stoploss" : stop,
             "limit_distance" : limit,
             "signal" : {
@@ -116,7 +114,7 @@ class mfi_simple(Strategy):
             if 'MINUTE_5' not in market.prices:
                 return
 
-            maindir = self.maindir(market,"MINUTE_30")
+            maindir = self.maindir(market)
             prices = market.prices['MINUTE_5']
 
             
@@ -159,9 +157,9 @@ class mfi_simple(Strategy):
         self.fast_signals(market,prices,resolution)
         
 
-    def maindir(self,market,res,include_price_delta=False):
+    def maindir(self,market):
         direction = "NONE"
-        prices = market.prices[res]
+        prices = market.prices['MINUTE_30']
         
         mfi = ta.mfi(prices,self.slow_mfi)
         sm = ta.ma(self.smooth_slow,prices,values=mfi,name="sma_mfi_{}".format(self.slow_mfi))
@@ -172,14 +170,20 @@ class mfi_simple(Strategy):
 
         wma_delta = wma[-1] - wma[-2]
 
-        if sm_delta>0 and wma_delta > 0:
+        prices = market.prices['DAY']
+
+        daywma = ta.wma(14,prices)
+
+        day_delta = daywma[-1] - daywma[-2]
+
+        if sm_delta>0 and wma_delta > 0 and day_delta > 0:
             direction = "BUY"
-        elif sm_delta < 0 and wma_delta < 0:
+        elif sm_delta < 0 and wma_delta < 0 and day_delta < 0:
             direction = "SELL"
         else:
             direction = "NONE"
         
-        market.data['{} mfi_simple direction'.format(res)] = direction
+        market.data['mfi_simple direction'] = direction
         return direction
         
     def assess_close(self,signal,trade):
