@@ -121,6 +121,7 @@ class mfi_simple(Strategy):
 
             
             mfi = ta.mfi(prices,12)
+            mfi_delta = mfi[-1] - mfi[-2]
             sm = ta.ma(5,prices,values=mfi,name="sma_mfi_{}".format(12))
             sm_delta = sm[-1] - sm[-2]
 
@@ -131,10 +132,10 @@ class mfi_simple(Strategy):
 
             now = prices[-1]
             
-            if wma_delta > 0 and sm_delta > 0 and maindir=="BUY":
+            if mfi_delta > 0 and wma_delta > 0 and sm_delta > 0 and maindir=="BUY":
                 sig = Sig("MFI_SIMPLE_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="market is going up",life=0)
                 super().add_signal(sig,market)
-            elif wma_delta < 0 and sm_delta < 0 and maindir=="SELL":
+            elif mfi_delta < 0 and wma_delta < 0 and sm_delta < 0 and maindir=="SELL":
                 sig = Sig("MFI_SIMPLE_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="market is going down",life=0)
                 super().add_signal(sig,market)
 
