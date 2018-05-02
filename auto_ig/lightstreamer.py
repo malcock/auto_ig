@@ -319,6 +319,8 @@ class LSClient(object):
                 log.info("Unsubscribed successfully")
             else:
                 log.warning("Server error")
+                log.warning("LIGHTSTREAMER FAIL - EMERGENCY EXIT PROGRAM AND START AGAIN")
+                sys.exit(1)
         else:
             log.warning("No subscription key {0} found!".format(subcription_key))
 
