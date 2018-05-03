@@ -160,8 +160,8 @@ def get_prices(epic,res):
         return False
     prices = auto_ig.markets[epic].prices[res]
 
-    # get keys from 2nd to last prices - as this is guaranteed to have all indicators applied
-    keys = list(prices[-2].keys())
+    # get keys from 3rd to last prices - as this is guaranteed to have all indicators applied
+    keys = list(prices[-3].keys())
     keys.append("spread")
     output = ",".join(keys) + "\r\n"
     for p in prices:
@@ -215,7 +215,7 @@ def get_prices_table(epic,res):
 
     prices = auto_ig.markets[epic].prices[res]
     output = "<table><tr>"
-    keys = list(prices[-2].keys())
+    keys = list(prices[-3].keys())
     keys.append("spread")
     keycols = ["<td>{}</td>".format(x) for x in keys]
     output += "".join(keycols) + "</tr>"

@@ -187,7 +187,7 @@ class Market:
 
                         else:
                             
-                            self.prices["MINUTE_30"][i] = new_30_min
+                            self.prices["MINUTE_30"][i] = {**self.prices["MINUTE_30"][i], **new_30_min}
                             for s in self.strategies.values():
                                 s.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                           
