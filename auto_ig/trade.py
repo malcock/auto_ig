@@ -58,6 +58,7 @@ class Trade:
             self.profit_loss = 0
             self.pip_diff = 0
             self.pip_max = 0
+            self.pip_min = 0
             self.trailing_level = 0
             self.trailing_stop = False
             self.stop_distance = 150
@@ -129,6 +130,8 @@ class Trade:
                 if self.pip_diff > self.pip_max:
                     self.pip_max = self.pip_diff
 
+                if self.pip_diff < self.pip_min:
+                    self.pip_min = self.pip_diff
 
                 # rough trail calc - update with strategy method one day?
                 stoploss = float(self.prediction['stoploss'])
@@ -334,7 +337,7 @@ class Trade:
         self.created_time = datetime.datetime.strptime(json_data['created_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
         self.expiry_time = datetime.datetime.strptime(json_data['expiry_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
 
-
+        
 
         self.opened_time = open_t
         self.closed_time = close_t
@@ -343,6 +346,7 @@ class Trade:
         self.open_level = float(json_data['open_level'])
         self.pip_diff = float(json_data['pip_diff'])
         self.pip_max = json_data['pip_max']
+        self.pip_min = getattr(json_data,'pip_min',0)
 
         self.profit_loss = float(json_data['profit_loss'])
         self.trailing_stop = json_data['trailing_stop']
@@ -373,6 +377,7 @@ class Trade:
                 "closed_time" : close_t,
                 "open_level" : self.open_level,
                 "pip_diff" : round(self.pip_diff,2),
+                "pip_min" : round(self.pip_min,2),
                 "pip_max" : round(self.pip_max,2),
                 "profit_loss" : round(self.profit_loss,2),
                 "trailing_level":round(self.trailing_level,2),

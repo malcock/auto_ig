@@ -60,7 +60,7 @@ class mfi_simple(Strategy):
         max_range = max(tr)
         dayatr,tr = ta.atr(14,market.prices['DAY'])
         stop = math.ceil((dayatr[-1] / 2) + (market.spread*2))
-        limit = math.ceil(atr[-1]*1.8)
+        limit = math.ceil(atr[-1]*2)
 
         limit = min(limit,28)
         if signal.position == "BUY":
@@ -163,10 +163,14 @@ class mfi_simple(Strategy):
         dirday = self.getdir(market,'DAY',14,12,6)
         dir30 = self.getdir(market,'MINUTE_30',14,12,6)
 
+        prices = market.prices['MINUTE_30']
 
-        if dirday == "BUY" and dir30 == "BUY":
+        wma = ta.wma(5,prices)
+        close_delta = wma[-1] - wma[-2]
+
+        if dirday == "BUY" and dir30 == "BUY" and close_delta > 0:
             direction = "BUY"
-        elif dirday == "SELL" and dir30 =="SELL":
+        elif dirday == "SELL" and dir30 =="SELL" and close_delta < 0:
             direction = "SELL"
         else:
             direction = "NONE"
