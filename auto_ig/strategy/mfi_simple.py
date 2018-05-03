@@ -170,9 +170,9 @@ class mfi_simple(Strategy):
 
         stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
 
-        if dirday == "BUY" and dir30 == "BUY" and close_delta > 0 and stoch_k < 78:
+        if dirday == "BUY" and dir30 == "BUY" and close_delta > 0 and stoch_k[-1] < 78:
             direction = "BUY"
-        elif dirday == "SELL" and dir30 =="SELL" and close_delta < 0 and stoch_k > 22:
+        elif dirday == "SELL" and dir30 =="SELL" and close_delta < 0 and stoch_k[-1] > 22:
             direction = "SELL"
         else:
             direction = "NONE"
