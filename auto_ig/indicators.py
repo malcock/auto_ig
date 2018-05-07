@@ -115,11 +115,13 @@ def macd(prices,fast=12,slow=26,signal=9):
     fast_ema = ema(fast, prices = prices)
     slow_ema = ema(slow, prices = prices)
     macd = np.subtract(fast_ema,slow_ema)
-    sig = ema(signal,prices,"macd_signal",macd)
+    sig = ema(signal,prices,name="macd_signal",values=macd)
     histo = np.subtract(macd,sig)
     for i in range(0,len(prices)):
         prices[i]['macd'] = macd[i]
         prices[i]['macd_histogram'] = histo[i]
+
+    return macd, histo
 
 def mfi(prices,length=14):
     try:

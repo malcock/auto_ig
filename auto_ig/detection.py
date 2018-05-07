@@ -25,7 +25,55 @@ def crossunder_hold(series_1, series_2, lookback=3):
     return False
 
 
+def find_crossover(series,value=0):
+    # try to find a crossover in the supplied series
+    
+    place = -1
+    if len(series)<2:
+        raise ValueError("series is too short - must be 2 or greater")
 
+    if isinstance(value,(list,np.ndarray)):
+        if len(value) < len(series):
+            raise ValueError("if using list as value, it must be equal or greater length than series")
+        
+       
+        for i in range(2,len(series)):
+            if crossover(series[:i],value[:i]):
+                place = i
+                break
+        
+
+    else:
+        for i in range(2,len(series)):
+            if crossover(series[:i],value):
+                place = i
+                break
+    return place
+
+def find_crossunder(series,value=0):
+    # try to find a crossover in the supplied series
+    
+    place = -1
+    if len(series)<2:
+        raise ValueError("series is too short - must be 2 or greater")
+
+    if isinstance(value,(list,np.ndarray)):
+        if len(value) < len(series):
+            raise ValueError("if using list as value, it must be equal or greater length than series")
+        
+       
+        for i in range(2,len(series)):
+            if crossunder(series[:i],value[:i]):
+                place = i
+                break
+        
+
+    else:
+        for i in range(2,len(series)):
+            if crossunder(series[:i],value):
+                place = i
+                break
+    return place
 
 def crossover(series, value=0):
     """series = the series we want to compare
