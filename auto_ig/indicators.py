@@ -177,6 +177,39 @@ def mfi(prices,length=14):
         logger.info(exc_obj)
         pass
 
+def mfi_super(prices,length=14,smooth=9):
+    name = 'super_mfi_{}'.format(length)
+    mfivals = mfi(prices,length)
+    sm = ma(smooth,prices,values=mfivals,name="super_sma_mfi_{}".format(length))
+    upper = []
+    lower = []
+    for i in range(1,len(sm)):
+        if sm[i-1] < sm[i]:
+            u = sm
+            l = 0
+        else:
+            u = 0
+            l = sm
+        upper.append(u)
+        lower.append(l)
+
+    upper = rolling_sum(upper,length)
+    lower = rolling_sum(lower,length)
+    ratio = np.array(upper)/np.array(lower)
+
+    super_mfi = 100. - (100. / (1. + ratio))
+
+    len_diff = len(prices) - len(super_mfi)
+
+    for i in range(len_diff,len(prices)):
+
+        prices[i][name] = super_mfi[i-len_diff]
+    
+    outmfi = [x[name] for x in prices if name in x]
+
+    return outmfi
+    
+
 
 def obv(prices, smooth=10):
     vals = []

@@ -103,45 +103,46 @@ class stoch(Strategy):
     
 
     def fast_signals(self,market,prices,resolution):
-        # fast signal code, but work with MIN_30 for soon entries
-        try:
-            for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
-                if not s.process():
-                    print("{} timed out".format(s.name))
-                    self.signals.remove(s)
+        # # fast signal code, but work with MIN_30 for soon entries
+        # try:
+        #     for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
+        #         if not s.process():
+        #             print("{} timed out".format(s.name))
+        #             self.signals.remove(s)
 
-            if 'MINUTE_5' not in market.prices:
-                return
+        #     if 'MINUTE_5' not in market.prices:
+        #         return
 
-            maindir = self.maindir(market)
-            prices = market.prices['MINUTE_5']
+        #     maindir = self.maindir(market)
+        #     prices = market.prices['MINUTE_5']
 
-            stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
+        #     stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
 
-            ema = ta.ema(12,prices)
+        #     ema = ta.ema(12,prices)
 
-            ema_delta = ema[-1] - ema[-2]
-            now = prices[-1]
-            if maindir=="BUY":
-                if detect.crossover(stoch_k,20) and ema_delta > 0:
-                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min",life=1)
-                    super().add_signal(sig,market)
-            elif maindir=="SELL":
-                if detect.crossunder(stoch_k,80) and ema_delta < 0:
-                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min",life=1)
-                    super().add_signal(sig,market)
+        #     ema_delta = ema[-1] - ema[-2]
+        #     now = prices[-1]
+        #     if maindir=="BUY":
+        #         if detect.crossover(stoch_k,20) and ema_delta > 0:
+        #             sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min",life=1)
+        #             super().add_signal(sig,market)
+        #     elif maindir=="SELL":
+        #         if detect.crossunder(stoch_k,80) and ema_delta < 0:
+        #             sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min",life=1)
+        #             super().add_signal(sig,market)
             
 
                 
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.info("{} live fail".format(market.epic))
-            logger.info(exc_type)
-            logger.info(fname)
-            logger.info(exc_tb.tb_lineno)
-            logger.info(exc_obj)
-            pass
+        # except Exception as e:
+        #     exc_type, exc_obj, exc_tb = sys.exc_info()
+        #     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        #     logger.info("{} live fail".format(market.epic))
+        #     logger.info(exc_type)
+        #     logger.info(fname)
+        #     logger.info(exc_tb.tb_lineno)
+        #     logger.info(exc_obj)
+        #     pass
+        pass
 
     
 
@@ -157,21 +158,18 @@ class stoch(Strategy):
             if 'MINUTE_30' not in market.prices:
                 return
 
-            maindir = self.maindir(market)
+            maindir = self.maindir(market,"DAY")
             prices = market.prices['MINUTE_30']
 
             stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
 
-            ema = ta.ema(12,prices)
-
-            ema_delta = ema[-1] - ema[-2]
             now = prices[-1]
             if maindir=="BUY":
-                if detect.crossover(stoch_k,20) and ema_delta > 0:
+                if detect.crossover(stoch_k,20):
                     sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
                     super().add_signal(sig,market)
             elif maindir=="SELL":
-                if detect.crossunder(stoch_k,80) and ema_delta < 0:
+                if detect.crossunder(stoch_k,80):
                     sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
                     super().add_signal(sig,market)
             
@@ -190,31 +188,29 @@ class stoch(Strategy):
 
         
 
-    def maindir(self,market):
+    def maindir(self,market, res):
         direction = "NONE"
 
-        dirday = self.getdir(market,'DAY',14,12,6)
-        # dir30 = self.getdir(market,'MINUTE_30',14,12,6)
+        prices = market.prices[res]
 
-        prices = market.prices['DAY']
+        wma5 = ta.wma(5,prices)
+        wma14 = ta.wma(14,prices)
+        wma28 = ta.wma(28,prices)
 
-        wma = ta.wma(5,prices)
-        close_delta = wma[-1] - wma[-2]
+        wma5_delta = wma5[-1] - wma5[-2]
+        wma14_delta = wma14[-1] - wma14[-2]
+        wma28_delta = wma28[-1] - wma28[-2]
 
-
-        market.data['stoch close check'] = "BUY" if close_delta > 0 else "SELL"
-
-
-        if dirday == "BUY" and close_delta > 0:
+        if wma5_delta > 0 and wma14_delta > 0 and wma28_delta > 0:
             direction = "BUY"
-        elif dirday == "SELL" and close_delta < 0:
-            direction = "SELL"
-        else:
-            direction = "NONE"
-
         
-        market.data['stoch day'] = dirday
-        # market.data['stoch 30'] = dir30
+        if wma5_delta < 0 and wma14_delta < 0 and wma28_delta < 0:
+            direction = "SELL"
+
+        market.data['stoch wma5'] = wma5_delta
+        market.data['stoch wma14'] = wma14_delta
+        market.data['stoch wma28'] = wma28_delta
+        
         market.data['stoch direction'] = direction
         return direction
     
