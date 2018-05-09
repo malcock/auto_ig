@@ -33,8 +33,7 @@ class volume_dir(Strategy):
     def __init__(self):
         name = "volume_dir"
         super().__init__(name)
-        self.slow_mfi = slow_mfi
-        self.smooth_slow = smooth_slow
+  
 
         self.last_state = "NONE"
 
