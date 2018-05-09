@@ -51,7 +51,9 @@ class volume_dir(Strategy):
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
         res = 'MINUTE_5'
-        
+        if "SLOW" in signal.name:
+            res = "MINUTE_30"
+
         prices = market.prices[res]
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
@@ -151,7 +153,48 @@ class volume_dir(Strategy):
 
     def slow_signals(self,market,prices, resolution):
         self.fast_signals(market,prices,resolution)
-        
+        try:
+            for s in [x for x in self.signals if x.market == market.epic and "SLOW" in x.name]:
+                if not s.process():
+                    print("{} timed out".format(s.name))
+                    self.signals.remove(s)
+
+            if 'MINUTE_5' not in market.prices:
+                return
+
+            # maindir = self.maindir(market)
+            prices = market.prices['MINUTE_30']
+
+            closes = [x['closePrice']['mid'] for x in prices]
+            highs = [x['highPrice']['mid'] for x in prices]
+            lows = [x['lowPrice']['mid'] for x in prices]
+            volumes = [x['lastTradedVolume'] for x in prices]
+            
+            ma = ta.ma(20,prices)
+
+            now = prices[-1]
+
+            if (closes[-1] > closes[-2] > closes[-3]) and (volumes[-1]>volumes[-2]>volumes[-3]):
+                if highs[-1] > ma[-1] and lows[-3] < ma[-3]:
+                    sig = Sig("VOL_DIR_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="market is going up",life=0)
+                    super().add_signal(sig,market)
+
+            if (closes[-1] < closes[-2] < closes[-3]) and (volumes[-1] > volumes[-2] > volumes[-3]):
+                if highs[-3] > ma[-3] and lows[-1] < ma[-3]:
+                    sig = Sig("VOL_DIR_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="market is going down",life=0)
+                    super().add_signal(sig,market)
+            
+            
+                
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("{} live fail".format(market.epic))
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
 
     
     def assess_close(self,signal,trade):
