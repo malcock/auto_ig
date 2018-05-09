@@ -118,7 +118,7 @@ class volume_dir(Strategy):
             closes = [x['closePrice']['mid'] for x in prices]
             highs = [x['highPrice']['mid'] for x in prices]
             lows = [x['lowPrice']['mid'] for x in prices]
-            volumes = [x['lastTradeVolume'] for x in prices]
+            volumes = [x['lastTradedVolume'] for x in prices]
             
             ma = ta.ma(20,prices)
 
