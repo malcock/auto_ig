@@ -22,18 +22,12 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-class simple(Strategy):
-    """Creates open signals 
-        - checking for MFI cross back from 25 or 75
-            - create a signal that lasts 8 periods
-        - open long when mfi cross back from <25
-            - if close price > ema40
-        - open short when mfi cross back from >75
-            - if close price < ema40
+class linreg(Strategy):
+    """
     """
 
     def __init__(self):
-        name = "simple"
+        name = "linreg"
         super().__init__(name)
 
         self.last_state = "NONE"
@@ -51,19 +45,26 @@ class simple(Strategy):
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
+        SL_MULTIPLIER = 4
+        LOW_SL_WATERMARK = 10
+        HIGH_SL_WATERMARK = 90
         res = 'MINUTE_5'
         if "SLOW" in signal.name:
             res = "MINUTE_30"
-        prices = market.prices[res]
+        prices = market.prices[res][-16:]
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
-        dayatr,tr = ta.atr(14,market.prices['DAY'])
-        stop = math.ceil((atr[-1]) + (market.spread*2))
+        stop = max_range
+
+        if int(stop) <= LOW_SL_WATERMARK or int(stop) >= HIGH_SL_WATERMARK:
+            logger.info("Crazy SL - NO")
+            return
         limit = math.ceil(atr[-1]*1.25)
 
-        limit = min(limit,8)
         if signal.position == "BUY":
+            lows = [x['lowPrice']['mid'] for x in prices]
+            limit = int(abs(float(max(lows)) - float(market.bid)) / SL_MULTIPLIER)
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
             DIRECTION_TO_CLOSE = "SELL"
@@ -74,6 +75,8 @@ class simple(Strategy):
 
         else:
             # GO SHORT!
+            highs = [x['highPrice']['mid'] for x in prices]
+            limit = int(abs(float(max(highs)) - float(market.bid)) / SL_MULTIPLIER)
             DIRECTION_TO_TRADE = "SELL"
             DIRECTION_TO_CLOSE = "BUY"
             DIRECTION_TO_COMPARE = 'offer'
@@ -104,7 +107,22 @@ class simple(Strategy):
     
 
     def fast_signals(self,market,prices,resolution):
-        
+        pass
+  
+    
+
+    def slow_signals(self,market,prices, resolution):
+        # self.fast_signals(market,prices,resolution)
+        def distance(a, b):
+            if (a == b):
+                return 0
+            elif (a < 0) and (b < 0) or (a > 0) and (b > 0):
+                if (a < b):
+                    return (abs(abs(a) - abs(b)))
+                else:
+                    return -(abs(abs(a) - abs(b)))
+            else:
+                return math.copysign((abs(a) + abs(b)), b)
         try:
             for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
                 if not s.process():
@@ -113,22 +131,18 @@ class simple(Strategy):
 
             if 'MINUTE_5' not in market.prices:
                 return
-
-            maindir = self.maindir(market)
-            prices = market.prices['MINUTE_5']
-
-            ema = ta.ema(5,prices)
-            ema_delta = ema[-1] - ema[-2]
-
             
-            now = prices[-1]
-            
-            if ema_delta > 0 and maindir=="BUY":
-                sig = Sig("SIMPLE_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="market is going up",life=0)
-                super().add_signal(sig,market)
-            elif ema_delta < 0 and maindir=="SELL":
-                sig = Sig("SIMPLE_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="market is going down",life=0)
-                super().add_signal(sig,market)
+            isgood = self.isgood(market)
+            if isgood=="OK:
+                prices = market.prices['MINUTE_30'][-10:]
+                m,c = ta.linreg(prices)
+                now = prices[-1]
+                if distance(market.bid,c)>1:
+                    sig = Sig("LINREG_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="market is going down",life=0)
+                    super().add_signal(sig,market)
+                elif distance(market.bid,c) < -1:
+                    sig = Sig("LINREG_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="market is going up",life=0)
+                    super().add_signal(sig,market)
 
 
             
@@ -142,29 +156,12 @@ class simple(Strategy):
             logger.info(exc_tb.tb_lineno)
             logger.info(exc_obj)
             pass
-
-    
-
-
-    def slow_signals(self,market,prices, resolution):
-        self.fast_signals(market,prices,resolution)
         
 
-    def maindir(self,market):
+    def isgood(self,market):
 
         direction = "NONE"
-        prices = market.prices['DAY']
 
-        
-        
-        ema = ta.ema(3,prices)
-        
-        ema_delta = ema[-1] - ema[-2]
-
-        if ema_delta>0 and market.net_change > 0:
-            direction="BUY"
-        elif ema_delta <0 and market.net_change<0:
-            direction="SELL"
 
         time_now = datetime.datetime.time(datetime.datetime.now(timezone('GB')).replace(tzinfo=None))
         
@@ -180,10 +177,9 @@ class simple(Strategy):
             allowed_epics.append("JPY")
 
         if not any(x in market.epic for x in allowed_epics):
-            direction+=" - out of hours"
-        market.data['time now'] = time_now.strftime("%H:%M")
-        market.data['midday'] = datetime.time(12,00).strftime("%H:%M")
-        market.data['simple dir'] = direction
+            direction="OK"
+
+        market.data['linreg open'] = direction
         return direction
     
 

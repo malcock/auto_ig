@@ -88,6 +88,16 @@ def ema(window, prices = None, name = None, values= None):
             prices[i][name] = a[i-diff]
     return a
 
+def linreg(prices):
+    highs = np.asarray([x['highPrice']['mid'] for x in prices])
+    lows = np.asarray([x['lowPrice']['mid'] for x in prices])
+    mid = (highs + lows) / 2
+
+    x = np.arange(0, len(mid))
+    m,c = np.linalg.lstsq(x,mid)[0]
+
+    return m,c
+
 def ma(window, prices = None, values = None, name = None):
     """Simple moving average
         price data, window"""

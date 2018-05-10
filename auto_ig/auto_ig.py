@@ -45,6 +45,7 @@ class AutoIG:
         self.key = ""
         self.is_open = True
         self.strategy = {}
+        self.strategy['linreg'] = linreg()
         self.strategy['stoch'] = stoch()
         self.strategy['simple'] = simple()
         self.strategy['volume_dir'] = volume_dir()
@@ -283,6 +284,7 @@ class AutoIG:
                         self.markets[epic_id] = m 
                         
                     else:
+                        self.markets[epic_id].last_status = self.markets[epic_id].market_status
                         self.markets[epic_id].update_market(epic)
             else:
                 return False, "Couldn't get market data: {} {}".format(auth_r.status_code,auth_r.content)

@@ -38,6 +38,9 @@ class Market:
         self.strategies = {}
         self.data = {}
         self.last_bigstamp = ""
+        self.last_status = ""
+
+        self.market_status =""
         
         self.load_prices()
         self.update_market(market_data)
@@ -54,8 +57,6 @@ class Market:
             obj = json.loads(auth_r.text)
         
         # store the status of the market from the obj, use a change in state to trigger an update to lightstreamer in auto_ig.py
-        self.last_status = getattr(self,'market_state','')
-
         self.market_status = obj['snapshot']['marketStatus']
         
         # maybe we can load some prices?
