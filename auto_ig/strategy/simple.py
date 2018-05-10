@@ -172,17 +172,17 @@ class simple(Strategy):
         elif ema_delta <0 and market.net_change<0:
             direction="SELL"
 
-        time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None).strftime("%H:%M")
+        time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
         
-        if is_between(str(time_now),("07:00","15:00")) and "EUR" not in market.epic:
+        if (datetime.time(7,00) < time_now < datetime.time(15,00)) and "EUR" not in market.epic:
             direction+=" - out of hours"
-        if is_between(str(time_now),("08:00","16:00")) and "GBP" not in market.epic:
+        if (datetime.time(7,00) < time_now < datetime.time(16,00))  and "GBP" not in market.epic:
             direction+=" - out of hours"
-        if is_between(str(time_now),("12:00","21:00")) and "USD" not in market.epic:
+        if (datetime.time(12,00) < time_now < datetime.time(21,00))  and "USD" not in market.epic:
             direction+=" - out of hours"
-        if time_now >= datetime.time(22,00) or time_now <= datetime.time(7,00) and "AUD" not in market.epic:
+        if (time_now >= datetime.time(22,00) or time_now <= datetime.time(7,00)) and "AUD" not in market.epic:
             direction+=" - out of hours"
-        if time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00) and "JPY" not in market.epic:
+        if (time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00)) and "JPY" not in market.epic:
             direction+=" - out of hours"
 
         market.data['simple dir'] = direction
