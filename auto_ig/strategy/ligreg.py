@@ -133,7 +133,7 @@ class linreg(Strategy):
                 return
             
             isgood = self.isgood(market)
-            if isgood=="OK:
+            if isgood=="OK":
                 prices = market.prices['MINUTE_30'][-10:]
                 m,c = ta.linreg(prices)
                 now = prices[-1]
