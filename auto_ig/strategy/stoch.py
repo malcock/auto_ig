@@ -116,17 +116,17 @@ class stoch(Strategy):
             # maindir = self.maindir(market,"DAY")
             prices = market.prices['MINUTE_5']
 
-            ma = ta.ma(20,prices)
+            ma = ta.ma(60,prices)
             cp = [x['closePrice']['mid'] for x in prices]
-            stoch_k, stoch_d = ta.stochastic(prices,9,3,3)
+            stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
 
 
             now = prices[-1]
-            if detect.crossover(cp,ma) and min(stoch_k[-7:])<20:
+            if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<30 and cp[-1] > ma[-1]:
                 sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
                 super().add_signal(sig,market)
                 
-            if detect.crossunder(cp,ma) and max(stoch_k[-7:])>80:
+            if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>70 and cp[-1] < ma[-1]:
                 sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
                 super().add_signal(sig,market)
 
@@ -149,45 +149,45 @@ class stoch(Strategy):
 
     def slow_signals(self,market,prices, resolution):
         self.fast_signals(market,prices,resolution)
-        try:
-            for s in [x for x in self.signals if x.market == market.epic and "SLOW" in x.name]:
-                if not s.process():
-                    print("{} timed out".format(s.name))
-                    self.signals.remove(s)
+        # try:
+        #     for s in [x for x in self.signals if x.market == market.epic and "SLOW" in x.name]:
+        #         if not s.process():
+        #             print("{} timed out".format(s.name))
+        #             self.signals.remove(s)
 
-            if 'MINUTE_30' not in market.prices:
-                return
+        #     if 'MINUTE_30' not in market.prices:
+        #         return
 
-            # maindir = self.maindir(market,"DAY")
-            prices = market.prices['MINUTE_30']
+        #     # maindir = self.maindir(market,"DAY")
+        #     prices = market.prices['MINUTE_30']
 
-            ma = ta.ma(20,prices)
-            cp = [x['closePrice']['mid'] for x in prices]
-            stoch_k, stoch_d = ta.stochastic(prices,12,3,3)
+        #     ma = ta.ma(20,prices)
+        #     cp = [x['closePrice']['mid'] for x in prices]
+        #     stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
 
 
-            now = prices[-1]
-            if detect.crossover(cp,ma) and min(stoch_k[-7:])<20:
-                sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
-                super().add_signal(sig,market)
+        #     now = prices[-1]
+        #     if detect.crossover(cp,ma) and min(stoch_k[-7:])<20:
+        #         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
+        #         super().add_signal(sig,market)
                 
-            if detect.crossunder(cp,ma) and max(stoch_k[-7:])>80:
-                sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
-                super().add_signal(sig,market)
+        #     if detect.crossunder(cp,ma) and max(stoch_k[-7:])>80:
+        #         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
+        #         super().add_signal(sig,market)
 
             
 
             
                 
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.info("{} live fail".format(market.epic))
-            logger.info(exc_type)
-            logger.info(fname)
-            logger.info(exc_tb.tb_lineno)
-            logger.info(exc_obj)
-            pass
+        # except Exception as e:
+        #     exc_type, exc_obj, exc_tb = sys.exc_info()
+        #     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        #     logger.info("{} live fail".format(market.epic))
+        #     logger.info(exc_type)
+        #     logger.info(fname)
+        #     logger.info(exc_tb.tb_lineno)
+        #     logger.info(exc_obj)
+        #     pass
 
     
     def assess_close(self,signal,trade):

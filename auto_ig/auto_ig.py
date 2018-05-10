@@ -45,8 +45,9 @@ class AutoIG:
         self.key = ""
         self.is_open = True
         self.strategy = {}
-        self.strategy['linreg'] = linreg()
         self.strategy['stoch'] = stoch()
+        self.strategy['linreg'] = linreg()
+        
         self.strategy['simple'] = simple()
         self.strategy['volume_dir'] = volume_dir()
         # self.strategy['wma_cross'] = wma_cross(10,25,50,14)

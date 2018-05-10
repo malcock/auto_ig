@@ -51,7 +51,7 @@ class linreg(Strategy):
         res = 'MINUTE_5'
         if "SLOW" in signal.name:
             res = "MINUTE_30"
-        prices = market.prices[res][-16:]
+        prices = market.prices[res][-14:]
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
@@ -136,7 +136,7 @@ class linreg(Strategy):
             isgood = self.isgood(market)
             print("{} is good {}".format(market.epic,isgood))
             if isgood=="OK":
-                prices = market.prices['MINUTE_30'][-10:]
+                prices = market.prices['MINUTE_30'][-16:]
                 m,c = ta.linreg(prices)
                 now = prices[-1]
                 if distance(market.bid,c)>1:
