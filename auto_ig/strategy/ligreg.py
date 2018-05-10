@@ -106,13 +106,14 @@ class linreg(Strategy):
 
     
 
-    def fast_signals(self,market,prices,resolution):
+    def slow_signals(self,market,prices,resolution):
+        self.fast_signals(market,prices,resolution)
         pass
   
     
 
-    def slow_signals(self,market,prices, resolution):
-        # self.fast_signals(market,prices,resolution)
+    def fast_signals(self,market,prices, resolution):
+        
         def distance(a, b):
             if (a == b):
                 return 0
@@ -129,10 +130,11 @@ class linreg(Strategy):
                     print("{} timed out".format(s.name))
                     self.signals.remove(s)
 
-            if 'MINUTE_5' not in market.prices:
+            if 'MINUTE_30' not in market.prices:
                 return
             
             isgood = self.isgood(market)
+            print("{} is good {}".format(market.epic,isgood))
             if isgood=="OK":
                 prices = market.prices['MINUTE_30'][-10:]
                 m,c = ta.linreg(prices)
@@ -175,8 +177,9 @@ class linreg(Strategy):
             allowed_epics.append("AUD")
         if (time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00)):
             allowed_epics.append("JPY")
-
-        if not any(x in market.epic for x in allowed_epics):
+        
+        print(allowed_epics)
+        if any(x in market.epic for x in allowed_epics):
             direction="OK"
 
         market.data['linreg open'] = direction

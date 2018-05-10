@@ -94,7 +94,8 @@ def linreg(prices):
     mid = (highs + lows) / 2
 
     x = np.arange(0, len(mid))
-    m,c = np.linalg.lstsq(x,mid)[0]
+    A = np.vstack([x, np.ones(len(x))]).T
+    m,c = np.linalg.lstsq(A,mid)[0]
 
     return m,c
 
