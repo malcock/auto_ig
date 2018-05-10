@@ -170,13 +170,18 @@ class simple(Strategy):
 
         time_now = datetime.datetime.time(datetime.datetime.now(timezone('GB')).replace(tzinfo=None))
         
-        if (datetime.time(7,00) < time_now < datetime.time(14,00)) and ("EUR" not in market.epic or "GBP" not in market.epic):
-            direction+=" - out of hours"
-        elif (datetime.time(12,00) < time_now < datetime.time(21,00))  and "USD" not in market.epic:
-            direction+=" - out of hours"
-        elif (time_now >= datetime.time(22,00) or time_now <= datetime.time(7,00)) and "AUD" not in market.epic:
-            direction+=" - out of hours"
-        elif (time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00)) and "JPY" not in market.epic:
+        allowed_epics = []
+        if (datetime.time(7,00) < time_now < datetime.time(16,00)):
+            allowed_epics.append("GBP")
+            allowed_epics.append("EUR")
+        elif (datetime.time(12,00) < time_now < datetime.time(21,00)):
+            allowed_epics.append("USD")
+        elif (time_now >= datetime.time(22,00) or time_now <= datetime.time(7,00)):
+            allowed_epics.append("AUD")
+        elif (time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00)):
+            allowed_epics.append("JPY")
+
+        if not any(x in market.epic for x in allowed_epics):
             direction+=" - out of hours"
 
         market.data['simple dir'] = direction
