@@ -64,7 +64,7 @@ class linreg(Strategy):
 
         if signal.position == "BUY":
             lows = [x['lowPrice']['mid'] for x in prices]
-            limit = int(abs(float(max(lows)) - float(market.bid)) / SL_MULTIPLIER)
+            limit = int(abs(float(min(lows)) - float(market.bid)) / SL_MULTIPLIER)
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
             DIRECTION_TO_CLOSE = "SELL"
