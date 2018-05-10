@@ -184,7 +184,7 @@ class simple(Strategy):
         if not any(x in market.epic for x in allowed_epics):
             direction+=" - out of hours"
         market.data['time now'] = time_now
-        market.data['midday'] = str(datetime.time(12,00))
+        market.data['midday'] = datetime.time(12,00).strftime("%H:%M")
         market.data['simple dir'] = direction
         return direction
     
