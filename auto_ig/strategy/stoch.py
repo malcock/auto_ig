@@ -59,10 +59,10 @@ class stoch(Strategy):
         max_range = max(tr)
         dayatr,tr = ta.atr(14,market.prices['DAY'])
         
-        stop = math.ceil((atr[-1] *1.25) + (market.spread*2))
+        stop = 10
         limit = math.ceil(atr[-1]*1.25)
 
-        limit = min(limit,16)
+        limit = min(limit,5)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"

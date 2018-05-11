@@ -48,8 +48,8 @@ class AutoIG:
         self.strategy['stoch'] = stoch()
         self.strategy['linreg'] = linreg()
         
-        self.strategy['simple'] = simple()
-        self.strategy['volume_dir'] = volume_dir()
+        # self.strategy['simple'] = simple()
+        # self.strategy['volume_dir'] = volume_dir()
         # self.strategy['wma_cross'] = wma_cross(10,25,50,14)
         # self.strategy['mfi_super'] = mfi_super(14,9,5)
         

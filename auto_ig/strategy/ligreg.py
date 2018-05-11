@@ -84,7 +84,7 @@ class linreg(Strategy):
             # stop = abs(high - self.offer)
             # stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
 
-
+        limit = min(limit,5)
         # prepare the trade info object to pass back
         prediction_object = {
             "strategy" : self.name,
