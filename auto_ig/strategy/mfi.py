@@ -123,11 +123,11 @@ class mfi(Strategy):
 
 
             now = prices[-1]
-            if detect.trough(sm) and cp[-1] > ma[-1]:
+            if detect.trough(sm) and cp[-1] < ma[-1]:
                 sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="mfi sm bottom:{}".format(sm[-2]),life=1)
                 super().add_signal(sig,market)
                 
-            if detect.peak(sm) and cp[-1] < ma[-1]:
+            if detect.peak(sm) and cp[-1] > ma[-1]:
                 sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="mfi sm top:{}".format(sm[-2]),life=1)
                 super().add_signal(sig,market)
 
