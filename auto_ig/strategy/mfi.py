@@ -57,12 +57,12 @@ class mfi(Strategy):
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
-        dayatr,tr = ta.atr(14,market.prices['DAY'])
-        
-        stop = 5 + (market.spread*2)
-        limit = math.ceil(atr[-1]*1.25)
 
-        limit = min(limit,5)
+        stop = (atr[-1]*1.44) + (market.spread*2)
+        limit = math.ceil(atr[-1]*0.75)
+
+        limit = max(limit,4)
+        limit = min(7,limit)
         if signal.position == "BUY":
             # GO LONG
             DIRECTION_TO_TRADE = "BUY"
@@ -118,16 +118,16 @@ class mfi(Strategy):
 
             ma = ta.ma(60,prices)
             cp = [x['closePrice']['mid'] for x in prices]
-            mfi = ta.mfi(prices,9)
-            sm = ta.ma(9,prices,values=mfi,name="mfi smoothed")
+            mfi = ta.mfi(prices,14)
+            sm = ta.ema(9,prices,values=mfi,name="mfi smoothed")
 
 
             now = prices[-1]
-            if detect.trough(sm) and cp[-1] < ma[-1]:
+            if detect.trough(sm[:-1]) and cp[-1] < ma[-1]:
                 sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="mfi sm bottom:{}".format(sm[-2]),life=1)
                 super().add_signal(sig,market)
                 
-            if detect.peak(sm) and cp[-1] > ma[-1]:
+            if detect.peak(sm[:-1]) and cp[-1] > ma[-1]:
                 sig = Sig("MFI_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="mfi sm top:{}".format(sm[-2]),life=1)
                 super().add_signal(sig,market)
 
