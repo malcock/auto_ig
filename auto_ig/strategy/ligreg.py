@@ -60,7 +60,7 @@ class linreg(Strategy):
         if int(stop) <= LOW_SL_WATERMARK or int(stop) >= HIGH_SL_WATERMARK:
             logger.info("Crazy SL - NO")
             return
-        limit = math.ceil(atr[-1]*1.25)
+        # limit = math.ceil(atr[-1]*1.25)
 
         if signal.position == "BUY":
             lows = [x['lowPrice']['mid'] for x in prices]
