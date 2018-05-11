@@ -45,8 +45,9 @@ class AutoIG:
         self.key = ""
         self.is_open = True
         self.strategy = {}
+        self.strategy['mfi'] = mfi()
         self.strategy['stoch'] = stoch()
-        self.strategy['linreg'] = linreg()
+        # self.strategy['linreg'] = linreg()
         
         # self.strategy['simple'] = simple()
         # self.strategy['volume_dir'] = volume_dir()
@@ -55,7 +56,7 @@ class AutoIG:
         
         # self.strategy['obv_psar'] = obv_psar(14,7)
         # self.strategy['mfi_alt'] = mfi_alt(14,12,12,9)
-        # self.strategy['mfi_simple'] = mfi_simple()
+        
         # self.strategy['obv'] = obv()
 
     def make_trade(self, size, market, prediction, json_data = None):

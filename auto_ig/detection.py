@@ -24,6 +24,14 @@ def crossunder_hold(series_1, series_2, lookback=3):
         return True
     return False
 
+def peak(series):
+    if series[-2] > series[-1] and series[-2] > series[-3]:
+        return True
+    return False
+
+def trough(series):
+    if series[-2] < series[-1] and series[-2] < series[-3]:
+        return True
 
 def find_crossover(series,value=0):
     # try to find a crossover in the supplied series

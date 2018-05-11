@@ -59,7 +59,7 @@ class stoch(Strategy):
         max_range = max(tr)
         dayatr,tr = ta.atr(14,market.prices['DAY'])
         
-        stop = 10
+        stop = 5 + (market.spread*2)
         limit = math.ceil(atr[-1]*1.25)
 
         limit = min(limit,5)
