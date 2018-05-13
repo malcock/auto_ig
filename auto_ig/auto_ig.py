@@ -45,7 +45,7 @@ class AutoIG:
         self.key = ""
         self.is_open = True
         self.strategy = {}
-        self.strategy['mfi'] = mfi()
+        # self.strategy['mfi'] = mfi()
         self.strategy['stoch'] = stoch()
         # self.strategy['linreg'] = linreg()
         
@@ -153,11 +153,11 @@ class AutoIG:
                 if m.get_update_cost("DAY",30)>0:
                     m.update_prices("DAY",30)
 
-                if m.get_update_cost("MINUTE_30",60)>0:
-                    m.update_prices("MINUTE_30",60)
+                if m.get_update_cost("MINUTE_30",100)>0:
+                    m.update_prices("MINUTE_30",100)
 
-                if m.get_update_cost("MINUTE_5",60)>0:
-                    m.update_prices("MINUTE_5",60)
+                if m.get_update_cost("MINUTE_5",100)>0:
+                    m.update_prices("MINUTE_5",100)
             
         
 

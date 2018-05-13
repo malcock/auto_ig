@@ -138,6 +138,11 @@ class linreg(Strategy):
             if isgood=="OK":
                 prices = market.prices['MINUTE_30'][-16:]
                 m,c = ta.linreg(prices)
+
+                stoch_k,stoch_d = ta.stochastic(prices,5,3,3)
+                rsi = ta.rsi(14,prices)
+                rsima = ta.ma(9,prices,values=rsi,name="rsi_ma_9")
+
                 now = prices[-1]
                 if distance(market.bid,c)>1:
                     sig = Sig("LINREG_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="market is going down",life=0)
