@@ -225,6 +225,7 @@ class stoch(Strategy):
             ma100 = ta.ma(80,prices)
 
             ema5 = ta.ma(5,prices)
+            ema5_delta=ema5[-1] - ema5[-2]
             stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
             now = prices[-1]
 
