@@ -42,25 +42,25 @@ class stoch(Strategy):
         print("backtesting slow sigs")
         prices = market.prices['MINUTE_30']
         price_len = len(prices)
-        print(price_len - lookback)
+        # print(price_len - lookback)
         if price_len - lookback < 100:
 
             for i in list(range(lookback,-1,-1)):
                 p = price_len - i
                 ps = prices[:p]
-                print("{} {}".format(market.epic, ps[-1]['snapshotTime']))
+                # print("{} {}".format(market.epic, ps[-1]['snapshotTime']))
                 self.slow_signals(market,ps,'MINUTE_30')
 
         print("backtesting fast sigs")
         prices = market.prices['MINUTE_5']
         price_len = len(prices)
-        print(price_len - lookback)
+        # print(price_len - lookback)
         if price_len - lookback < 100:
 
             for i in list(range(lookback,-1,-1)):
                 p = price_len - i
                 ps = prices[:p]
-                print("{} {}".format(market.epic, ps[-1]['snapshotTime']))
+                # print("{} {}".format(market.epic, ps[-1]['snapshotTime']))
                 self.fast_signals(market,ps,'MINUTE_5')
 
 
@@ -141,28 +141,32 @@ class stoch(Strategy):
             ma50 = ta.ma(40,prices)
             ma100 = ta.ma(80,prices)
 
-            ema5 = ta.ma(5,prices)
+            ema5 = ta.ema(5,prices)
             ema5_delta=ema5[-1] - ema5[-2]
             stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
             now = prices[-1]
 
             if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
-
-                if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<30 and ema5_delta>1:
+                # print("FAST BUY k:{} d:{} ema:{} {} {}".format(stoch_k[-1],stoch_d[-1],ema5[-1],ema5[-2],ema5_delta))
+                if detect.crossover(stoch_k,stoch_d):
+                    # print("FAST STOCH CROSS")
+                    if min(stoch_k[-5:])<30 and ema5_delta>0.5:
+                        
+                        # sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
+                        # super().add_signal(sig,market)
+                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min",life=1)
+                        super().add_signal(sig,market)
                     
-                    # sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
-                    # super().add_signal(sig,market)
-                    sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min",life=1)
-                    super().add_signal(sig,market)
-                
 
             elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
-   
-                if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>70 and ema5_delta<-1:
-                    # sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
-                    # super().add_signal(sig,market)
-                    g = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min",life=1)
-                    super
+                # print("FAST SLOW k:{} d:{} ema:{} {} {}".format(stoch_k[-1],stoch_d[-1],ema5[-1],ema5[-2],ema5_delta))
+                if detect.crossunder(stoch_k,stoch_d):
+                    # print("FAST STOCH CROSS")
+                    if max(stoch_k[-5:])>70 and ema5_delta<-0.5:
+                        # sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
+                        # super().add_signal(sig,market)
+                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min",life=1)
+                        super().add_signal(sig,market)
                 
             # threshold_sigs = [x for x in self.signals if x.name=="STOCH_FAST_STOCH_THRESHOLD" and x.market==market.epic]
 
@@ -224,26 +228,30 @@ class stoch(Strategy):
             ma50 = ta.ma(40,prices)
             ma100 = ta.ma(80,prices)
 
-            ema5 = ta.ma(5,prices)
+            ema5 = ta.ema(5,prices)
             ema5_delta=ema5[-1] - ema5[-2]
             stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
             now = prices[-1]
 
             if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
-                
-                if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<30 and  ema5_delta>1:
-                    # sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
-                    # super().add_signal(sig,market)
-                    sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
-                    super().add_signal(sig,market)
+                # print("SLOW BUY k:{} d:{} ema:{} {} {}".format(stoch_k[-1],stoch_d[-1],ema5[-1],ema5[-2],ema5_delta))
+                if detect.crossover(stoch_k,stoch_d):
+                    # print("SLOW STOCH CROSS")
+                    if min(stoch_k[-5:])<30 and  ema5_delta>0.5:
+                        # sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
+                        # super().add_signal(sig,market)
+                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
+                        super().add_signal(sig,market)
 
             elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
-                
-                if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>70 and ema5_delta<-1:
-                    # sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
-                    # super().add_signal(sig,market)
-                    sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
-                    super().add_signal(sig,market)
+                # print("SLOW SELL k:{} d:{} ema:{} {} {}".format(stoch_k[-1],stoch_d[-1],ema5[-1],ema5[-2],ema5_delta))
+                if detect.crossunder(stoch_k,stoch_d):
+                    # print("SLOW STOCH CROSS")
+                    if max(stoch_k[-5:])>70 and ema5_delta<-0.5:
+                        # sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
+                        # super().add_signal(sig,market)
+                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
+                        super().add_signal(sig,market)
                 
             # threshold_sigs = [x for x in self.signals if x.name=="STOCH_SLOW_STOCH_THRESHOLD" and x.market==market.epic]
 
