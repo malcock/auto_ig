@@ -120,7 +120,7 @@ def show_signals():
     for key,s in sigs.items():
         output += "<li>{}<ul>".format(key)
         for sig in s:
-            if s.score>1:
+            if sig.score>1:
                 output+="<li>{} - {} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.market,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
             else:
                 output+="<li><small>{} - {} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</small></li>".format(sig.timestamp,sig.market,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
