@@ -193,7 +193,7 @@ class Market:
                                 s.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                           
 
-                        if len(self.prices['MINUTE_30']) > 101:
+                        if len(self.prices['MINUTE_30']) > 120:
                             del self.prices['MINUTE_30'][0]
 
                     
@@ -202,7 +202,7 @@ class Market:
                 else:
                     self.prices['MINUTE_5'][i] = current_price
                     
-                if len(self.prices['MINUTE_5'])>101:
+                if len(self.prices['MINUTE_5'])>120:
                     del self.prices['MINUTE_5'][0]
                     
 

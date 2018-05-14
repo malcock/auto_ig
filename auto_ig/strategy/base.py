@@ -142,7 +142,7 @@ class Sig:
     
     def set_market(self,market):
         self.market = market
-        logger.info("new sig! : {} : {}".format(self.market, self.name))
+        logger.info("new sig! : {} : {}: {}".format(self.market, self.name,self.timestamp))
 
     def process(self):
         self.life-=1

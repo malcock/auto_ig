@@ -37,11 +37,11 @@ class stoch(Strategy):
 
         self.last_state = "NONE"
 
-    def backfill(self,market,resolution,lookback=10):
+    def backfill(self,market,resolution,lookback=20):
 
         prices = market.prices['MINUTE_5']
         price_len = len(prices)
-        if price_len - lookback > 40:
+        if price_len - lookback > 100:
 
             for i in list(range(lookback,-1,-1)):
                 p = price_len - i
@@ -50,7 +50,7 @@ class stoch(Strategy):
 
         prices = market.prices['MINUTE_30']
         price_len = len(prices)
-        if price_len - lookback > 40:
+        if price_len - lookback > 100:
 
             for i in list(range(lookback,-1,-1)):
                 p = price_len - i
@@ -132,8 +132,8 @@ class stoch(Strategy):
             prices = market.prices['MINUTE_5']
 
             ma7 = ta.ma(7,prices)
-            ma50 = ta.ma(50,prices)
-            ma100 = ta.ma(100,prices)
+            ma50 = ta.ma(40,prices)
+            ma100 = ta.ma(80,prices)
 
             ema5 = ta.ma(5,prices)
             stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
@@ -210,8 +210,8 @@ class stoch(Strategy):
             prices = market.prices['MINUTE_30']
 
             ma7 = ta.ma(7,prices)
-            ma50 = ta.ma(50,prices)
-            ma100 = ta.ma(100,prices)
+            ma50 = ta.ma(40,prices)
+            ma100 = ta.ma(80,prices)
 
             ema5 = ta.ma(5,prices)
             stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
