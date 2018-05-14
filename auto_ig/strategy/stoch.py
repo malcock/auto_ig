@@ -203,7 +203,6 @@ class stoch(Strategy):
 
 
     def slow_signals(self,market,prices, resolution):
-        self.fast_signals(market,prices,resolution)
         try:
             for s in [x for x in self.signals if x.market == market.epic and "SLOW" in x.name]:
                 if not s.process():

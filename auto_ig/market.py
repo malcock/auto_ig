@@ -181,6 +181,7 @@ class Market:
 
                             for s in self.strategies.values():
                                 s.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
+                                s.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
 
            
 
@@ -190,7 +191,7 @@ class Market:
                             
                             self.prices["MINUTE_30"][i] = {**self.prices["MINUTE_30"][i], **new_30_min}
                             for s in self.strategies.values():
-                                s.fast_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
+                                s.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
                           
 
                         if len(self.prices['MINUTE_30']) > 120:
@@ -309,7 +310,10 @@ class Market:
         
         # process our strategies
         for s in self.strategies.values():
-            s.slow_signals(self,self.prices[resolution],resolution)
+            if resolution=="MINUTE_30":
+                s.slow_signals(self,self.prices[resolution],resolution)
+            elif resolution=="MINUTE_5":
+                s.fast_signals(self,self.prices[resolution],resolution)
         
 
         if data_count > 0:
