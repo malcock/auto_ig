@@ -102,7 +102,7 @@ class Strategy:
 
     def entry(self, signal, market,prices):
         """returns a true or false to whether we should open the position now"""
-        pass
+        return True
 
     def add_signal(self,signal, market):
         """makes sure that only one of each type of signal is stored"""

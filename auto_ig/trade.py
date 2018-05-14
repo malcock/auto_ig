@@ -47,7 +47,10 @@ class Trade:
             
             # this trade position will expire after 10 minutes if we've failed to open it
             self.created_time = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
-            self.expiry_time = self.created_time + datetime.timedelta(minutes = 120)
+            mins = 60
+            if "SLOW" in self.prediction['signal']['name']:
+                mins = 240
+            self.expiry_time = self.created_time + datetime.timedelta(minutes = mins)
             self.opened_time = None
             self.closed_time = None
             
@@ -101,7 +104,8 @@ class Trade:
                     self.log_status("Conditions were never right for trade to open")
                     self.state = TradeState.FAILED
                 else:
-
+                    # if self.market.ig.strategy[self.prediction['strategy']].entry(self.prediction['signal'],self.market.prices['MINUTE_30']):
+                    #     self.open_trade()
                     # if self.market.strategy.entry(self.prediction['signal'],self.market.prices['MINUTE_30']):
                     self.open_trade()
 
