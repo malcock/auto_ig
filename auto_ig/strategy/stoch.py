@@ -48,6 +48,16 @@ class stoch(Strategy):
                 ps = prices[:p]
                 self.fast_signals(market,ps,'MINUTE_5')
 
+        prices = market.prices['MINUTE_30']
+        price_len = len(prices)
+        if price_len - lookback > 40:
+
+            for i in list(range(lookback,-1,-1)):
+                p = price_len - i
+                ps = prices[:p]
+                self.slow_signals(market,ps,'MINUTE_30')
+
+
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
         res = 'MINUTE_5'
