@@ -142,13 +142,13 @@ class stoch(Strategy):
             if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
                 if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<20:
                     
-                    sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=3)
+                    sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                 
 
             elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
                 if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>80:
-                    sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=3)
+                    sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                 
             threshold_sigs = [x for x in self.signals if x.name=="STOCH_FAST_STOCH_THRESHOLD" and x.market==market.epic]
@@ -156,11 +156,11 @@ class stoch(Strategy):
             for s in threshold_sigs:
                 if s.position=="BUY":
                     if detect.crossover(ema5,ma7):
-                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
+                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=4)
                         super().add_signal(sig,market)
                 else:
                     if detect.crossunder(ema5,ma7):
-                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
+                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=4)
                         super().add_signal(sig,market)
 
             ma_sigs = [x for x in self.signals if x.name=="STOCH_FAST_MA_CROSS" and x.market==market.epic]
@@ -170,12 +170,12 @@ class stoch(Strategy):
             for s in ma_sigs:
                 if s.position=="BUY":
                     if ema5_delta > 0 and ma7_delta > 0:
-                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {}".format(s.comment),life=1)
+                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {}".format(s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     if ema5_delta < 0 and ma7_delta < 0:
-                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {}".format(s.comment),life=1)
+                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {}".format(s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
 
@@ -219,13 +219,13 @@ class stoch(Strategy):
 
             if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
                 if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<25:
-                    sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=3)
+                    sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                 
 
             elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
                 if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>75:
-                    sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=3)
+                    sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                 
             threshold_sigs = [x for x in self.signals if x.name=="STOCH_SLOW_STOCH_THRESHOLD" and x.market==market.epic]
@@ -233,11 +233,11 @@ class stoch(Strategy):
             for s in threshold_sigs:
                 if s.position=="BUY":
                     if detect.crossover(ema5,ma7):
-                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
+                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=4)
                         super().add_signal(sig,market)
                 else:
                     if detect.crossunder(ema5,ma7):
-                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
+                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=4)
                         super().add_signal(sig,market)
 
             ma_sigs = [x for x in self.signals if x.name=="STOCH_SLOW_MA_CROSS" and x.market==market.epic]
@@ -247,12 +247,12 @@ class stoch(Strategy):
             for s in ma_sigs:
                 if s.position=="BUY":
                     if ema5_delta > 0 and ma7_delta > 0:
-                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {}".format(s.comment),life=1)
+                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {}".format(s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     if ema5_delta < 0 and ma7_delta < 0:
-                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min; {}".format(s.comment),life=1)
+                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min; {}".format(s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
 
