@@ -142,6 +142,7 @@ class Sig:
     
     def set_market(self,market):
         self.market = market
+        print("HEY")
         logger.info("new sig! : {} : {}: {}".format(self.market, self.name,self.timestamp))
 
     def process(self):
