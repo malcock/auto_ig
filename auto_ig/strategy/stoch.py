@@ -60,7 +60,7 @@ class stoch(Strategy):
 
         
         stop = (atr[-1]*1.44) + (market.spread*2)
-        limit = math.ceil(atr[-1]*0.75)
+        limit = math.ceil(atr[-1]*0.85)
 
         limit = max(limit,4)
         # limit = min(7,limit)
@@ -131,6 +131,7 @@ class stoch(Strategy):
 
             if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
                 if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<20:
+                    
                     sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=3)
                     super().add_signal(sig,market)
                 
@@ -161,10 +162,12 @@ class stoch(Strategy):
                     if ema5_delta > 0 and ma7_delta > 0:
                         sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min",life=1)
                         super().add_signal(sig,market)
+                        self.signals.remove(s)
                 else:
                     if ema5_delta < 0 and ma7_delta < 0:
                         sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min",life=1)
                         super().add_signal(sig,market)
+                        self.signals.remove(s)
 
 
             
@@ -236,10 +239,12 @@ class stoch(Strategy):
                     if ema5_delta > 0 and ma7_delta > 0:
                         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
                         super().add_signal(sig,market)
+                        self.signals.remove(s)
                 else:
                     if ema5_delta < 0 and ma7_delta < 0:
                         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
                         super().add_signal(sig,market)
+                        self.signals.remove(s)
 
 
             
