@@ -146,11 +146,11 @@ class stoch(Strategy):
             for s in threshold_sigs:
                 if s.position=="BUY":
                     if detect.crossover(ema5,ma7):
-                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}".format(ema5[-1],ma7[-1]),life=3)
+                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
                         super().add_signal(sig,market)
                 else:
                     if detect.crossunder(ema5,ma7):
-                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}".format(ema5[-1],ma7[-1]),life=3)
+                        sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
                         super().add_signal(sig,market)
 
             ma_sigs = [x for x in self.signals if x.name=="STOCH_FAST_MA_CROSS" and x.market==market.epic]
@@ -160,12 +160,12 @@ class stoch(Strategy):
             for s in ma_sigs:
                 if s.position=="BUY":
                     if ema5_delta > 0 and ma7_delta > 0:
-                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min",life=1)
+                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {}".format(s.comment),life=1)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     if ema5_delta < 0 and ma7_delta < 0:
-                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min",life=1)
+                        sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {}".format(s.comment),life=1)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
 
@@ -223,11 +223,11 @@ class stoch(Strategy):
             for s in threshold_sigs:
                 if s.position=="BUY":
                     if detect.crossover(ema5,ma7):
-                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}".format(ema5[-1],ma7[-1]),life=3)
+                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
                         super().add_signal(sig,market)
                 else:
                     if detect.crossunder(ema5,ma7):
-                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}".format(ema5[-1],ma7[-1]),life=3)
+                        sig = Sig("STOCH_SLOW_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}; previous sig {}".format(ema5[-1],ma7[-1],s.comment),life=3)
                         super().add_signal(sig,market)
 
             ma_sigs = [x for x in self.signals if x.name=="STOCH_SLOW_MA_CROSS" and x.market==market.epic]
@@ -237,12 +237,12 @@ class stoch(Strategy):
             for s in ma_sigs:
                 if s.position=="BUY":
                     if ema5_delta > 0 and ma7_delta > 0:
-                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min",life=1)
+                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {}".format(s.comment),life=1)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     if ema5_delta < 0 and ma7_delta < 0:
-                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min",life=1)
+                        sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min; {}".format(s.comment),life=1)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
 
