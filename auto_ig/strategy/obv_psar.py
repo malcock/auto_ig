@@ -79,7 +79,7 @@ class obv_psar(Strategy):
         try:
             for s in [x for x in self.signals if x.market == market.epic]:
                 if not s.process():
-                    print("{} timed out".format(s.name))
+                    
                     self.signals.remove(s)
 
             if 'MINUTE_5' not in market.prices:

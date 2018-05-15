@@ -45,7 +45,7 @@ class Strategy:
         
         for s in [x for x in self.signals if x.market == market.epic]:
             if not s.process():
-                print("{} timed out".format(s.name))
+                
                 self.signals.remove(s)
 
     def fast_signals(self,market,prices,resolution):
@@ -142,12 +142,12 @@ class Sig:
     
     def set_market(self,market):
         self.market = market
-        print("HEY")
         logger.info("new sig! : {} : {}: {}".format(self.market, self.name,self.timestamp))
 
     def process(self):
         self.life-=1
         if self.life<0:
+            logger.info("{} {} {} timed out".format(self.market,self.name,self.timestamp))
             return False
 
         return True

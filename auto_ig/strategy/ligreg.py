@@ -127,7 +127,7 @@ class linreg(Strategy):
         try:
             for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
                 if not s.process():
-                    print("{} timed out".format(s.name))
+                    
                     self.signals.remove(s)
 
             if 'MINUTE_30' not in market.prices:

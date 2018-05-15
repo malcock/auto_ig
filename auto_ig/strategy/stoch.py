@@ -125,7 +125,7 @@ class stoch(Strategy):
         try:
             for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
                 if not s.process():
-                    print("{} timed out".format(s.name))
+                    
                     self.signals.remove(s)
  
             if 'MINUTE_5' not in market.prices:
@@ -139,10 +139,10 @@ class stoch(Strategy):
             ma100 = ta.ema(80,prices)
  
             ema5 = ta.ma(5,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
+            stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
             now = prices[-1]
  
-            if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
+            if ma50[-1] > ma100[-1]:
  
                 if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<20:
                     
@@ -150,7 +150,7 @@ class stoch(Strategy):
                     super().add_signal(sig,market)
                 
  
-            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
+            elif ma50[-1] < ma100[-1]:
    
                 if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>80:
                     sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
@@ -200,7 +200,7 @@ class stoch(Strategy):
         try:
             for s in [x for x in self.signals if x.market == market.epic and "SLOW" in x.name]:
                 if not s.process():
-                    print("{} timed out".format(s.name))
+                    
                     self.signals.remove(s)
  
             if 'MINUTE_30' not in market.prices:
@@ -214,19 +214,19 @@ class stoch(Strategy):
             ma100 = ta.ma(80,prices)
  
             ema5 = ta.ema(5,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
+            stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
             now = prices[-1]
  
-            if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
+            if ma50[-1] > ma100[-1]:
                 
-                if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<25:
+                if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<20:
                     sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                 
  
-            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
+            elif ma50[-1] < ma100[-1]:
                 
-                if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>75:
+                if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>80:
                     sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                 
