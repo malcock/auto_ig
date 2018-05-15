@@ -172,7 +172,7 @@ class stoch(Strategy):
  
             ema5_delta = ema5[-1] - ema5[-2]
             ma7_delta = ma7[-1] - ma7[-2]
-            for s in ma_sigs:
+            for s in threshold_sigs:
                 if s.position=="BUY":
                     if ema5_delta > 0 and ma7_delta > 0:
                         sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
@@ -246,7 +246,7 @@ class stoch(Strategy):
  
             ema5_delta = ema5[-1] - ema5[-2]
             ma7_delta = ma7[-1] - ma7[-2]
-            for s in ma_sigs:
+            for s in threshold_sigs:
                 if s.position=="BUY":
                     if ema5_delta > 0 and ma7_delta > 0:
                         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
