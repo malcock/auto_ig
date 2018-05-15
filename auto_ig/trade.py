@@ -240,8 +240,8 @@ class Trade:
                     self.log_status("Trade rejected: {}".format(d['reason']))
                     if d['reason']=="ATTACHED_ORDER_LEVEL_ERROR":
                         # bump the stop order a bit?
-                        if self.stop_distance+10<175:
-                            self.stop_distance = min(self.stop_distance+5,175)
+                        if self.stop_distance+10<200:
+                            self.stop_distance = min(self.stop_distance+5,195)
                             self.log_status("Bumping stop distance to {}".format(self.stop_distance))
                             self.state =TradeState.WAITING
                         else:

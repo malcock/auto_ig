@@ -174,12 +174,12 @@ class stoch(Strategy):
             ma7_delta = ma7[-1] - ma7[-2]
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if ema5_delta > 0.5:
+                    if ema5_delta > 0.25:
                         sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
-                    if ema5_delta < -0.5:
+                    if ema5_delta < -0.25:
                         sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
@@ -248,12 +248,12 @@ class stoch(Strategy):
             ma7_delta = ma7[-1] - ma7[-2]
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if ema5_delta > 0.5:
+                    if ema5_delta > 0.25:
                         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
-                    if ema5_delta < -0.5:
+                    if ema5_delta < -0.25:
                         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
