@@ -75,7 +75,7 @@ class stoch(Strategy):
  
         
         stop = (atr[-1]*1.44) + (market.spread*2)
-        limit = math.ceil(atr[-1]*0.85)
+        limit = math.ceil(atr[-1]*1.2)
  
         limit = max(limit,4)
         # limit = min(7,limit)
