@@ -139,10 +139,10 @@ class stoch(Strategy):
             ma100 = ta.ema(80,prices)
  
             ema5 = ta.ma(5,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
+            stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
             now = prices[-1]
  
-            if ma50[-1] > ma100[-1]:
+            if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
  
                 if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<20: 
                     
@@ -150,7 +150,7 @@ class stoch(Strategy):
                     super().add_signal(sig,market)
                 
  
-            elif ma50[-1] < ma100[-1]:
+            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
    
                 if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>80: 
                     sig = Sig("STOCH_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
@@ -158,29 +158,18 @@ class stoch(Strategy):
                 
             threshold_sigs = [x for x in self.signals if x.name=="STOCH_FAST_STOCH_THRESHOLD" and x.market==market.epic]
  
-            # for s in threshold_sigs:
-            #     if s.position=="BUY":
-            #         if detect.crossover(ema5,ma7):
-            #             sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"BUY",1,comment="ema5 {} ma7 {}; previous sig {} {}".format(ema5[-1],ma7[-1],s.timestamp,s.comment),life=4)
-            #             super().add_signal(sig,market)
-            #     else:
-            #         if detect.crossunder(ema5,ma7):
-            #             sig = Sig("STOCH_FAST_MA_CROSS",now['snapshotTime'],"SELL",1,comment="ema5 {} ma7 {}; previous sig {} {}".format(ema5[-1],ma7[-1],s.timestamp,s.comment),life=4)
-            #             super().add_signal(sig,market)
-            
-            # ma_sigs = [x for x in self.signals if x.name=="STOCH_FAST_MA_CROSS" and x.market==market.epic]
-            smo,smoo = self.smoothed_mfi(prices,14,9,9)
+
             ema5_delta = ema5[-1] - ema5[-2]
-            ma7_delta = ma7[-1] - ma7[-2]
+            # ma7_delta = ma7[-1] - ma7[-2]
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if detect.crossover(smo,smoo):
+                    if ema5_delta>0.25:
                     # if ema5_delta > 0.25:
                         sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
-                    if detect.crossunder(smo,smoo):
+                    if ema5_delta<-0.25:
                     # if ema5_delta < -0.25:
                         sig = Sig("STOCH_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
@@ -219,14 +208,14 @@ class stoch(Strategy):
             stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
             now = prices[-1]
  
-            if ma50[-1] > ma100[-1]:
+            if ma50[-1] > ma100[-1] and ma7[-1]>ma100[-1]:
                 
                 if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<20: 
                     sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                 
  
-            elif ma50[-1] < ma100[-1]:
+            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
                 
                 if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>80: 
                     sig = Sig("STOCH_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
@@ -247,18 +236,18 @@ class stoch(Strategy):
             # ma_sigs = [x for x in self.signals if x.name=="STOCH_SLOW_MA_CROSS" and x.market==market.epic]
  
             ema5_delta = ema5[-1] - ema5[-2]
-            ma7_delta = ma7[-1] - ma7[-2]
-            smo,smoo = self.smoothed_mfi(prices,14,9,9)
+            # ma7_delta = ma7[-1] - ma7[-2]
+            # smo,smoo = self.smoothed_mfi(prices,14,9,9)
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if detect.crossover(smo,smoo):
+                    if ema5_delta>0.25:
                     # if ema5_delta > 0.25:
                         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     # if ema5_delta < -0.25:
-                    if detect.crossunder(smo,smoo):
+                    if ema5_delta<-0.25:
                         sig = Sig("STOCH_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
