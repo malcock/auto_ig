@@ -102,6 +102,10 @@ class stoch(Strategy):
             # stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
  
         stop =  stop + (market.spread*2)
+        if stop<=market.spread*2:
+            stop = market.spread*3
+        stop = min(stop,15)
+        
         # prepare the trade info object to pass back
         prediction_object = {
             "strategy" : self.name,
