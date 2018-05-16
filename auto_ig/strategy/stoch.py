@@ -75,7 +75,7 @@ class stoch(Strategy):
  
         
         stop = (atr[-1]*1.44) + (market.spread*2)
-        limit = math.ceil(atr[-1]*1.2)
+        limit = math.ceil(atr[-1]*1.4)
  
         limit = max(limit,4)
         # limit = min(7,limit)
@@ -205,7 +205,7 @@ class stoch(Strategy):
             ma100 = ta.ma(80,prices)
  
             ema5 = ta.ema(5,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
+            stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
             now = prices[-1]
  
             if ma50[-1] > ma100[-1] and ma7[-1]>ma100[-1]:
