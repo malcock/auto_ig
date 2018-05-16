@@ -274,3 +274,6 @@ class stoch(Strategy):
            smoo = ta.ma(sm2,prices,values=smo,name="mfi_signal")
 
            return smo, smoo
+
+    def assess_close(self,signal,trade):
+        pass
