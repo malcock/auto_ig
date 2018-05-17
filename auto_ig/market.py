@@ -97,7 +97,7 @@ class Market:
             return math.ceil(float(self.dealing_rules['minControlledRiskStopDistance']['value']))
         else:
             mid = ((float(self.bid) + float(self.offer))/2.0)*0.01
-            return math.ceil((mid * float(self.dealing_rules['minControlledRiskStopDistance']['value']))
+            return math.ceil((mid * float(self.dealing_rules['minControlledRiskStopDistance']['value'])))
         
 
 
