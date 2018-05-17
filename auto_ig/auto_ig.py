@@ -145,19 +145,19 @@ class AutoIG:
         
         open_lightstreamer = False
 
-        if timenow.minute() in [0,15,30,45]:
-            clean = True
-            for t in self.trades:
-                base_url = self.api_url + '/positions/'+ t.deal_id
-                auth_r = requests.get(base_url, headers=self.authenticate())
-                if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                    logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
-                    t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
-                    t.state = 3
-                    clean = False
-            if not clean:
-                logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
-                open_lightstreamer = True
+
+        clean = True
+        for t in self.trades:
+            base_url = self.api_url + '/positions/'+ t.deal_id
+            auth_r = requests.get(base_url, headers=self.authenticate())
+            if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
+                t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
+                t.state = 3
+                clean = False
+        if not clean:
+            logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
+            open_lightstreamer = True
 
         for m in self.markets.values():
             # if state has changed force an update to the lightstream obj
