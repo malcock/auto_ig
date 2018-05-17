@@ -194,19 +194,19 @@ class macd(Strategy):
             mac,histo = ta.macd(prices)
             now = prices[-1]
  
-            if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
+            # if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
  
-                if detect.crossover(histo,0) and mac>0:
-                    
-                    sig = Sig("MACD_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="MACD cross over in trend",life=2)
-                    super().add_signal(sig,market)
+            if detect.crossover(mac,0):
+                
+                sig = Sig("MACD_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="MACD cross over in trend",life=2)
+                super().add_signal(sig,market)
                 
  
-            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
+            # elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
    
-                if detect.crossunder(histo,0) and mac<0: 
-                    sig = Sig("MACD_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="MACD cross under in trend",life=2)
-                    super().add_signal(sig,market)
+            if detect.crossunder(mac,0): 
+                sig = Sig("MACD_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="MACD cross under in trend",life=2)
+                super().add_signal(sig,market)
         
 
             
