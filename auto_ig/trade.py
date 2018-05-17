@@ -65,7 +65,7 @@ class Trade:
             self.trailing_level = 0
             self.trailing_stop = False
             
-            self.stop_distance = self.market.minium_stoploss()
+            self.stop_distance = self.market.minimum_stoploss()
             if self.stop_distance < self.prediction['stoploss']:
                 self.stop_distance = float(self.prediction['stoploss'])+5
             
