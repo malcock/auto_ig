@@ -62,10 +62,7 @@ class Market:
         
         # store the status of the market from the obj, use a change in state to trigger an update to lightstreamer in auto_ig.py
         self.market_status = obj['snapshot']['marketStatus']
-        self.dealing_rules = obj['dealingRules']
-        self.margin_bands = obj['instrument']['marginDepositBands']
-        self.risk_premium = obj['instrument']['limitedRiskPremium']
-        self.minimum_stop = self.minimum_stoploss()
+        
         # maybe we can load some prices?
         self.bid = float(obj['snapshot']['bid'])
         self.offer = float(obj['snapshot']['offer'])
@@ -74,6 +71,11 @@ class Market:
         self.low = float(obj['snapshot']['low'])
         self.percentage_change = float(obj['snapshot']['percentageChange'])
         self.net_change = float(obj['snapshot']['netChange'])
+
+        self.dealing_rules = obj['dealingRules']
+        self.margin_bands = obj['instrument']['marginDepositBands']
+        self.risk_premium = obj['instrument']['limitedRiskPremium']
+        self.minimum_stop = self.minimum_stoploss()
         
         if self.market_status=="TRADEABLE":
             if "DAY" in self.prices:
