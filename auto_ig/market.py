@@ -94,16 +94,16 @@ class Market:
 
     def minimum_stoploss(self):
         if self.dealing_rules['minControlledRiskStopDistance']['unit']=="POINTS":
-            return float(self.dealing_rules['minControlledRiskStopDistance']['value'])
+            return math.ceil(float(self.dealing_rules['minControlledRiskStopDistance']['value']))
         else:
             mid = ((float(self.bid) + float(self.offer))/2.0)*0.01
-            return mid * float(self.dealing_rules['minControlledRiskStopDistance']['value'])
+            return math.ceil((mid * float(self.dealing_rules['minControlledRiskStopDistance']['value']))
         
 
 
     def margin_required(self,bet_size):
         stop_loss = self.minimum_stoploss()
-        return math.ceil((bet_size * stop_loss) + (bet_size * float(self.risk_premium['value'])))
+        return (bet_size * stop_loss) + (bet_size * float(self.risk_premium['value']))
 
             
 
