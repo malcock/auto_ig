@@ -126,51 +126,52 @@ class macd(Strategy):
         return prediction_object
 
     def fast_signals(self,market,prices,resolution):
-        try:
-            for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
-                if not s.process():
+        # try:
+        #     for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
+        #         if not s.process():
                     
-                    self.signals.remove(s)
+        #             self.signals.remove(s)
  
-            if 'MINUTE_5' not in market.prices:
-                return
+        #     if 'MINUTE_5' not in market.prices:
+        #         return
  
-            # maindir = self.maindir(market,"DAY")
-            # prices = market.prices['MINUTE_5']
+        #     # maindir = self.maindir(market,"DAY")
+        #     # prices = market.prices['MINUTE_5']
  
-            ma7 = ta.ma(7,prices)
-            ma50 = ta.ma(40,prices)
-            ma100 = ta.ema(80,prices)
+        #     ma7 = ta.ma(7,prices)
+        #     ma50 = ta.ma(40,prices)
+        #     ma100 = ta.ema(80,prices)
  
-            ema5 = ta.ma(5,prices)
-            mac,histo = ta.macd(prices)
-            now = prices[-1]
+        #     ema5 = ta.ma(5,prices)
+        #     mac,histo = ta.macd(prices)
+        #     now = prices[-1]
  
-            if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
+        #     if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
  
-                if detect.crossover(histo,0):
+        #         if detect.crossover(histo,0) and mac>0:
                     
-                    sig = Sig("MACD_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="MACD cross over in trend",life=2)
-                    super().add_signal(sig,market)
+        #             sig = Sig("MACD_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="MACD cross over in trend",life=2)
+        #             super().add_signal(sig,market)
                 
  
-            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
+        #     elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
    
-                if detect.crossunder(histo,0): 
-                    sig = Sig("MACD_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="MACD cross under in trend",life=2)
-                    super().add_signal(sig,market)
+        #         if detect.crossunder(histo,0) and mac<0: 
+        #             sig = Sig("MACD_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="MACD cross under in trend",life=2)
+        #             super().add_signal(sig,market)
                 
             
                 
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.info("{} live fail".format(market.epic))
-            logger.info(exc_type)
-            logger.info(fname)
-            logger.info(exc_tb.tb_lineno)
-            logger.info(exc_obj)
-            pass
+        # except Exception as e:
+        #     exc_type, exc_obj, exc_tb = sys.exc_info()
+        #     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        #     logger.info("{} live fail".format(market.epic))
+        #     logger.info(exc_type)
+        #     logger.info(fname)
+        #     logger.info(exc_tb.tb_lineno)
+        #     logger.info(exc_obj)
+        #     pass
+        pass
     
     def slow_signals(self,market,prices, resolution):
         try:
@@ -195,7 +196,7 @@ class macd(Strategy):
  
             if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
  
-                if detect.crossover(histo,0):
+                if detect.crossover(histo,0) and mac>0:
                     
                     sig = Sig("MACD_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="MACD cross over in trend",life=2)
                     super().add_signal(sig,market)
@@ -203,7 +204,7 @@ class macd(Strategy):
  
             elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
    
-                if detect.crossunder(histo,0): 
+                if detect.crossunder(histo,0) and mac<0: 
                     sig = Sig("MACD_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="MACD cross under in trend",life=2)
                     super().add_signal(sig,market)
         
