@@ -96,7 +96,7 @@ class Market:
         if self.dealing_rules['minControlledRiskStopDistance']['unit']=="POINTS":
             return float(self.dealing_rules['minControlledRiskStopDistance']['value'])
         else:
-            mid = (float(self.bid) + float(self.offer))/2.0
+            mid = ((float(self.bid) + float(self.offer))/2.0)*0.01
             return mid * float(self.dealing_rules['minControlledRiskStopDistance']['value'])
         
 
