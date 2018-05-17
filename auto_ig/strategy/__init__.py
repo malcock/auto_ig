@@ -10,3 +10,4 @@ from .mfi_super import mfi_super
 from .volume_dir import volume_dir
 from .simple import simple
 from .ligreg import linreg
+from .macd import macd

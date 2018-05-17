@@ -64,7 +64,10 @@ class Trade:
             self.pip_min = 0
             self.trailing_level = 0
             self.trailing_stop = False
-            self.stop_distance = 150
+            
+            self.stop_distance = self.market.minium_stoploss()
+            if self.stop_distance < self.prediction['stoploss']:
+                self.stop_distance = float(self.prediction['stoploss'])+5
             
             
             self.state = TradeState.WAITING

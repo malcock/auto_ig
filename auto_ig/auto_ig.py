@@ -45,7 +45,7 @@ class AutoIG:
         self.key = ""
         self.is_open = True
         self.strategy = {}
-        # self.strategy['mfi'] = mfi()
+        self.strategy['macd'] = macd()
         self.strategy['stoch'] = stoch()
         # self.strategy['linreg'] = linreg()
         
@@ -147,7 +147,7 @@ class AutoIG:
 
 
         clean = True
-        for t in self.trades:
+        for t in [x for x in self.trades if x.deal_id is not "PENDING"]:
             base_url = self.api_url + '/positions/'+ t.deal_id
             auth_r = requests.get(base_url, headers=self.authenticate())
             if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:

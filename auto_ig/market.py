@@ -39,6 +39,10 @@ class Market:
         self.data = {}
         self.last_bigstamp = ""
         self.last_status = ""
+        self.dealing_rules = {}
+        self.margin_bands = {}
+        self.risk_premium = {}
+        self.minimum_stop = 0
 
         self.market_status =""
         
@@ -58,7 +62,10 @@ class Market:
         
         # store the status of the market from the obj, use a change in state to trigger an update to lightstreamer in auto_ig.py
         self.market_status = obj['snapshot']['marketStatus']
-        
+        self.dealing_rules = obj['dealingRules']
+        self.margin_bands = obj['instrument']['marginDepositBands']
+        self.risk_premium = obj['instrument']['limitedRiskPremium']
+        self.minimum_stop = self.minimum_stoploss()
         # maybe we can load some prices?
         self.bid = float(obj['snapshot']['bid'])
         self.offer = float(obj['snapshot']['offer'])
@@ -83,6 +90,20 @@ class Market:
         
         self.save_json()
 
+    def minimum_stoploss(self):
+        if self.dealing_rules['minControlledRiskStopDistance']['unit']=="POINTS":
+            return float(self.dealing_rules['minControlledRiskStopDistance']['value'])
+        else:
+            mid = (float(self.bid) + float(self.offer))/2.0
+            return mid * float(self.dealing_rules['minControlledRiskStopDistance']['value'])
+        
+
+
+    def margin_required(self,bet_size):
+        stop_loss = self.minimum_stoploss()
+        return math.ceil((bet_size * stop_loss) + (bet_size * float(self.risk_premium['value'])))
+
+            
 
     def set_latest_price(self,values):
         # if self.ready:
@@ -470,6 +491,8 @@ class Market:
             "percentage_change" : self.percentage_change,
             "net_change" : self.net_change,
             "market_status" : self.market_status,
+            "dealing_rules" : self.dealing_rules,
+            "margin_bands" : self.margin_bands,
             "data" : self.data
         }
         if not os.path.exists("markets/"):
