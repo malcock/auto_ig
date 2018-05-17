@@ -493,8 +493,7 @@ class Market:
             "percentage_change" : self.percentage_change,
             "net_change" : self.net_change,
             "market_status" : self.market_status,
-            "dealing_rules" : self.dealing_rules,
-            "margin_bands" : self.margin_bands,
+            "stop_loss" : self.minimum_stop,
             "data" : self.data
         }
         if not os.path.exists("markets/"):
