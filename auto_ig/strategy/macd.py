@@ -75,7 +75,7 @@ class macd(Strategy):
  
         
         stop = (atr[-1]*1.44) + (market.spread*2)
-        limit = math.ceil(atr[-1]*1.4)
+        limit = math.ceil(atr[-1]*2)
  
         limit = max(limit,4)
         # limit = min(7,limit)
@@ -101,7 +101,7 @@ class macd(Strategy):
             # stop = abs(high - self.offer)
             # stop = abs(self.prices[signal.resolution][-2]['highPrice']['ask'] - self.offer)
  
-        stop =  stop + (market.spread*2)
+        stop =  math.ceil(stop + (market.spread*2))
         if stop<=market.spread*2:
             stop = market.spread*3
         stop = min(stop,15)
