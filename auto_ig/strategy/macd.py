@@ -104,7 +104,7 @@ class macd(Strategy):
         stop =  math.ceil(stop + (market.spread*2))
         if stop<=market.spread*2:
             stop = market.spread*3
-        stop = min(stop,15)
+        # stop = min(stop,15)
         
         # prepare the trade info object to pass back
         prediction_object = {
