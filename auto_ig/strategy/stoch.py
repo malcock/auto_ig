@@ -2,6 +2,8 @@ import logging
 import os,sys
 from numbers import Number
 import math
+import datetime
+from pytz import timezone
 from .. import indicators as ta
 from .. import detection as detect
 from .base import Strategy, Sig
@@ -104,7 +106,7 @@ class stoch(Strategy):
         stop =  math.ceil(stop + (market.spread*2))
         if stop<=market.spread*2:
             stop = market.spread*3
-        # stop = min(stop,15)
+        stop = min(stop,50)
         
         # prepare the trade info object to pass back
         prediction_object = {
@@ -164,6 +166,9 @@ class stoch(Strategy):
  
 
             ema5_delta = ema5[-1] - ema5[-2]
+
+            if not self.isgood(market):
+                return
             # ma7_delta = ma7[-1] - ma7[-2]
             for s in threshold_sigs:
                 if s.position=="BUY":
@@ -200,7 +205,7 @@ class stoch(Strategy):
  
             if 'MINUTE_30' not in market.prices:
                 return
- 
+            
             # maindir = self.maindir(market,"DAY")
             # prices = market.prices['MINUTE_30']
  
@@ -212,6 +217,8 @@ class stoch(Strategy):
             stoch_k, stoch_d = ta.stochastic(prices,14,3,3)
             now = prices[-1]
  
+            
+
             if ma50[-1] > ma100[-1] and ma7[-1]>ma100[-1]:
                 
                 if detect.crossover(stoch_k,20): 
@@ -240,6 +247,9 @@ class stoch(Strategy):
             # ma_sigs = [x for x in self.signals if x.name=="STOCH_SLOW_MA_CROSS" and x.market==market.epic]
  
             ema5_delta = ema5[-1] - ema5[-2]
+
+            if not self.isgood(market):
+                return
             # ma7_delta = ma7[-1] - ma7[-2]
             # smo,smoo = self.smoothed_mfi(prices,14,9,9)
             for s in threshold_sigs:
@@ -271,7 +281,30 @@ class stoch(Strategy):
             logger.info(exc_obj)
             pass
         
+    def isgood(self,market):
 
+        direction = False
+
+
+        time_now = datetime.datetime.time(datetime.datetime.now(timezone('GB')).replace(tzinfo=None))
+        
+        allowed_epics = []
+        if (datetime.time(7,00) < time_now < datetime.time(16,00)):
+            allowed_epics.append("GBP")
+            allowed_epics.append("EUR")
+        if (datetime.time(12,00) <= time_now <= datetime.time(21,00)):
+            allowed_epics.append("USD")
+        if (time_now >= datetime.time(22,00) or time_now <= datetime.time(7,00)):
+            allowed_epics.append("AUD")
+        if (time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00)):
+            allowed_epics.append("JPY")
+        
+        print(allowed_epics)
+        if any(x in market.epic for x in allowed_epics):
+            direction=True
+
+
+        return direction
 
     def assess_close(self,signal,trade):
         pass

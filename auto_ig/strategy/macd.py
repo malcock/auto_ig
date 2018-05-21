@@ -2,6 +2,8 @@ import logging
 import os,sys
 from numbers import Number
 import math
+import datetime
+from pytz import timezone
 from .. import indicators as ta
 from .. import detection as detect
 from .base import Strategy, Sig
@@ -104,7 +106,7 @@ class macd(Strategy):
         stop =  math.ceil(stop + (market.spread*2))
         if stop<=market.spread*2:
             stop = market.spread*3
-        # stop = min(stop,15)
+        stop = min(stop,50)
         
         # prepare the trade info object to pass back
         prediction_object = {
@@ -195,7 +197,8 @@ class macd(Strategy):
             now = prices[-1]
  
             # if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
- 
+            if not self.isgood(market):
+                return
             if detect.crossover(mac,0):
                 
                 sig = Sig("MACD_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="MACD cross over in trend",life=2)
@@ -221,7 +224,30 @@ class macd(Strategy):
             logger.info(exc_obj)
             pass
 
+    def isgood(self,market):
 
+        direction = False
+
+
+        time_now = datetime.datetime.time(datetime.datetime.now(timezone('GB')).replace(tzinfo=None))
+        
+        allowed_epics = []
+        if (datetime.time(7,00) < time_now < datetime.time(16,00)):
+            allowed_epics.append("GBP")
+            allowed_epics.append("EUR")
+        if (datetime.time(12,00) <= time_now <= datetime.time(21,00)):
+            allowed_epics.append("USD")
+        if (time_now >= datetime.time(22,00) or time_now <= datetime.time(7,00)):
+            allowed_epics.append("AUD")
+        if (time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00)):
+            allowed_epics.append("JPY")
+        
+        print(allowed_epics)
+        if any(x in market.epic for x in allowed_epics):
+            direction=True
+
+
+        return direction
 
     def assess_close(self,signal,trade):
         pass
