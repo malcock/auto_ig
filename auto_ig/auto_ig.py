@@ -45,6 +45,7 @@ class AutoIG:
         self.key = ""
         self.is_open = True
         self.strategy = {}
+        self.strategy['stoch_alt'] = stoch_alt()
         self.strategy['macd'] = macd()
         self.strategy['stoch'] = stoch()
         # self.strategy['linreg'] = linreg()

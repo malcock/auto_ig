@@ -206,6 +206,18 @@ class Market:
                                 s.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
                                 s.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
 
+                            
+                            if "HOUR_4" in self.prices:
+                                hr = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%H")
+                                prev_4_hr = int(4 * math.floor(hr/4))
+                                timestamp_4_hr = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-{:0>2d}:00:00".format(prev_4_hr))
+                                i = next((index for (index, d) in enumerate(self.prices['HOUR_4']) if d["snapshotTime"] == timestamp_30), None)
+                                
+                                # if i is None:
+                                #     pass
+                                # else:
+                                #     pass
+                                #     self.prices['HOUR_4'][i] = {**self.prices['HOUR_4'][i],**new}
            
 
                             self.prices["MINUTE_30"].append(new_30_min)

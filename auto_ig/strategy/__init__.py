@@ -11,3 +11,4 @@ from .volume_dir import volume_dir
 from .simple import simple
 from .ligreg import linreg
 from .macd import macd
+from .stoch_alt import stoch_alt
