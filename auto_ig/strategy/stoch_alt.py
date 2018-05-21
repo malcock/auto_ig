@@ -335,8 +335,9 @@ class stoch_alt(Strategy):
         return direction
 
     def assess_close(self,signal,trade):
-        if ("SLOW" in trade.prediction['signal']['name'] and "SLOW" in signal.name) or ("FAST" in trade.prediction['signal']['name'] and "FAST" in signal.name):
-            trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
-            if trade.pip_diff >0:
-                trade.close_trade()
+        if trade.prediction['strategy'] == self.name:
+            if ("SLOW" in trade.prediction['signal']['name'] and "SLOW" in signal.name) or ("FAST" in trade.prediction['signal']['name'] and "FAST" in signal.name):
+                trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
+                if trade.pip_diff >0:
+                    trade.close_trade()
         
