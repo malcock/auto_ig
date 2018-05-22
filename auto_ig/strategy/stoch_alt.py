@@ -132,92 +132,93 @@ class stoch_alt(Strategy):
         return prediction_object
 
     def fast_signals(self,market,prices,resolution):
-        try:
-            for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
-                if not s.process():
+        pass
+        # try:
+        #     for s in [x for x in self.signals if x.market == market.epic and "FAST" in x.name]:
+        #         if not s.process():
                     
-                    self.signals.remove(s)
+        #             self.signals.remove(s)
  
-            if 'MINUTE_5' not in market.prices:
-                return
+        #     if 'MINUTE_5' not in market.prices:
+        #         return
  
-            # maindir = self.maindir(market,"DAY")
-            # prices = market.prices['MINUTE_5']
+        #     # maindir = self.maindir(market,"DAY")
+        #     # prices = market.prices['MINUTE_5']
  
-            ma7 = ta.ma(7,prices)
-            ma50 = ta.ma(30,prices)
-            ma100 = ta.ema(60,prices)
+        #     ma7 = ta.ma(7,prices)
+        #     ma50 = ta.ma(30,prices)
+        #     ma100 = ta.ema(60,prices)
  
-            ema5 = ta.ma(5,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,5,5,5)
-            now = prices[-1]
+        #     ema5 = ta.ma(5,prices)
+        #     stoch_k, stoch_d = ta.stochastic(prices,5,5,5)
+        #     now = prices[-1]
 
 
-            if detect.crossunder(stoch_k,stoch_d):
-                sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"SELL",2,comment="fast close",life=1)
-                super().add_signal(sig,market)
+        #     if detect.crossunder(stoch_k,stoch_d):
+        #         sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"SELL",2,comment="fast close",life=1)
+        #         super().add_signal(sig,market)
                 
-            if detect.crossover(stoch_k,stoch_d):
-                sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"BUY",2,comment="fast close",life=1)
-                super().add_signal(sig,market)
+        #     if detect.crossover(stoch_k,stoch_d):
+        #         sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"BUY",2,comment="fast close",life=1)
+        #         super().add_signal(sig,market)
 
-            if ma7[-1] > ma50[-1] > ma100[-1]:
+        #     if ma7[-1] > ma50[-1] > ma100[-1]:
  
-                if detect.crossover(stoch_k,stoch_d): 
-                    sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
-                    for s in sigs:
-                        self.signals.remove(s)
+        #         if detect.crossover(stoch_k,stoch_d): 
+        #             sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
+        #             for s in sigs:
+        #                 self.signals.remove(s)
 
-                    sig = Sig("STOCH_ALT_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
-                    super().add_signal(sig,market)
+        #             sig = Sig("STOCH_ALT_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
+        #             super().add_signal(sig,market)
                     
 
  
-            elif ma7[-1]  < ma50[-1] < ma100[-1]:
+        #     elif ma7[-1]  < ma50[-1] < ma100[-1]:
    
-                if detect.crossunder(stoch_k,stoch_d): 
-                    sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
-                    for s in sigs:
-                        self.signals.remove(s)
-                    sig = Sig("STOCH_ALT_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
-                    super().add_signal(sig,market)
+        #         if detect.crossunder(stoch_k,stoch_d): 
+        #             sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
+        #             for s in sigs:
+        #                 self.signals.remove(s)
+        #             sig = Sig("STOCH_ALT_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
+        #             super().add_signal(sig,market)
 
 
             
                 
-            threshold_sigs = [x for x in self.signals if x.name=="STOCH_ALT_FAST_STOCH_THRESHOLD" and x.market==market.epic]
+        #     threshold_sigs = [x for x in self.signals if x.name=="STOCH_ALT_FAST_STOCH_THRESHOLD" and x.market==market.epic]
  
 
-            ema5_delta = ema5[-1] - ema5[-2]
+        #     ema5_delta = ema5[-1] - ema5[-2]
 
-            # if not self.isgood(market):
-            #     return
-            # ma7_delta = ma7[-1] - ma7[-2]
-            for s in threshold_sigs:
-                if s.position=="BUY":
-                    if ema5_delta>0:
-                    # if ema5_delta > 0.25:
-                        sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
-                        super().add_signal(sig,market)
-                        self.signals.remove(s)
-                else:
-                    if ema5_delta<0:
-                    # if ema5_delta < -0.25:
-                        sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
-                        super().add_signal(sig,market)
-                        self.signals.remove(s)
+        #     # if not self.isgood(market):
+        #     #     return
+        #     # ma7_delta = ma7[-1] - ma7[-2]
+        #     for s in threshold_sigs:
+        #         if s.position=="BUY":
+        #             if ema5_delta>0:
+        #             # if ema5_delta > 0.25:
+        #                 sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
+        #                 super().add_signal(sig,market)
+        #                 self.signals.remove(s)
+        #         else:
+        #             if ema5_delta<0:
+        #             # if ema5_delta < -0.25:
+        #                 sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
+        #                 super().add_signal(sig,market)
+        #                 self.signals.remove(s)
  
  
                 
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            logger.info("{} live fail".format(market.epic))
-            logger.info(exc_type)
-            logger.info(fname)
-            logger.info(exc_tb.tb_lineno)
-            logger.info(exc_obj)
-            pass
+        # except Exception as e:
+        #     exc_type, exc_obj, exc_tb = sys.exc_info()
+        #     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        #     logger.info("{} live fail".format(market.epic))
+        #     logger.info(exc_type)
+        #     logger.info(fname)
+        #     logger.info(exc_tb.tb_lineno)
+        #     logger.info(exc_obj)
+        #     pass
     
     def slow_signals(self,market,prices, resolution):
         try:
