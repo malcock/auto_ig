@@ -164,7 +164,10 @@ class stoch_alt(Strategy):
             if ma7[-1] > ma50[-1] > ma100[-1]:
  
                 if detect.crossover(stoch_k,stoch_d): 
-                    self.signals = []
+                    sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
+                    for s in sigs:
+                        self.signals.remove(s)
+
                     sig = Sig("STOCH_ALT_FAST_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
                     
@@ -173,7 +176,9 @@ class stoch_alt(Strategy):
             elif ma7[-1]  < ma50[-1] < ma100[-1]:
    
                 if detect.crossunder(stoch_k,stoch_d): 
-                    self.signals = []
+                    sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
+                    for s in sigs:
+                        self.signals.remove(s)
                     sig = Sig("STOCH_ALT_FAST_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
 
@@ -247,14 +252,20 @@ class stoch_alt(Strategy):
             if ma7[-1] > ma50[-1] > ma100[-1]:
                 
                 if detect.crossover(stoch_k,stoch_d):
-                    self.signals = []
+                    sigs= [x for x in self.signals if x.name=="STOCH_ALT_SLOW_CLOSE"]
+                    for s in sigs:
+                        self.signals.remove(s)
+
                     sig = Sig("STOCH_ALT_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
 
             elif ma7[-1] < ma50[-1] < ma100[-1]:
                 
                 if detect.crossunder(stoch_k,stoch_d): 
-                    self.signals = []
+                    sigs= [x for x in self.signals if x.name=="STOCH_ALT_SLOW_CLOSE"]
+                    for s in sigs:
+                        self.signals.remove(s)
+
                     sig = Sig("STOCH_ALT_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"SELL",1,comment="stoch_k above threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
 
@@ -335,7 +346,20 @@ class stoch_alt(Strategy):
         return direction
 
     def assess_close(self,signal,trade):
+        logger.info("ASSESSING CLOSE ON MARKET: {}".format(trade.market.epic))
+        logger.info(trade.prediction['strategy'])
         if trade.prediction['strategy'] == self.name:
+            logger.info(trade.prediction['strategy'])
+            logger.info("ASSESSING CLOSE: trade signal {}, new signal: {}".format(trade.prediction['signal']['name'],signal.name))
+            close_ok = False
+            if trade.prediction['signal']['name']=="STOCH_ALT_SLOW_OPEN" and signal.name=="STOCH_ALT_SLOW_CLOSE":
+                close_ok = True
+
+            if trade.prediction['signal']['name']=="STOCH_ALT_FAST_OPEN" and signal.name=="STOCH_ALT_FAST_CLOSE":
+                close_ok = True
+            
+            logger.info("close? {} Trade pip diff {}".format(close_ok,trade.pip_diff))
+            
             if ("SLOW" in trade.prediction['signal']['name'] and "SLOW" in signal.name) or ("FAST" in trade.prediction['signal']['name'] and "FAST" in signal.name):
                 trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
                 if trade.pip_diff >0:
