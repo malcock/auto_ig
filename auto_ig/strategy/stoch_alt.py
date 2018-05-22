@@ -154,11 +154,11 @@ class stoch_alt(Strategy):
 
 
             if detect.crossunder(stoch_k,stoch_d):
-                sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"SELL",2,comment="fast close",life=0)
+                sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"SELL",2,comment="fast close",life=1)
                 super().add_signal(sig,market)
                 
             if detect.crossover(stoch_k,stoch_d):
-                sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"BUY",2,comment="fast close",life=0)
+                sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"BUY",2,comment="fast close",life=1)
                 super().add_signal(sig,market)
 
             if ma7[-1] > ma50[-1] > ma100[-1]:
@@ -241,11 +241,11 @@ class stoch_alt(Strategy):
             now = prices[-1]
  
             if detect.crossunder(stoch_k,stoch_d):
-                sig = Sig("STOCH_ALT_SLOW_CLOSE",now['snapshotTime'],"SELL",2,comment="fast close",life=0)
+                sig = Sig("STOCH_ALT_SLOW_CLOSE",now['snapshotTime'],"SELL",2,comment="fast close",life=1)
                 super().add_signal(sig,market)
 
             if detect.crossover(stoch_k,stoch_d):
-                sig = Sig("STOCH_ALT_SLOW_CLOSE",now['snapshotTime'],"BUY",2,comment="fast close",life=0)
+                sig = Sig("STOCH_ALT_SLOW_CLOSE",now['snapshotTime'],"BUY",2,comment="fast close",life=1)
                 super().add_signal(sig,market)
             
 
