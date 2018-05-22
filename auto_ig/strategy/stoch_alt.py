@@ -106,11 +106,7 @@ class stoch_alt(Strategy):
         stop =  math.ceil(stop + (market.spread*2))
         if stop<=market.spread*2:
             stop = market.spread*3
-
-        max_stop = 30
-        if "SLOW" in signal.name:
-            max_stop = 50
-        stop = max_stop
+        stop = min(stop,50)
         
         # prepare the trade info object to pass back
         prediction_object = {
@@ -149,7 +145,7 @@ class stoch_alt(Strategy):
             ma100 = ta.ema(60,prices)
  
             ema5 = ta.ma(5,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,5,5,5)
+            stoch_k, stoch_d = ta.stochastic(prices,14,5,5)
             now = prices[-1]
 
 
@@ -161,9 +157,9 @@ class stoch_alt(Strategy):
                 sig = Sig("STOCH_ALT_FAST_CLOSE",now['snapshotTime'],"BUY",2,comment="fast close",life=1)
                 super().add_signal(sig,market)
 
-            if ma7[-1] > ma50[-1] > ma100[-1]:
+            if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
  
-                if detect.crossover(stoch_k,stoch_d): 
+                if detect.crossover(stoch_k,20): 
                     sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
                     for s in sigs:
                         self.signals.remove(s)
@@ -173,9 +169,9 @@ class stoch_alt(Strategy):
                     
 
  
-            elif ma7[-1]  < ma50[-1] < ma100[-1]:
+            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
    
-                if detect.crossunder(stoch_k,stoch_d): 
+                if detect.crossunder(stoch_k,80): 
                     sigs= [x for x in self.signals if x.name=="STOCH_ALT_FAST_CLOSE"]
                     for s in sigs:
                         self.signals.remove(s)
@@ -195,13 +191,13 @@ class stoch_alt(Strategy):
             # ma7_delta = ma7[-1] - ma7[-2]
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if ema5_delta>0:
+                    if ema5_delta>0.25:
                     # if ema5_delta > 0.25:
                         sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
-                    if ema5_delta<0:
+                    if ema5_delta<-0.25:
                     # if ema5_delta < -0.25:
                         sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
@@ -237,7 +233,7 @@ class stoch_alt(Strategy):
             ma100 = ta.ma(60,prices)
  
             ema5 = ta.ema(5,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,5,5,5)
+            stoch_k, stoch_d = ta.stochastic(prices,14,5,5)
             now = prices[-1]
  
             if detect.crossunder(stoch_k,stoch_d):
@@ -249,9 +245,9 @@ class stoch_alt(Strategy):
                 super().add_signal(sig,market)
             
 
-            if ma7[-1] > ma50[-1] > ma100[-1]:
+            if ma50[-1] > ma100[-1] and ma7[-1] > ma100[-1]:
                 
-                if detect.crossover(stoch_k,stoch_d):
+                if detect.crossover(stoch_k,20):
                     sigs= [x for x in self.signals if x.name=="STOCH_ALT_SLOW_CLOSE"]
                     for s in sigs:
                         self.signals.remove(s)
@@ -259,9 +255,9 @@ class stoch_alt(Strategy):
                     sig = Sig("STOCH_ALT_SLOW_STOCH_THRESHOLD",now['snapshotTime'],"BUY",1,comment="stoch_k below threshold {}".format(stoch_k[-1]),life=7)
                     super().add_signal(sig,market)
 
-            elif ma7[-1] < ma50[-1] < ma100[-1]:
+            elif ma50[-1] < ma100[-1] and ma7[-1] < ma100[-1]:
                 
-                if detect.crossunder(stoch_k,stoch_d): 
+                if detect.crossunder(stoch_k,80): 
                     sigs= [x for x in self.signals if x.name=="STOCH_ALT_SLOW_CLOSE"]
                     for s in sigs:
                         self.signals.remove(s)
@@ -293,14 +289,14 @@ class stoch_alt(Strategy):
             # smo,smoo = self.smoothed_mfi(prices,14,9,9)
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if ema5_delta>0:
+                    if ema5_delta>0.25:
                     # if ema5_delta > 0.25:
                         sig = Sig("STOCH_ALT_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     # if ema5_delta < -0.25:
-                    if ema5_delta<0:
+                    if ema5_delta<-0.25:
                         sig = Sig("STOCH_ALT_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
