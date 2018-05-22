@@ -114,6 +114,9 @@ class Strategy:
         signal.set_market(market.epic)
         self.signals.append(signal)
 
+    def trailing_stop(self,trade):
+        return False, 0
+
     def assess_close(self,signal,trade):
         trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
         trade.close_trade()
@@ -142,12 +145,12 @@ class Sig:
     
     def set_market(self,market):
         self.market = market
-        logger.info("new sig! : {} : {}: {}".format(self.market, self.name,self.timestamp))
+        logger.info("new sig! : {} : {}: {} : {}".format(self.market, self.name, self.position, self.timestamp))
 
     def process(self):
         self.life-=1
         if self.life<0:
-            logger.info("{} {} {} timed out".format(self.market,self.name,self.timestamp))
+            logger.info("timed out: {} {} {}".format(self.market,self.name,self.timestamp))
             return False
 
         return True

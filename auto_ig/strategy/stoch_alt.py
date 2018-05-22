@@ -195,13 +195,13 @@ class stoch_alt(Strategy):
             # ma7_delta = ma7[-1] - ma7[-2]
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if ema5_delta>0.25:
+                    if ema5_delta>0:
                     # if ema5_delta > 0.25:
                         sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
-                    if ema5_delta<-0.25:
+                    if ema5_delta<0:
                     # if ema5_delta < -0.25:
                         sig = Sig("STOCH_ALT_FAST_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 5 min; {} {}".format(s.timestamp,s.comment),life=2)
                         super().add_signal(sig,market)
@@ -293,14 +293,14 @@ class stoch_alt(Strategy):
             # smo,smoo = self.smoothed_mfi(prices,14,9,9)
             for s in threshold_sigs:
                 if s.position=="BUY":
-                    if ema5_delta>0.25:
+                    if ema5_delta>0:
                     # if ema5_delta > 0.25:
                         sig = Sig("STOCH_ALT_SLOW_OPEN",now['snapshotTime'],"BUY",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
                 else:
                     # if ema5_delta < -0.25:
-                    if ema5_delta<-0.25:
+                    if ema5_delta<0:
                         sig = Sig("STOCH_ALT_SLOW_OPEN",now['snapshotTime'],"SELL",4,comment="stars have aligned 30 min; {} {}".format(s.timestamp, s.comment),life=2)
                         super().add_signal(sig,market)
                         self.signals.remove(s)
@@ -319,6 +319,13 @@ class stoch_alt(Strategy):
             logger.info(exc_tb.tb_lineno)
             logger.info(exc_obj)
             pass
+
+    def trailing_stop(self,trade):
+        res = "MINUTE_5"
+        if "SLOW" in trade.prediction['signal']['name']:
+            res = "MINUTE_30"
+
+        prices = trade.market.prices[res]
         
     def isgood(self,market):
 
