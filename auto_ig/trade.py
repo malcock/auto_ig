@@ -100,7 +100,11 @@ class Trade:
                 # IF FAILED OR CLOSED, SAVE AND RETURN FALSE TO REMOVE FROM LIST
                 self.log_status("Trade {}".format(TradeState(self.state).name))
                 self.save_trade()
-                return False
+                base_url = self.market.ig.api_url + '/positions/'+ self.deal_id
+                auth_r = requests.get(base_url, headers=self.market.ig.authenticate())
+                if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                    self.log_status("Trade confirmed closed in IG")
+                    return False
 
             elif self.state == TradeState.WAITING:
                 if time_now > self.expiry_time:
@@ -300,6 +304,7 @@ class Trade:
             logger.info(auth_r.text)
             # something retarded has happened, but we can't find the deal so consider it closed
             if "No position found for AccountId" in auth_r.text:
+                logger.info("Couldn't find the trade - probs closed")
                 self.closed_time = time_now
                 self.state = TradeState.CLOSED
                 self.save_trade()
