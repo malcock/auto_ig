@@ -469,7 +469,7 @@ class Market:
         
 
         if data_count > 0:
-            logger.info("{} updated: used api calls {} remaining {}/{} - time till reset {}".format(self.epic, data_count, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
+            logger.info("{} {} updated: used api calls {} remaining {}/{} - time till reset {}".format(self.epic, resolution, data_count, api_calls['remainingAllowance'], api_calls['totalAllowance'], self.humanize_time(api_calls['allowanceExpiry'])))
 
         self.save_prices()
 

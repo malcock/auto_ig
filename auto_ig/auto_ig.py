@@ -87,163 +87,175 @@ class AutoIG:
 
     def process(self,epic_ids):
         """Do the process"""
-        timenow = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
-
-        if timenow.weekday() == 5:
-            return False, "We don't play on weekends"
-
-        # if timenow.weekday() == 4:
-        #     if timenow.time() > datetime.time(21):
-        #         # close for the weekend
-        #         if self.is_open:
-        #             if isinstance(self.lightstream, LSClient):
-        #                 self.lightstream.unsubscribe_all()
-                    
-        #             self.lightstream = {}
-
-        #             for m in self.markets.values():
-        #                 m.prices = {}
-        #                 m.save_prices()
-
-        #             self.is_open = False
-        #         return False, "Markets closed on Friday"
-
-        if timenow.weekday() ==6:
-            if timenow.time() > datetime.time(22):
-                if not self.is_open:
-                    self.is_open = True
-            else:
-                return False, "Market still closed on Sunday"
-
-        
-
-        self.update_markets(epic_ids)
-
-
-        # first - are there any saved trades?
         try:
-            path = "trades/open"
-            trades_on_file = [name for name in os.listdir(path) if name.endswith(".json")]
-            logger.info("number of trades found: {}, trades in memory: {}".format(len(trades_on_file),len(self.trades)))
-            if len(self.trades)<len(trades_on_file):
-                logger.info("trades on file disparity")
-                for name in trades_on_file:
-                    fh = open(os.path.join(path,name),"r")
-                    json_trade = json.load(fh)
-                    logger.info("loaded file: " + name)
-                    if json_trade['market'] in self.markets:
-                        self.make_trade(json_trade['size_value'],self.markets[json_trade['market']],json_trade['prediction'],json_trade)
-            elif len(self.trades)>len(trades_on_file):
-                # try to clean up trades list
-                logger.info("trying to clean up trades list")
-                set_trades = {}
-                for t in self.trades:
-                    set_trades[t.deal_id] = t
+            timenow = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
 
-                self.trades  = list(set_trades.values())
-                            
+            if timenow.weekday() == 5:
+                return False, "We don't play on weekends"
 
+            # if timenow.weekday() == 4:
+            #     if timenow.time() > datetime.time(21):
+            #         # close for the weekend
+            #         if self.is_open:
+            #             if isinstance(self.lightstream, LSClient):
+            #                 self.lightstream.unsubscribe_all()
+                        
+            #             self.lightstream = {}
+
+            #             for m in self.markets.values():
+            #                 m.prices = {}
+            #                 m.save_prices()
+
+            #             self.is_open = False
+            #         return False, "Markets closed on Friday"
+
+            if timenow.weekday() ==6:
+                if timenow.time() > datetime.time(22):
+                    if not self.is_open:
+                        self.is_open = True
+                else:
+                    return False, "Market still closed on Sunday"
+
+            
+
+            self.update_markets(epic_ids)
+
+
+            # first - are there any saved trades?
+            try:
+                path = "trades/open"
+                trades_on_file = [name for name in os.listdir(path) if name.endswith(".json")]
+                logger.info("number of trades found: {}, trades in memory: {}".format(len(trades_on_file),len(self.trades)))
+                if len(self.trades)<len(trades_on_file):
+                    logger.info("trades on file disparity")
+                    for name in trades_on_file:
+                        fh = open(os.path.join(path,name),"r")
+                        json_trade = json.load(fh)
+                        logger.info("loaded file: " + name)
+                        if json_trade['market'] in self.markets:
+                            self.make_trade(json_trade['size_value'],self.markets[json_trade['market']],json_trade['prediction'],json_trade)
+                elif len(self.trades)>len(trades_on_file):
+                    # try to clean up trades list
+                    logger.info("trying to clean up trades list")
+                    set_trades = {}
+                    for t in self.trades:
+                        set_trades[t.deal_id] = t
+
+                    self.trades  = list(set_trades.values())
+                                
+
+            except Exception as e:
+                logger.error(e)
+            
+            open_lightstreamer = False
+
+            mins_now = timenow.strftime("%M")
+            if mins_now in ["00","15","30","45"]:
+                clean = True
+                
+                for t in [x for x in self.trades if x.deal_id is not "PENDING"]:
+                    base_url = self.api_url + '/positions/'+ t.deal_id
+                    auth_r = requests.get(base_url, headers=self.authenticate())
+                    if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                        logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
+                        t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
+                        t.state = 3
+                        clean = False
+
+                if not clean:
+                    logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
+                    open_lightstreamer = True
+            
+            epic_list = []
+            for m in self.markets.values():
+                # if state has changed force an update to the lightstream obj
+                if m.market_status!=m.last_status:
+                    open_lightstreamer = True
+
+                if m.market_status == "TRADEABLE" and self.api_calls<50:
+                    if m.get_update_cost("DAY",30)>0:
+                        open_lightstreamer = True
+                        m.update_prices("DAY",30)
+
+                    if m.get_update_cost("MINUTE_5",100)>0:
+                        open_lightstreamer = True
+                        m.update_prices("MINUTE_5",100)
+                    
+                    if m.get_update_cost("MINUTE_30",100)>0:
+                        open_lightstreamer = True
+                        m.update_prices("MINUTE_30",100)
+
+                    if m.get_update_cost("HOUR",100)>0:
+                        open_lightstreamer = True
+                        m.update_prices("HOUR",100)
+                    
+                    if m.get_update_cost("HOUR_4",100)>0:
+                        open_lightstreamer = True
+                        m.update_prices("HOUR_4",100)
+                    
+                    epic_list.append(m.epic)
+                
+            
+
+            # let's process our markets and look for signals then
+            top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
+            for market in top_markets:
+                self.insta_trade(market)
+                
+                
+            if not isinstance(self.lightstream, LSClient):
+                open_lightstreamer = True
+
+            # either no lightstreamer object was found, or the epics have changed
+            if open_lightstreamer:
+                # epic_list = [x.epic for x in self.markets.values() if x.market_status=="TRADEABLE"]
+                # epic_list = self.markets.keys()
+                if len(epic_list)==0:
+                    return False, "No epics to open lightstream with, weird huh"
+                if isinstance(self.lightstream, LSClient):
+                    self.lightstream.unsubscribe_all()
+                else:
+                    try:
+                        headers = self.authenticate()
+                        password = "CST-" + str(headers['CST']) + "|XST-" + str(headers['X-SECURITY-TOKEN'])
+                        logger.info(self.lightstreamerEndpoint)
+                        logger.info(self.api_user)
+                        logger.info(password)
+                        self.lightstream = LSClient(self.lightstreamerEndpoint,"",self.api_user,password)
+                        logger.info("attempting to connect to lightstream")
+
+                        self.lightstream.connect()
+                        logger.info("connect?")
+                    except Exception as e:
+                        logger.info("Unable to connect to Lightstreamer Server - clearing headers")
+                        logger.info(e)
+                        self.authenticated_headers = {}
+                        self.lightstream = {}
+                        self.lightstreamerEndpoint = ""
+
+                        return False, "Failed to open lighstreamer: {}".format(e)
+
+                # assuming here that we've got a lighstream connection so we can subscribe now
+                
+                epic_ids_time = ["CHART:" + s + ":5MINUTE" for s in epic_list]
+                logger.info(epic_ids_time)
+                live_charts = Subscription(mode="MERGE", items=epic_ids_time, fields="LTV,UTM,DAY_HIGH,DAY_LOW,OFR_OPEN,OFR_HIGH,OFR_LOW,OFR_CLOSE,BID_OPEN,BID_HIGH,BID_LOW,BID_CLOSE,CONS_END,CONS_TICK_COUNT".split(","),adapter="DEFAULT")
+                live_charts.addlistener(self.live_update)
+                self.live_charts_key = self.lightstream.subscribe(live_charts)
+
+
+            self.api_calls=0
+        
         except Exception as e:
-            logger.error(e)
-        
-        open_lightstreamer = False
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("process went wrong")
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
 
-        mins_now = timenow.strftime("%M")
-        if mins_now in ["00","15","30","45"]:
-            clean = True
-            
-            for t in [x for x in self.trades if x.deal_id is not "PENDING"]:
-                base_url = self.api_url + '/positions/'+ t.deal_id
-                auth_r = requests.get(base_url, headers=self.authenticate())
-                if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                    logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
-                    t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
-                    t.state = 3
-                    clean = False
-
-            if not clean:
-                logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
-                open_lightstreamer = True
-        
-        epic_list = []
-        for m in self.markets.values():
-            # if state has changed force an update to the lightstream obj
-            if m.market_status!=m.last_status:
-                open_lightstreamer = True
-
-            if m.market_status == "TRADEABLE" and self.api_calls<50:
-                if m.get_update_cost("DAY",30)>0:
-                    open_lightstreamer = True
-                    m.update_prices("DAY",30)
-
-                if m.get_update_cost("MINUTE_5",100)>0:
-                    open_lightstreamer = True
-                    m.update_prices("MINUTE_5",100)
-                
-                if m.get_update_cost("MINUTE_30",100)>0:
-                    open_lightstreamer = True
-                    m.update_prices("MINUTE_30",100)
-
-                if m.get_update_cost("HOUR",100)>0:
-                    open_lightstreamer = True
-                    m.update_prices("HOUR",100)
-                
-                if m.get_update_cost("HOUR_4",100)>0:
-                    open_lightstreamer = True
-                    m.update_prices("HOUR_4",100)
-                
-                epic_list.append(m.epic)
-            
-        
-
-        # let's process our markets and look for signals then
-        top_markets = sorted(self.markets.values(), key=operator.attrgetter('spread'))
-        for market in top_markets:
-            self.insta_trade(market)
-            
-            
-        if not isinstance(self.lightstream, LSClient):
-            open_lightstreamer = True
-
-        # either no lightstreamer object was found, or the epics have changed
-        if open_lightstreamer:
-            # epic_list = [x.epic for x in self.markets.values() if x.market_status=="TRADEABLE"]
-            # epic_list = self.markets.keys()
-            if len(epic_list)==0:
-                return False, "No epics to open lightstream with, weird huh"
-            if isinstance(self.lightstream, LSClient):
-                self.lightstream.unsubscribe_all()
-            else:
-                try:
-                    headers = self.authenticate()
-                    password = "CST-" + str(headers['CST']) + "|XST-" + str(headers['X-SECURITY-TOKEN'])
-                    logger.info(self.lightstreamerEndpoint)
-                    logger.info(self.api_user)
-                    logger.info(password)
-                    self.lightstream = LSClient(self.lightstreamerEndpoint,"",self.api_user,password)
-                    logger.info("attempting to connect to lightstream")
-
-                    self.lightstream.connect()
-                    logger.info("connect?")
-                except Exception as e:
-                    logger.info("Unable to connect to Lightstreamer Server - clearing headers")
-                    logger.info(e)
-                    self.authenticated_headers = {}
-                    self.lightstream = {}
-                    self.lightstreamerEndpoint = ""
-
-                    return False, "Failed to open lighstreamer: {}".format(e)
-
-            # assuming here that we've got a lighstream connection so we can subscribe now
-            
-            epic_ids_time = ["CHART:" + s + ":5MINUTE" for s in epic_list]
-            logger.info(epic_ids_time)
-            live_charts = Subscription(mode="MERGE", items=epic_ids_time, fields="LTV,UTM,DAY_HIGH,DAY_LOW,OFR_OPEN,OFR_HIGH,OFR_LOW,OFR_CLOSE,BID_OPEN,BID_HIGH,BID_LOW,BID_CLOSE,CONS_END,CONS_TICK_COUNT".split(","),adapter="DEFAULT")
-            live_charts.addlistener(self.live_update)
-            self.live_charts_key = self.lightstream.subscribe(live_charts)
-
-
-        self.api_calls=0
         return True, "hello"
 
     def insta_trade(self,market):
