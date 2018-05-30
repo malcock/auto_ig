@@ -174,7 +174,7 @@ class AutoIG:
 
                 if m.market_status == "TRADEABLE" and self.api_calls<50:
                     if m.get_update_cost("DAY",30)>0:
-                        open_lightstreamer = True
+                        open_lightstreamer = True 
                         m.update_prices("DAY",30)
 
                     if m.get_update_cost("MINUTE_5",100)>0:

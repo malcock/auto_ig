@@ -141,8 +141,7 @@ class stoch_alt(Strategy):
             if len(prices)<80:
                 logger.warning("{} {} need more data".format(market.epic,resolution))
                 return
-            
-            self.atrs[resolution] = ta.atr(14,prices)
+            self.atrs[resolution],tr = ta.atr(14,prices)
             print("HEY YO")
             trend = ta.ema(80,prices)
             ma = ta.ma(20,prices)
@@ -226,6 +225,8 @@ class stoch_alt(Strategy):
         use_trail = True if res in ['HOUR_4','HOUR'] else False
         stop_val = 0
         if use_trail:
+            if res not in self.atrs:
+                self.atrs[res],tr = ta.atr(14,trade.market.prices[res])
             stop_val = trade.pip_max - self.atrs[res][-1]
 
         return use_trail,stop_val
