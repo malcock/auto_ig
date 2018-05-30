@@ -391,6 +391,7 @@ class Market:
                     data_count = count
                 if len(self.prices[resolution])<1:
                     return count
+                    
                 time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
                 last_date = datetime.datetime.strptime(self.prices[resolution][-1]['snapshotTime'], "%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
 

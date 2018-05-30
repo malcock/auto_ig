@@ -44,6 +44,7 @@ class AutoIG:
         self.lightstream = {}
         self.key = ""
         self.is_open = True
+        self.api_calls = 0
         self.strategy = {}
         self.strategy['stoch_alt'] = stoch_alt()
         # self.strategy['macd'] = macd()
@@ -131,7 +132,7 @@ class AutoIG:
                     json_trade = json.load(fh)
                     logger.info("loaded file: " + name)
                     if json_trade['market'] in self.markets:
-                        self.make_trade(1,self.markets[json_trade['market']],json_trade['prediction'],json_trade)
+                        self.make_trade(json_trade['size'],self.markets[json_trade['market']],json_trade['prediction'],json_trade)
             elif len(self.trades)>len(trades_on_file):
                 # try to clean up trades list
                 logger.info("trying to clean up trades list")
@@ -147,40 +148,51 @@ class AutoIG:
         
         open_lightstreamer = False
 
+        mins_now = timenow.strftime("%M")
+        if mins_now in ["00","15","30","45"]:
+            clean = True
+            
+            for t in [x for x in self.trades if x.deal_id is not "PENDING"]:
+                base_url = self.api_url + '/positions/'+ t.deal_id
+                auth_r = requests.get(base_url, headers=self.authenticate())
+                if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                    logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
+                    t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
+                    t.state = 3
+                    clean = False
 
-        clean = True
-        for t in [x for x in self.trades if x.deal_id is not "PENDING"]:
-            base_url = self.api_url + '/positions/'+ t.deal_id
-            auth_r = requests.get(base_url, headers=self.authenticate())
-            if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
-                t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
-                t.state = 3
-                clean = False
-        if not clean:
-            logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
-            open_lightstreamer = True
-
+            if not clean:
+                logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
+                open_lightstreamer = True
+        
+        epic_list = []
         for m in self.markets.values():
             # if state has changed force an update to the lightstream obj
             if m.market_status!=m.last_status:
                 open_lightstreamer = True
 
-            if m.market_status == "TRADEABLE":
+            if m.market_status == "TRADEABLE" and self.api_calls<50:
                 if m.get_update_cost("DAY",30)>0:
+                    open_lightstreamer = True
                     m.update_prices("DAY",30)
 
                 if m.get_update_cost("MINUTE_5",100)>0:
+                    open_lightstreamer = True
                     m.update_prices("MINUTE_5",100)
                 
                 if m.get_update_cost("MINUTE_30",100)>0:
+                    open_lightstreamer = True
                     m.update_prices("MINUTE_30",100)
 
                 if m.get_update_cost("HOUR",100)>0:
+                    open_lightstreamer = True
                     m.update_prices("HOUR",100)
                 
                 if m.get_update_cost("HOUR_4",100)>0:
+                    open_lightstreamer = True
                     m.update_prices("HOUR_4",100)
+                
+                epic_list.append(m.epic)
             
         
 
@@ -195,7 +207,7 @@ class AutoIG:
 
         # either no lightstreamer object was found, or the epics have changed
         if open_lightstreamer:
-            epic_list = [x.epic for x in self.markets.values() if x.market_status=="TRADEABLE"]
+            # epic_list = [x.epic for x in self.markets.values() if x.market_status=="TRADEABLE"]
             # epic_list = self.markets.keys()
             if len(epic_list)==0:
                 return False, "No epics to open lightstream with, weird huh"
@@ -231,7 +243,7 @@ class AutoIG:
             self.live_charts_key = self.lightstream.subscribe(live_charts)
 
 
-
+        self.api_calls=0
         return True, "hello"
 
     def insta_trade(self,market):
@@ -261,14 +273,10 @@ class AutoIG:
                     logger.info("{} trade already open on this market".format(market.epic))
                     for t in current_trades:
                         if signal.position == t.prediction['direction_to_trade']:
-                            
-                            if signal.name == 'MFI_SIMPLE_FAST_OPEN':
-                                signal.unused = True
-                                
-                            else:
-                                t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
-                                signal.unused = False
-                                signal.score-=1
+    
+                            t.log_status("{} signal reenforced {} - {} - {}".format(market.epic,signal.position, signal.name, signal.timestamp))
+                            signal.unused = False
+                            signal.score-=1
                             
                         else:
                             
@@ -382,6 +390,7 @@ class AutoIG:
     def authenticate(self):
         """Authenticate with IG"""
         if 'CST' in self.authenticated_headers:
+            self.api_calls +=1
             return self.authenticated_headers
         else:
             logger.info("generating new headers")
@@ -412,6 +421,7 @@ class AutoIG:
                 
                 self.authenticated_headers = headers
 
+                self.api_calls +=1
                 return self.authenticated_headers
             else:
                 logger.info("auth failed: " + str(rep.status_code) + " " + rep.reason)

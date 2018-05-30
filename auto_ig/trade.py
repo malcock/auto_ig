@@ -337,38 +337,49 @@ class Trade:
 
     def update_from_json(self, json_data):
         try:
-            close_t = datetime.datetime.strptime(json_data['closed_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
-        except Exception as e:
-            close_t = None
-        try:
-            open_t = datetime.datetime.strptime(json_data['opened_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
-        except Exception as e:
-            open_t = None
+            try:
+                close_t = datetime.datetime.strptime(json_data['closed_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
+            except Exception as e:
+                close_t = None
+            try:
+                open_t = datetime.datetime.strptime(json_data['opened_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
+            except Exception as e:
+                open_t = None
 
+            
+
+            self.size_value = json_data['size_value']
+            self.prediction = json_data['prediction']
+            self.deal_id = json_data['deal_id']
+            self.state = json_data['state']
+            self.created_time = datetime.datetime.strptime(json_data['created_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
+            self.expiry_time = datetime.datetime.strptime(json_data['expiry_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
+
+            
+
+            self.opened_time = open_t
+            self.closed_time = close_t
+
+
+            self.open_level = float(json_data['open_level'])
+            self.pip_diff = float(json_data['pip_diff'])
+            self.pip_max = json_data['pip_max']
+            self.pip_min = getattr(json_data,'pip_min',0)
+
+            self.profit_loss = float(json_data['profit_loss'])
+            self.trailing_stop = json_data['trailing_stop']
+
+            self.status_log = json_data['status_log']
         
-
-        self.size_value = json_data['size_value']
-        self.prediction = json_data['prediction']
-        self.deal_id = json_data['deal_id']
-        self.state = json_data['state']
-        self.created_time = datetime.datetime.strptime(json_data['created_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
-        self.expiry_time = datetime.datetime.strptime(json_data['expiry_time'],"%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
-
-        
-
-        self.opened_time = open_t
-        self.closed_time = close_t
-
-
-        self.open_level = float(json_data['open_level'])
-        self.pip_diff = float(json_data['pip_diff'])
-        self.pip_max = json_data['pip_max']
-        self.pip_min = getattr(json_data,'pip_min',0)
-
-        self.profit_loss = float(json_data['profit_loss'])
-        self.trailing_stop = json_data['trailing_stop']
-
-        self.status_log = json_data['status_log']
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("{} trade load fail".format(self.prediction))
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
 
     def save_trade(self):
 
