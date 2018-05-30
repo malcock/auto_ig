@@ -74,16 +74,14 @@ class stoch_alt(Strategy):
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_14"""
-        res = 'MINUTE_5'
-        if "SLOW" in signal.name:
-            res = "MINUTE_30"
-        prices = market.prices[res]
+
+        prices = market.prices[resolution]
         atr, tr = ta.atr(14,prices)
         low_range = min(tr)
         max_range = max(tr)
  
         
-        stop = (atr[-1]*2) + (market.spread*2)
+        stop = (atr[-1]) + (market.spread*2)
         limit = -1
  
         # limit = max(limit,4)
