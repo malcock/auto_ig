@@ -71,8 +71,9 @@ class AutoIG:
     def fill_signals(self):
         for m in self.markets.values():
             print('backfilling {}'.format(m.epic))
-            for s in m.strategies.values():
-                s.backfill(m,'MINUTE_30')
+            m.backtest_all()
+            # for s in m.strategies.values():
+            #     s.backfill(m,'MINUTE_30')
 
     def get_signals(self):
         
@@ -169,11 +170,17 @@ class AutoIG:
                 if m.get_update_cost("DAY",30)>0:
                     m.update_prices("DAY",30)
 
+                if m.get_update_cost("MINUTE_5",100)>0:
+                    m.update_prices("MINUTE_5",100)
+                
                 if m.get_update_cost("MINUTE_30",100)>0:
                     m.update_prices("MINUTE_30",100)
 
-                if m.get_update_cost("MINUTE_5",100)>0:
-                    m.update_prices("MINUTE_5",100)
+                if m.get_update_cost("HOUR",100)>0:
+                    m.update_prices("HOUR",100)
+                
+                if m.get_update_cost("HOUR_4",100)>0:
+                    m.update_prices("HOUR_4",100)
             
         
 

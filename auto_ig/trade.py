@@ -146,13 +146,13 @@ class Trade:
 
                 # rough trail calc - update with strategy method one day?
                 stoploss = float(self.prediction['stoploss'])
-                self.trailing_level = self.pip_max - 8
+                # self.trailing_level = self.pip_max - 8
 
-                # self.trailing_stop,self.trailing_level = self.market.ig.strategy[self.prediction['strategy']].trailing_stop(self)
+                self.trailing_stop,self.trailing_level = self.market.ig.strategy[self.prediction['strategy']].trailing_stop(self)
 
                 # if self.trailing_stop:
-                if self.pip_diff>8 and self.trailing_stop==False:
-                    self.trailing_stop = True
+                # if self.pip_diff>8 and self.trailing_stop==False:
+                #     self.trailing_stop = True
                 
                 if self.trailing_stop:
                     if self.pip_diff < self.trailing_level:

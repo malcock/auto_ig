@@ -108,7 +108,10 @@ def fill_signals():
     for key,s in sigs.items():
         output += "<li>{}<ul>".format(key)
         for sig in s:
-            output+="<li>{} - {} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.market,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+            if "OPEN" in sig.name:
+                output+="<li>{} - {}/{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.market,sig.resolution,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+            else:
+                output+="<li><small>{} - {}/{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</small></li>".format(sig.timestamp,sig.market,sig.resolution,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
         output += "</ul></li>"
 
     output += "</ul>"
@@ -121,10 +124,10 @@ def show_signals():
     for key,s in sigs.items():
         output += "<li>{}<ul>".format(key)
         for sig in s:
-            if sig.score>1:
-                output+="<li>{} - {} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.market,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+            if "OPEN" in sig.name:
+                output+="<li>{} - {}/{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</li>".format(sig.timestamp,sig.market,sig.resolution,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
             else:
-                output+="<li><small>{} - {} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</small></li>".format(sig.timestamp,sig.market,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
+                output+="<li><small>{} - {}/{} - {} ({} <b>({})</b>) - {} unused:{} comment: {}</small></li>".format(sig.timestamp,sig.market,sig.resolution,sig.name,sig.position,sig.score,sig.life,sig.unused,sig.comment)
         output += "</ul></li>"
 
     output += "</ul>"

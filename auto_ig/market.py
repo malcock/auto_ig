@@ -54,43 +54,53 @@ class Market:
             self.strategies[strategy.name] = strategy
 
     def update_market(self, obj = None):
-        if obj is None:
-            logger.info("getting " + self.epic + " market data")
-            base_url = self.ig.api_url + '/markets/' + self.epic
-            auth_r = requests.get(base_url, headers=self.ig.authenticate())
-            obj = json.loads(auth_r.text)
-        
-        # store the status of the market from the obj, use a change in state to trigger an update to lightstreamer in auto_ig.py
-        self.market_status = obj['snapshot']['marketStatus']
-        
-        # maybe we can load some prices?
-        self.bid = float(obj['snapshot']['bid'])
-        self.offer = float(obj['snapshot']['offer'])
-        self.spread = self.offer - self.bid
-        self.high = float(obj['snapshot']['high'])
-        self.low = float(obj['snapshot']['low'])
-        self.percentage_change = float(obj['snapshot']['percentageChange'])
-        self.net_change = float(obj['snapshot']['netChange'])
+        try:
+            if obj is None:
+                logger.info("getting " + self.epic + " market data")
+                base_url = self.ig.api_url + '/markets/' + self.epic
+                auth_r = requests.get(base_url, headers=self.ig.authenticate())
+                obj = json.loads(auth_r.text)
+            
+            # store the status of the market from the obj, use a change in state to trigger an update to lightstreamer in auto_ig.py
+            self.market_status = obj['snapshot']['marketStatus']
+            
+            # maybe we can load some prices?
+            self.bid = float(obj['snapshot']['bid'])
+            self.offer = float(obj['snapshot']['offer'])
+            self.spread = self.offer - self.bid
+            self.high = float(obj['snapshot']['high'])
+            self.low = float(obj['snapshot']['low'])
+            self.percentage_change = float(obj['snapshot']['percentageChange'])
+            self.net_change = float(obj['snapshot']['netChange'])
 
-        self.dealing_rules = obj['dealingRules']
-        self.margin_bands = obj['instrument']['marginDepositBands']
-        self.risk_premium = obj['instrument']['limitedRiskPremium']
-        self.minimum_stop = self.minimum_stoploss()
-        
-        if self.market_status=="TRADEABLE":
-            if "DAY" in self.prices:
-                self.prices['DAY'][-1]['highPrice']['bid'] = self.high
-                self.prices['DAY'][-1]['lowPrice']['bid'] = self.low
-                self.prices['DAY'][-1]['openPrice']['bid'] = self.bid - self.net_change
-                self.prices['DAY'][-1]['closePrice']['bid'] = self.bid
+            self.dealing_rules = obj['dealingRules']
+            self.margin_bands = obj['instrument']['marginDepositBands']
+            self.risk_premium = obj['instrument']['limitedRiskPremium']
+            self.minimum_stop = self.minimum_stoploss()
+            
+            if self.market_status=="TRADEABLE":
+                if "DAY" in self.prices:
+                    self.prices['DAY'][-1]['highPrice']['bid'] = self.high
+                    self.prices['DAY'][-1]['lowPrice']['bid'] = self.low
+                    self.prices['DAY'][-1]['openPrice']['bid'] = self.bid - self.net_change
+                    self.prices['DAY'][-1]['closePrice']['bid'] = self.bid
 
-        else:
-            self.prices = {}
-            self.save_prices()
-            return
-        
-        
-        self.save_json()
+            else:
+                self.prices = {}
+                self.save_prices()
+                return
+            
+            
+            self.save_json()
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("{} checking update fail".format(self.epic))
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
 
     def minimum_stoploss(self):
         if self.dealing_rules['minControlledRiskStopDistance']['unit']=="POINTS":
@@ -144,93 +154,99 @@ class Market:
                 # use the timestamp to save the value to the right minute object in the list or make a new one
                 i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp), None)
                 if i==None:
+                    # new 5 mins, so process signals before adding them mainly empty period
+                    for s in self.strategies.values():
+                        s.process_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
 
                     self.prices['MINUTE_5'].append(current_price)
                     
+                    self.build_time_period("MINUTE_5","MINUTE_30",120)
+                    self.build_time_period("MINUTE_5","HOUR",120)
+                    self.build_time_period("MINUTE_5","HOUR_4",120)
 
-                    if "MINUTE_30" in self.prices:
-                        last_30_min = int(30 * math.floor(minNum/30))
-                        timestamp_30 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_30_min))
+                    # if "MINUTE_30" in self.prices:
+                    #     last_30_min = int(30 * math.floor(minNum/30))
+                    #     timestamp_30 = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-%H:{:0>2d}:00".format(last_30_min))
                         
-                        # get all elements from MINUTE list since last 5min mark
-                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_30), None)
-                        mins = self.prices['MINUTE_5'][i:]
-                        open_price = mins[0]['openPrice']
-                        close_price = mins[-1]['closePrice']
-                        vol = sum([x['lastTradedVolume'] for x in mins])
-                        ask_low = min([x['lowPrice']['ask'] for x in mins])
-                        ask_high = max([x['highPrice']['ask'] for x in mins])
-                        bid_low = min([x['lowPrice']['bid'] for x in mins])
-                        bid_high = max([x['highPrice']['bid'] for x in mins])
-                        new_30_min = {
-                            "snapshotTime": timestamp_30, 
-                            "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "mid": (float(open_price['bid']) + float(open_price['ask']))/2, "lastTraded": None}, 
-                            "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "mid": (float(close_price['bid']) + float(close_price['ask']))/2, "lastTraded": None }, 
-                            "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "mid": (float(bid_high) + float(ask_high))/2, "lastTraded": None}, 
-                            "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "mid": (float(bid_low) + float(ask_low))/2, "lastTraded": None}, 
-                            "lastTradedVolume": int(vol)}
-                        self.typical_price(new_30_min,"mid")
-                        self.price_spread(new_30_min)
+                    #     # get all elements from MINUTE list since last 5min mark
+                    #     i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == timestamp_30), None)
+                    #     mins = self.prices['MINUTE_5'][i:]
+                    #     open_price = mins[0]['openPrice']
+                    #     close_price = mins[-1]['closePrice']
+                    #     vol = sum([x['lastTradedVolume'] for x in mins])
+                    #     ask_low = min([x['lowPrice']['ask'] for x in mins])
+                    #     ask_high = max([x['highPrice']['ask'] for x in mins])
+                    #     bid_low = min([x['lowPrice']['bid'] for x in mins])
+                    #     bid_high = max([x['highPrice']['bid'] for x in mins])
+                    #     new_30_min = {
+                    #         "snapshotTime": timestamp_30, 
+                    #         "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "mid": (float(open_price['bid']) + float(open_price['ask']))/2, "lastTraded": None}, 
+                    #         "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "mid": (float(close_price['bid']) + float(close_price['ask']))/2, "lastTraded": None }, 
+                    #         "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "mid": (float(bid_high) + float(ask_high))/2, "lastTraded": None}, 
+                    #         "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "mid": (float(bid_low) + float(ask_low))/2, "lastTraded": None}, 
+                    #         "lastTradedVolume": int(vol)}
+                    #     self.typical_price(new_30_min,"mid")
+                    #     self.price_spread(new_30_min)
  
-                        i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
-                        if i==None:
-                            # update the previous bar with last bars
-                            last_period = self.prices['MINUTE_30'][-1]
-                            last_timestamp = last_period['snapshotTime']
-                            i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == last_timestamp), None)
-                            mins = self.prices['MINUTE_5'][i:]
-                            open_price = mins[0]['openPrice']
-                            close_price = mins[-1]['closePrice']
-                            vol = sum([x['lastTradedVolume'] for x in mins])
-                            ask_low = min([x['lowPrice']['ask'] for x in mins])
-                            ask_high = max([x['highPrice']['ask'] for x in mins])
-                            bid_low = min([x['lowPrice']['bid'] for x in mins])
-                            bid_high = max([x['highPrice']['bid'] for x in mins])
-                            last_period['closePrice'] = close_price
-                            last_period['openPrice'] = open_price
-                            last_period['highPrice']['bid'] = bid_high
-                            last_period['highPrice']['ask'] = ask_high
-                            last_period['highPrice']['mid'] = (bid_high+ask_high)/2
+                    #     i = next((index for (index, d) in enumerate(self.prices['MINUTE_30']) if d["snapshotTime"] == timestamp_30), None)
+                    #     if i==None:
+                    #         # update the previous bar with last bars
+                    #         last_period = self.prices['MINUTE_30'][-1]
+                    #         last_timestamp = last_period['snapshotTime']
+                    #         i = next((index for (index, d) in enumerate(self.prices['MINUTE_5']) if d["snapshotTime"] == last_timestamp), None)
+                    #         mins = self.prices['MINUTE_5'][i:]
+                    #         open_price = mins[0]['openPrice']
+                    #         close_price = mins[-1]['closePrice']
+                    #         vol = sum([x['lastTradedVolume'] for x in mins])
+                    #         ask_low = min([x['lowPrice']['ask'] for x in mins])
+                    #         ask_high = max([x['highPrice']['ask'] for x in mins])
+                    #         bid_low = min([x['lowPrice']['bid'] for x in mins])
+                    #         bid_high = max([x['highPrice']['bid'] for x in mins])
+                    #         last_period['closePrice'] = close_price
+                    #         last_period['openPrice'] = open_price
+                    #         last_period['highPrice']['bid'] = bid_high
+                    #         last_period['highPrice']['ask'] = ask_high
+                    #         last_period['highPrice']['mid'] = (bid_high+ask_high)/2
 
-                            last_period['lowPrice']['bid'] = bid_low
-                            last_period['lowPrice']['ask'] = ask_low
-                            last_period['lowPrice']['mid'] = (bid_low+ask_low)/2
-                            last_period['lastTradedVolume'] = int(vol)
-
-                            
-                            self.typical_price(last_period,"mid")
-                            self.price_spread(last_period)
-                            # self.prices['MINUTE_30'][-1] = last_30_min
-
-                            for s in self.strategies.values():
-                                s.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
-                                s.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
+                    #         last_period['lowPrice']['bid'] = bid_low
+                    #         last_period['lowPrice']['ask'] = ask_low
+                    #         last_period['lowPrice']['mid'] = (bid_low+ask_low)/2
+                    #         last_period['lastTradedVolume'] = int(vol)
 
                             
-                            if "HOUR_4" in self.prices:
-                                hr = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%H")
-                                prev_4_hr = int(4 * math.floor(hr/4))
-                                timestamp_4_hr = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-{:0>2d}:00:00".format(prev_4_hr))
-                                i = next((index for (index, d) in enumerate(self.prices['HOUR_4']) if d["snapshotTime"] == timestamp_30), None)
+                    #         self.typical_price(last_period,"mid")
+                    #         self.price_spread(last_period)
+                    #         # self.prices['MINUTE_30'][-1] = last_30_min
+
+                    #         for s in self.strategies.values():
+                    #             s.slow_signals(self,self.prices['MINUTE_30'],'MINUTE_30')
+                    #             s.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
+
+                            
+                    #         # if "HOUR" in self.prices:
+                    #         #     hr = datetime.datetime.fromtimestamp(int(values['UTM'])/1000).strftime("%H")
+                    #         #     # prev_4_hr = int(4 * math.floor(hr/4))
+                    #         #     timestamp_hr = datetime.datetime.fromtimestamp(int(values['UTM'])/1000,timezone('GB')).strftime("%Y:%m:%d-{:0>2d}:00:00".format(prev_hr))
+                    #         #     i = next((index for (index, d) in enumerate(self.prices['HOUR']) if d["snapshotTime"] == timestamp_h4), None)
                                 
-                                # if i is None:
-                                #     pass
-                                # else:
-                                #     pass
-                                #     self.prices['HOUR_4'][i] = {**self.prices['HOUR_4'][i],**new}
+                    #         #     if i is None:
+                    #         #         pass
+                    #         #     else:
+                    #         #         pass
+                    #         #         self.prices['HOUR'][i] = {**self.prices['HOUR'][i],**new}
            
 
-                            self.prices["MINUTE_30"].append(new_30_min)
+                    #         self.prices["MINUTE_30"].append(new_30_min)
 
-                        else:
+                    #     else:
                             
-                            self.prices["MINUTE_30"][i] = {**self.prices["MINUTE_30"][i], **new_30_min}
-                            for s in self.strategies.values():
-                                s.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
+                    #         self.prices["MINUTE_30"][i] = {**self.prices["MINUTE_30"][i], **new_30_min}
+                    #         for s in self.strategies.values():
+                    #             s.fast_signals(self,self.prices['MINUTE_5'],'MINUTE_5')
                           
 
-                        if len(self.prices['MINUTE_30']) > 120:
-                            del self.prices['MINUTE_30'][0]
+                    #     if len(self.prices['MINUTE_30']) > 120:
+                    #         del self.prices['MINUTE_30'][0]
 
                     
                     self.save_prices()
@@ -260,7 +276,104 @@ class Market:
             logger.info(exc_obj)
             pass
 
+    def build_time_period(self,build_from="MINUTE_5",build_to="MINUTE_30",max_count=120):
+        """Builds the specified period from a given resolution
+        if it has to create a new period, then run the given action (strategy signals)"""
+        try:
+            if build_from in self.prices:
+                # build a timestamp format string based on target period
+                rounding_value = 1
+                if "_" in build_to:
+                    rounding_value = int(build_to.split("_")[1])
 
+                timestamp_format = "%Y:%m:%d-{:0>2d}:00:00"
+                current_time = int(datetime.datetime.now(timezone('GB')).replace(tzinfo=None).strftime("%H"))
+                if "MINUTE" in build_to:
+                    timestamp_format = "%Y:%m:%d-%H:{:0>2d}:00"
+                    current_time = int(datetime.datetime.now(timezone('GB')).replace(tzinfo=None).strftime("%M"))
+                
+                past_time = int(rounding_value * math.floor(current_time/rounding_value))
+                timestamp_start = datetime.datetime.now(timezone('GB')).replace(tzinfo=None).strftime(timestamp_format.format(past_time))
+
+                # now prepare the new period from the previous periods
+                i = next((index for (index, d) in enumerate(self.prices[build_from]) if d["snapshotTime"] == timestamp_start), None)
+                mins = self.prices[build_from][i:]
+                open_price = mins[0]['openPrice']
+                close_price = mins[-1]['closePrice']
+                vol = sum([x['lastTradedVolume'] for x in mins])
+                ask_low = min([x['lowPrice']['ask'] for x in mins])
+                ask_high = max([x['highPrice']['ask'] for x in mins])
+                bid_low = min([x['lowPrice']['bid'] for x in mins])
+                bid_high = max([x['highPrice']['bid'] for x in mins])
+                new_period= {
+                    "snapshotTime": timestamp_start, 
+                    "openPrice": {"bid": float(open_price['bid']), "ask": float(open_price['ask']), "mid": (float(open_price['bid']) + float(open_price['ask']))/2, "lastTraded": None}, 
+                    "closePrice": {"bid": float(close_price['bid']), "ask": float(close_price['ask']), "mid": (float(close_price['bid']) + float(close_price['ask']))/2, "lastTraded": None }, 
+                    "highPrice": {"bid": float(bid_high), "ask": float(ask_high), "mid": (float(bid_high) + float(ask_high))/2, "lastTraded": None}, 
+                    "lowPrice": {"bid": float(bid_low), "ask": float(ask_low), "mid": (float(bid_low) + float(ask_low))/2, "lastTraded": None}, 
+                    "lastTradedVolume": int(vol)}
+                self.typical_price(new_period,"mid")
+                self.price_spread(new_period)
+    
+
+                # timestamp_start should be the beginning of the period of build_to
+                # check if it exists in prices
+                if build_to not in self.prices:
+                    self.prices[build_to] = []
+                
+                i = next((index for (index, d) in enumerate(self.prices[build_to]) if d["snapshotTime"] == timestamp_start), None)
+                
+                if i is None:
+                    # ok we need to make a new period and run the function and finalise the previous one
+                    # update the previous bar with last bars
+                    if len(self.prices[build_to])>0:
+                        last_period = self.prices[build_to][-1]
+                        last_timestamp = last_period['snapshotTime']
+                        i = next((index for (index, d) in enumerate(self.prices[build_from]) if d["snapshotTime"] == last_timestamp), None)
+                        mins = self.prices[build_from][i:]
+                        open_price = mins[0]['openPrice']
+                        close_price = mins[-1]['closePrice']
+                        vol = sum([x['lastTradedVolume'] for x in mins])
+                        ask_low = min([x['lowPrice']['ask'] for x in mins])
+                        ask_high = max([x['highPrice']['ask'] for x in mins])
+                        bid_low = min([x['lowPrice']['bid'] for x in mins])
+                        bid_high = max([x['highPrice']['bid'] for x in mins])
+                        last_period['closePrice'] = close_price
+                        last_period['openPrice'] = open_price
+                        last_period['highPrice']['bid'] = bid_high
+                        last_period['highPrice']['ask'] = ask_high
+                        last_period['highPrice']['mid'] = (bid_high+ask_high)/2
+
+                        last_period['lowPrice']['bid'] = bid_low
+                        last_period['lowPrice']['ask'] = ask_low
+                        last_period['lowPrice']['mid'] = (bid_low+ask_low)/2
+                        last_period['lastTradedVolume'] = int(vol)
+
+                        
+                        self.typical_price(last_period,"mid")
+                        self.price_spread(last_period)
+
+                    # DO ACTION HERE
+                    for s in self.strategies.values():
+                        s.process_signals(self,self.prices[build_to],build_to)
+
+                    self.prices[build_to].append(new_period)
+                else:
+                    # we need to update an existing
+                    self.prices[build_to][i] = {**self.prices[build_to][i], **new_period}
+
+                if len(self.prices[build_to])>max_count:
+                    del self.prices[build_to][0]
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("{} price build fail".format(self.epic))
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
+            
 
     def get_update_cost(self, resolution = None, count = 0):
         # if no resolution supplied, return the cost to update everything to the existing depth
@@ -345,10 +458,12 @@ class Market:
         
         # process our strategies
         for s in self.strategies.values():
-            if resolution=="MINUTE_30":
-                s.slow_signals(self,self.prices[resolution],resolution)
-            elif resolution=="MINUTE_5":
-                s.fast_signals(self,self.prices[resolution],resolution)
+            s.process_signals(self,self.prices[resolution],resolution)
+        # for s in self.strategies.values():
+        #     if resolution=="MINUTE_30":
+        #         s.slow_signals(self,self.prices[resolution],resolution)
+        #     elif resolution=="MINUTE_5":
+        #         s.fast_signals(self,self.prices[resolution],resolution)
         
 
         if data_count > 0:
@@ -357,6 +472,22 @@ class Market:
         self.save_prices()
 
         return self.prices[resolution]
+
+    def backtest_all(self):
+        for res in self.prices:
+            self.backtest(res)
+
+    def backtest(self,resolution):
+        print("backfilling signals {}".format(resolution))
+        prices = self.prices[resolution]
+        price_len = len(prices)
+        for i in list(range(20,-1,-1)):
+            p = price_len - i
+            ps = prices[:p]
+            if len(ps)>0:
+                print("{} {}".format(self.epic, ps[-1]['snapshotTime']))
+                for s in self.strategies.values():
+                    s.process_signals(self,ps,resolution)
 
 
     def sanitise_prices(self,resolution):
@@ -402,7 +533,7 @@ class Market:
     def price_spread(self,bar):
         price_groups = ['openPrice','closePrice','highPrice','lowPrice']
         for g in price_groups:
-            bar[g]['spread'] = bar[g]['ask'] - bar[g]['bid']
+            bar[g]['spread'] = round(bar[g]['ask'] - bar[g]['bid'],2)
 
     def typical_price(self,bar,price):
         """ bar - a single price point
@@ -413,7 +544,7 @@ class Market:
         closeP = bar['closePrice'][price]
         if 'typicalPrice' not in bar:
             bar['typicalPrice'] = {}
-        bar['typicalPrice'][price] = (low + high + closeP)/3
+        bar['typicalPrice'][price] = round((low + high + closeP)/3,2)
 
     def perform_regression(self, x, y,mins=5):
         epoch = datetime.datetime.strptime("2010-01-01","%Y-%m-%d")

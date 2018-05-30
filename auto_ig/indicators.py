@@ -16,6 +16,33 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+def adx(window,prices,name=None):
+    if name is None:
+        name = "adx_{}".format(window)
+
+    up = np.diff(np.asarray([x['highPrice']['mid'] for x in prices]))
+    down = np.diff(np.flip(np.asarray([x['lowPrice']['mid'] for x in prices]),axis=0))
+
+    at, tr = atr(window,prices)
+    upper = []
+    lower = []
+    for i in range(len(up)):
+        u = up[i] if (up[i] > down[i] and up[i]>0) else 0
+        d = down[i] if (down[i] > up[i] and down[i] > 0) else 0
+        upper.append(u)
+        lower.append(d)
+    
+    plus = rma(window,values=(100*(upper/at)))
+    minus = rma(window,values=(100*(lower/at)))
+
+
+    summed = plus + minus
+    summed = [1 if i==0 else i for i in summed]
+    adx = 100 * rma(window,np.abs(plus - minus) / summed)
+
+    return adx,plus,minus
+
+
 def atr(window, prices, name = None):
     if name is None:
         name = "atr_{}".format(window)
@@ -44,6 +71,32 @@ def atr(window, prices, name = None):
         prices[i][name] = atr[i-diff]
 
     return atr,tr_prices
+
+def bollinger_bands(window=20,multiplier=2,prices=None,name=None,values=None):
+    if values is None:
+        if prices is None:
+            raise Exception("values or prices or both must be supplied")
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
+    else:
+        values = np.asarray(values)
+
+    if name is None:
+        name = "bb_{}".format(window)
+
+
+    basis = ma(window,values)
+    dev = np.std(rolling_window(values,window)) * multiplier
+
+    upper = basis + dev
+    lower = basis - dev
+    diff = len(prices) - upper.size
+    
+    for i in range(diff,len(prices)):
+        prices[i][name+"_lower"] = lower[i-diff]
+        prices[i][name+"_upper"] = upper[i-diff]
+
+    return upper, lower, basis
+
 
 def net_change(prices):
     for p in prices:
@@ -80,6 +133,45 @@ def ema(window, prices = None, name = None, values= None):
     if prices is not None:
         if name is None:
             name = "ema_{}".format(window)
+        
+        price_len = len(prices)
+        diff = price_len - len(a)
+        
+        for i in range(diff,price_len):
+            prices[i][name] = a[i-diff]
+    return a
+
+def rma(window, prices = None, name = None, values= None):
+    def numpy_rewma_vectorized_v2(data, window):
+
+        alpha = window
+        alpha_rev = 1-alpha
+        n = data.shape[0]
+
+        pows = alpha_rev**(np.arange(n+1))
+
+        scale_arr = 1/pows[:-1]
+        offset = data[0]*pows[1:]
+        pw0 = alpha*alpha_rev**(n-1)
+
+        mult = data*pw0*scale_arr
+        cumsums = mult.cumsum()
+        out = offset + cumsums*scale_arr[::-1]
+        return out
+
+
+    if values is None:
+        if prices is None:
+            raise Exception("values or prices or both must be supplied")
+        values = np.asarray([x['closePrice']['mid'] for x in prices])
+    else:
+        values = np.asarray(values)
+
+    a = numpy_rewma_vectorized_v2(values,window)
+
+    if prices is not None:
+        if name is None:
+            name = "rma_{}".format(window)
         
         price_len = len(prices)
         diff = price_len - len(a)

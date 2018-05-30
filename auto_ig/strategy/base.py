@@ -1,4 +1,6 @@
 import logging
+import datetime
+from pytz import timezone
 # from ..sig import Sig
 from .. import indicators as ta
 from .. import detection as detect
@@ -26,31 +28,45 @@ class Strategy:
     def __init__(self, name):
         self.name = name
         self.signals = []
+        self.resolutions = {}
 
-    def backfill(self,market,resolution,lookback=15):
-        prices = market.prices[resolution]
-        price_len = len(prices)
-        if price_len - lookback > 50:
+    # def backfill(self,market,resolution,lookback=15):
+    #     prices = market.prices[resolution]
+    #     price_len = len(prices)
+    #     if price_len - lookback > 50:
 
-            for i in list(range(lookback,0,-1)):
-                p = price_len - i
-                ps = prices[:p]
-                self.slow_signals(market,ps,resolution)
+    #         for i in list(range(lookback,0,-1)):
+    #             p = price_len - i
+    #             ps = prices[:p]
+    #             self.slow_signals(market,ps,resolution)
 
 
-    def slow_signals(self,market,prices,resolution):
-        """Slow signals should be used for entry when the recent movement is clear"""
+    # def slow_signals(self,market,prices,resolution):
+    #     """Slow signals should be used for entry when the recent movement is clear"""
 
-        self.fast_signals(market,prices,resolution)
+    #     self.fast_signals(market,prices,resolution)
         
-        for s in [x for x in self.signals if x.market == market.epic]:
-            if not s.process():
+    #     for s in [x for x in self.signals if x.market == market.epic]:
+    #         if not s.process():
                 
+    #             self.signals.remove(s)
+
+    # def fast_signals(self,market,prices,resolution):
+    #     """Fast signals are used for closing positions"""
+    #     ta.net_change(prices)
+
+    def process_signals(self,market,prices,resolution):
+        """process signals for given resolution"""
+        for s in [x for x in self.signals if x.market == market.epic and x.resolution==resolution]:
+            if not s.process():
                 self.signals.remove(s)
 
-    def fast_signals(self,market,prices,resolution):
-        """Fast signals are used for closing positions"""
-        ta.net_change(prices)
+        if resolution in self.resolutions:
+            self.resolutions[resolution](market,prices,resolution)
+            
+    def get_signals(self,market, resolution, signal_name):
+        """returns a list of signals for the market by given name and resolution"""
+        return [x for x in self.signals if x.market==market.epic and x.name == signal_name and x.resolution==resolution]
 
     def prediction(self, signal,market,resolution):
         """default stoploss and limit calculator based on atr_5"""
@@ -93,6 +109,7 @@ class Strategy:
                 "timestamp":signal.timestamp,
                 "name" : signal.name,
                 "position" : signal.position,
+                "resolution":signal.resolution,
                 "comment" : signal.comment
             }
             
@@ -106,12 +123,11 @@ class Strategy:
 
     def add_signal(self,signal, market):
         """makes sure that only one of each type of signal is stored"""
-        matching_signals = [x for x in self.signals if x.name==signal.name and x.market==market.epic]
+        matching_signals = [x for x in self.signals if x.name==signal.name and x.market==market.epic and x.resolution==signal.resolution]
         for s in matching_signals:
             self.signals.remove(s)
         
         print("removed {} matching {} signals".format(len(matching_signals),signal.name))
-        signal.set_market(market.epic)
         self.signals.append(signal)
 
     def trailing_stop(self,trade):
@@ -120,8 +136,32 @@ class Strategy:
     def assess_close(self,signal,trade):
         trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
         trade.close_trade()
-    
 
+    def in_session(self,market):
+
+        direction = False
+
+
+        time_now = datetime.datetime.time(datetime.datetime.now(timezone('GB')).replace(tzinfo=None))
+        
+        allowed_epics = []
+        if (datetime.time(7,00) < time_now < datetime.time(16,00)):
+            allowed_epics.append("GBP")
+            allowed_epics.append("EUR")
+        if (datetime.time(12,00) <= time_now <= datetime.time(21,00)):
+            allowed_epics.append("USD")
+        if (time_now >= datetime.time(22,00) or time_now <= datetime.time(7,00)):
+            allowed_epics.append("AUD")
+        if (time_now >= datetime.time(23,00) or time_now <= datetime.time(8,00)):
+            allowed_epics.append("JPY")
+        
+        print(allowed_epics)
+        if any(x in market.epic for x in allowed_epics):
+            direction=True
+
+
+        return direction
+    
 
 class Sig:
     """A generic class for storing signals
@@ -132,15 +172,18 @@ class Sig:
     life = how many intervals it's valid for
     """
 
-    def __init__(self, name, timestamp, position, score, comment="", life=1):
+    def __init__(self, market, name, timestamp, position, score, resolution, comment="", life=1):
         self.name = name
         self.timestamp = timestamp
         self.position = position
         self.score = score
         self.life = life
+        self.resolution = resolution
         self.comment = comment
         self.unused = True
-        self.market = ""
+        self.market = market.epic
+
+        logger.info("new sig! : {} : {} : {} : {} : {}".format(self.market, self.name, self.resolution, self.position, self.timestamp))
         
     
     def set_market(self,market):
