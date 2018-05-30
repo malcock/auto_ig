@@ -132,7 +132,7 @@ class AutoIG:
                     json_trade = json.load(fh)
                     logger.info("loaded file: " + name)
                     if json_trade['market'] in self.markets:
-                        self.make_trade(json_trade['size'],self.markets[json_trade['market']],json_trade['prediction'],json_trade)
+                        self.make_trade(json_trade['size_value'],self.markets[json_trade['market']],json_trade['prediction'],json_trade)
             elif len(self.trades)>len(trades_on_file):
                 # try to clean up trades list
                 logger.info("trying to clean up trades list")
