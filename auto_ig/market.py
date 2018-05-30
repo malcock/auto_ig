@@ -389,14 +389,15 @@ class Market:
                 data_count = len(self.prices[resolution])
                 if count>0:
                     data_count = count
-
+                if len(self.prices[resolution])<1:
+                    return count
                 time_now = datetime.datetime.now(timezone('GB')).replace(tzinfo=None)
                 last_date = datetime.datetime.strptime(self.prices[resolution][-1]['snapshotTime'], "%Y:%m:%d-%H:%M:%S").replace(tzinfo=None)
 
                 delta = time_now - last_date
 
                 seconds_per_unit = 0
-                if "MINUTE_5" in resolution:
+                if "MINUTE" in resolution:
                     seconds_per_unit = 60
                 elif "HOUR" in resolution:
                     seconds_per_unit = 60 * 60
