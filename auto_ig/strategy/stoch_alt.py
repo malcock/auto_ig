@@ -225,7 +225,11 @@ class stoch_alt(Strategy):
         if use_trail:
             if res not in self.atrs:
                 self.atrs[res],tr = ta.atr(14,trade.market.prices[res])
+            
             stop_val = trade.pip_max - self.atrs[res][-1]
+            if trade.pip_max < self.atrs[res][-1]:
+                use_trail = False
+            
 
         return use_trail,stop_val
 
