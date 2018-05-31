@@ -483,7 +483,7 @@ class Market:
         print("backfilling signals {}".format(resolution))
         prices = self.prices[resolution]
         price_len = len(prices)
-        for i in list(range(20,-1,-1)):
+        for i in list(range(10,-1,-1)):
             p = price_len - i
             ps = prices[:p]
             if len(ps)>0:

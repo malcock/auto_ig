@@ -136,12 +136,16 @@ class stoch_alt(Strategy):
 
     def h4(self,market,prices,resolution):
         try:
-            if len(prices)<80:
+            if len(prices)<100:
                 logger.warning("{} {} need more data".format(market.epic,resolution))
                 return
-            self.atrs[resolution],tr = ta.atr(14,prices)
+            if market.epic not in self.atrs:
+                self.atrs[market.epic] = {}
+            
+            self.atrs[market.epic][resolution],tr = ta.atr(14,prices)
+            
             print("HEY YO")
-            trend = ta.ema(80,prices)
+            trend = ta.ema(100,prices)
             ma = ta.ma(20,prices)
             stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
             close_ema = ta.ema(5,prices)
@@ -223,11 +227,12 @@ class stoch_alt(Strategy):
         use_trail = True if res in ['HOUR_4','HOUR'] else False
         stop_val = 0
         if use_trail:
-            if res not in self.atrs:
-                self.atrs[res],tr = ta.atr(14,trade.market.prices[res])
-            
-            stop_val = trade.pip_max - self.atrs[res][-1]
-            if trade.pip_max < self.atrs[res][-1]:
+            if trade.market.epic not in self.atrs:
+                self.atrs[trade.market.epic] = {}
+                self.atrs[trade.market.epic][res],tr = ta.atr(14,trade.market.prices[res])
+            atr_now = self.atrs[trade.market.epic][res][-1]
+            stop_val = trade.pip_max - atr_now
+            if trade.pip_max < atr_now:
                 use_trail = False
             
 

@@ -177,21 +177,21 @@ class AutoIG:
                         open_lightstreamer = True 
                         m.update_prices("DAY",30)
 
-                    if m.get_update_cost("MINUTE_5",100)>0:
+                    if m.get_update_cost("MINUTE_5",110)>0:
                         open_lightstreamer = True
-                        m.update_prices("MINUTE_5",100)
+                        m.update_prices("MINUTE_5",110)
                     
-                    if m.get_update_cost("MINUTE_30",100)>0:
+                    if m.get_update_cost("MINUTE_30",110)>0:
                         open_lightstreamer = True
-                        m.update_prices("MINUTE_30",100)
+                        m.update_prices("MINUTE_30",110)
 
-                    if m.get_update_cost("HOUR",100)>0:
+                    if m.get_update_cost("HOUR",110)>0:
                         open_lightstreamer = True
-                        m.update_prices("HOUR",100)
+                        m.update_prices("HOUR",110)
                     
-                    if m.get_update_cost("HOUR_4",100)>0:
+                    if m.get_update_cost("HOUR_4",110)>0:
                         open_lightstreamer = True
-                        m.update_prices("HOUR_4",100)
+                        m.update_prices("HOUR_4",110)
                     
                     epic_list.append(m.epic)
                 
