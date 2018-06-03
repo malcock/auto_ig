@@ -88,7 +88,7 @@ class Market:
             else:
                 self.prices = {}
                 self.save_prices()
-                return
+                
             
             
             self.save_json()
@@ -638,6 +638,7 @@ class Market:
             "percentage_change" : self.percentage_change,
             "net_change" : self.net_change,
             "market_status" : self.market_status,
+            "last_status" : self.last_status,
             "stop_loss" : self.minimum_stop,
             "data" : self.data
         }
