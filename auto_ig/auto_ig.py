@@ -150,21 +150,25 @@ class AutoIG:
             open_lightstreamer = False
 
             mins_now = timenow.strftime("%M")
-            if mins_now in ["00","15","30","45"]:
-                clean = True
-                
-                for t in [x for x in self.trades if x.deal_id is not "PENDING"]:
-                    base_url = self.api_url + '/positions/'+ t.deal_id
-                    auth_r = requests.get(base_url, headers=self.authenticate())
-                    if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
-                        logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
-                        t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
-                        t.state = 3
-                        clean = False
+      
+            if timenow.weekday() < 4 or (timenow.weekday() == 4 and timenow < datetime.time(22,29)):
+                if mins_now in ["00","15","30","45"]:
+                    clean = True
+                    
+                    for t in [x for x in self.trades if x.deal_id is not "PENDING"]:
+                        
+                            
+                        base_url = self.api_url + '/positions/'+ t.deal_id
+                        auth_r = requests.get(base_url, headers=self.authenticate())
+                        if int(auth_r.status_code) == 400 or int(auth_r.status_code) == 404:
+                            logger.warning("WARNING - AN UNCLEARED TRADE WAS FOUND {} {} {}".format(t.market.epic,t.deal_id,t.prediction['direction_to_trade']))
+                            t.log_status("15 min trade clean error found - Can't find trade - closed in IG?")
+                            t.state = 3
+                            clean = False
 
-                if not clean:
-                    logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
-                    open_lightstreamer = True
+                    if not clean:
+                        logger.warning("TRADE CLEARING ERRORS FOUND - RE-OPENING LIGHTSTREAMER")
+                        open_lightstreamer = True
             
             epic_list = []
             for m in self.markets.values():
