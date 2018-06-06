@@ -279,7 +279,7 @@ class AutoIG:
                                 logger.info("proposed bet size: {}".format(trade_size))
 
                                 signal.unused = False
-                                prediction = strategy.prediction(signal,market,'MINUTE_30')
+                                prediction = strategy.prediction(signal,market,signal.resolution)
                                 self.make_trade(1,market,prediction)
                                 signal.score = 1
                             else:
