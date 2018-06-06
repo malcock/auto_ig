@@ -80,10 +80,11 @@ class Market:
             
             if self.market_status=="TRADEABLE":
                 if "DAY" in self.prices:
-                    self.prices['DAY'][-1]['highPrice']['bid'] = self.high
-                    self.prices['DAY'][-1]['lowPrice']['bid'] = self.low
-                    self.prices['DAY'][-1]['openPrice']['bid'] = self.bid - self.net_change
-                    self.prices['DAY'][-1]['closePrice']['bid'] = self.bid
+                    if len(self.prices["DAY"])>0:
+                        self.prices['DAY'][-1]['highPrice']['bid'] = self.high
+                        self.prices['DAY'][-1]['lowPrice']['bid'] = self.low
+                        self.prices['DAY'][-1]['openPrice']['bid'] = self.bid - self.net_change
+                        self.prices['DAY'][-1]['closePrice']['bid'] = self.bid
 
             else:
                 self.prices = {}
