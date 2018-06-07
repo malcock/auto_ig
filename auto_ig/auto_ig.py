@@ -47,7 +47,7 @@ class AutoIG:
         self.api_calls = 0
         self.strategy = {}
         self.strategy['stoch_alt'] = stoch_alt()
-        self.strategy['fast_trending'] = fast_trending()
+        # self.strategy['fast_trending'] = fast_trending()
         # self.strategy['macd'] = macd()
         # self.strategy['stoch'] = stoch()
         # self.strategy['linreg'] = linreg()
