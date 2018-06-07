@@ -230,9 +230,9 @@ class stoch_alt(Strategy):
             use_trail = False
         stop_val = 0
         if use_trail:
-            percent_done = trade.pip_max/ limit
-            if percent_done > 0.2:
-                stop_val = limit*(percent_done-0.1)
+            percent_done = trade.pip_max / limit
+            if percent_done > 0.25:
+                stop_val = limit*(percent_done-0.15)
                 
             else:
                 use_trail = False
