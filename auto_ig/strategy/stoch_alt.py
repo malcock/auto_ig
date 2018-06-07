@@ -154,22 +154,24 @@ class stoch_alt(Strategy):
             ma_dir = close_ma[-1] - close_ma[-2]
             ema_dir = close_ema[-1] - close_ema[-2]
 
+            rsi = ta.rsi(14,prices)
+
             now = prices[-1]
 
-            if detect.crossover(close_ema,close_ma):
-                print("CLOSE CROSS?")
-                sig = Sig(market,"CLOSE",now['snapshotTime'],"BUY",2,resolution,comment="close moving average cross",life=1)
-                super().add_signal(sig,market)
+            # if detect.crossover(close_ema,close_ma):
+            #     print("CLOSE CROSS?")
+            #     sig = Sig(market,"CLOSE",now['snapshotTime'],"BUY",2,resolution,comment="close moving average cross",life=1)
+            #     super().add_signal(sig,market)
 
-            if detect.crossunder(close_ema,close_ma):
-                print("CLOSE CROSS?")
-                sig = Sig(market,"CLOSE",now['snapshotTime'],"SELL",2,resolution,comment="close moving average cross",life=1)
-                super().add_signal(sig,market)
+            # if detect.crossunder(close_ema,close_ma):
+            #     print("CLOSE CROSS?")
+            #     sig = Sig(market,"CLOSE",now['snapshotTime'],"SELL",2,resolution,comment="close moving average cross",life=1)
+            #     super().add_signal(sig,market)
 
             if ma[-1] > trend[-1]:
                 # buy opportunity!
                 print("BUYING {} {}".format(stoch_k[-1],stoch_d[-1]))
-                if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<45:
+                if detect.crossover(stoch_k,stoch_d) and rsi[-1]>50:
                     print("STOCH CROSS")
                     sigs= self.get_signals(market,resolution,"CLOSE")
                     for s in sigs:
@@ -181,8 +183,8 @@ class stoch_alt(Strategy):
             elif ma[-1] < trend[-1]:
                 print("SELLING {} {}".format(stoch_k[-1],stoch_d[-1]))
                 # sell opportunity!
-                if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>55:
-                    print("STOCH CROSS")
+                if detect.crossunder(stoch_k,stoch_d) and rsi[-1]<50:
+                    print("STOCH CROSS") 
                     sigs= self.get_signals(market,resolution,"CLOSE")
                     for s in sigs:
                         self.signals.remove(s)
