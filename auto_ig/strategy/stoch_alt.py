@@ -82,7 +82,7 @@ class stoch_alt(Strategy):
  
         
         stop = (atr[-1]) + (market.spread*2)
-        limit = -1
+        limit = stop*2
  
         # limit = max(limit,4)
         # limit = min(7,limit)
@@ -175,7 +175,7 @@ class stoch_alt(Strategy):
                     for s in sigs:
                         self.signals.remove(s)
 
-                    sig = Sig(market,"THRESHOLD CROSS",now['snapshotTime'],"BUY",1,resolution,comment="k crossed d",life=7)
+                    sig = Sig(market,"OPEN",now['snapshotTime'],"BUY",4,resolution,comment="k crossed d",life=0)
                     super().add_signal(sig,market)
             
             elif ma[-1] < trend[-1]:
@@ -186,27 +186,27 @@ class stoch_alt(Strategy):
                     sigs= self.get_signals(market,resolution,"CLOSE")
                     for s in sigs:
                         self.signals.remove(s)
-                    sig = Sig(market,"THRESHOLD CROSS",now['snapshotTime'],"SELL",1,resolution,comment="d crossed k",life=7)
+                    sig = Sig(market,"OPEN",now['snapshotTime'],"SELL",4,resolution,comment="d crossed k",life=0)
                     super().add_signal(sig,market)
 
             else:
                 # unlikely - do nothing
                 pass
 
-            threshold_sigs = self.get_signals(market,resolution,"THRESHOLD CROSS")
+            # threshold_sigs = self.get_signals(market,resolution,"THRESHOLD CROSS")
 
-            for s in threshold_sigs:
-                print("CHK THRESHOLD")
-                if s.position=="BUY":
-                    if ema_dir > 0 and (ma_dir>0 or close_ma[-1]<close_ema[-1]):
-                        sig = Sig(market,"OPEN",now['snapshotTime'],"BUY",4,resolution,comment="price direction matches",life=1)
-                        self.signals.remove(s)
-                        super().add_signal(sig,market)
-                else:
-                    if ema_dir < 0 and (ma_dir<0 or close_ma[-1]>close_ema[-1]):
-                        sig = Sig(market,"OPEN",now['snapshotTime'],"SELL",4,resolution,comment="price direction matches",life=1)
-                        self.signals.remove(s)
-                        super().add_signal(sig,market)
+            # for s in threshold_sigs:
+            #     print("CHK THRESHOLD")
+            #     if s.position=="BUY":
+            #         if ema_dir > 0 and (ma_dir>0 or close_ma[-1]<close_ema[-1]):
+            #             sig = Sig(market,"OPEN",now['snapshotTime'],"BUY",4,resolution,comment="price direction matches",life=1)
+            #             self.signals.remove(s)
+            #             super().add_signal(sig,market)
+            #     else:
+            #         if ema_dir < 0 and (ma_dir<0 or close_ma[-1]>close_ema[-1]):
+            #             sig = Sig(market,"OPEN",now['snapshotTime'],"SELL",4,resolution,comment="price direction matches",life=1)
+            #             self.signals.remove(s)
+            #             super().add_signal(sig,market)
 
 
             
@@ -225,15 +225,24 @@ class stoch_alt(Strategy):
     def trailing_stop(self,trade):
         res = trade.prediction['signal']['resolution']
         use_trail = True if res in ['HOUR_4','HOUR'] else False
+        limit = float(trade.prediction['limit_distance'])
+        if limit<0:
+            use_trail = False
         stop_val = 0
         if use_trail:
-            if trade.market.epic not in self.atrs:
-                self.atrs[trade.market.epic] = {}
-                self.atrs[trade.market.epic][res],tr = ta.atr(14,trade.market.prices[res])
-            atr_now = self.atrs[trade.market.epic][res][-1]
-            stop_val = trade.pip_max - atr_now
-            if trade.pip_max < atr_now:
+            percent_done = trade.pip_max/ limit
+            if percent_done > 0.15:
+                stop_val = limit*(percent_done-0.1)
+                
+            else:
                 use_trail = False
+            # if trade.market.epic not in self.atrs:
+            #     self.atrs[trade.market.epic] = {}
+            #     self.atrs[trade.market.epic][res],tr = ta.atr(14,trade.market.prices[res])
+            # atr_now = self.atrs[trade.market.epic][res][-1]
+            # stop_val = trade.pip_max - atr_now
+            # if trade.pip_max < atr_now:
+            #     use_trail = False
             
 
         return use_trail,stop_val
@@ -244,16 +253,17 @@ class stoch_alt(Strategy):
     
 
     def assess_close(self,signal,trade):
-        logger.info("ASSESSING CLOSE ON MARKET: {}".format(trade.market.epic))
-        logger.info(trade.prediction['strategy'])
-        if trade.prediction['strategy'] == self.name:
-            logger.info(trade.prediction['strategy'])
-            logger.info("ASSESSING CLOSE: trade signal {} {}, new signal: {} {}".format(trade.prediction['signal']['name'],trade.prediction['signal']['resolution'],signal.name,signal.resolution))
+        # logger.info("ASSESSING CLOSE ON MARKET: {}".format(trade.market.epic))
+        # logger.info(trade.prediction['strategy'])
+        # if trade.prediction['strategy'] == self.name:
+        #     logger.info(trade.prediction['strategy'])
+        #     logger.info("ASSESSING CLOSE: trade signal {} {}, new signal: {} {}".format(trade.prediction['signal']['name'],trade.prediction['signal']['resolution'],signal.name,signal.resolution))
 
-            if trade.prediction['signal']['resolution'] == signal.resolution:
-                trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
-                if trade.pip_diff > 0:
-                    trade.close_trade()
+        #     if trade.prediction['signal']['resolution'] == signal.resolution:
+        #         trade.log_status("Close signal received {} - {} - {}".format(signal.position, signal.name, signal.timestamp))
+        #         if trade.pip_diff > 0:
+        #             trade.close_trade()
+        pass
 
 
         
