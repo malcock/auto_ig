@@ -152,7 +152,7 @@ class AutoIG:
 
             mins_now = timenow.strftime("%M")
       
-            if timenow.weekday() < 4 or (timenow.weekday() == 4 and timenow < datetime.time(22,29)):
+            if timenow.weekday() < 4 or (timenow.weekday() == 4 and timenow.time() < datetime.time(22,29)):
                 if mins_now in ["00","15","30","45"]:
                     clean = True
                     
