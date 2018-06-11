@@ -318,26 +318,37 @@ class AutoIG:
 
     def update_markets(self, epic_ids):
         logger.info("getting all markets data")
-        for chunk in list(self.chunks(epic_ids,50)):
+        try:
+            for chunk in list(self.chunks(epic_ids,50)):
 
-            base_url = self.api_url + '/markets?epics=' + ','.join(chunk)
-            auth_r = requests.get(base_url, headers=self.authenticate())
-            if auth_r.ok:
-                res = json.loads(auth_r.text)
-                epics_data = res["marketDetails"]
-                for epic in epics_data:
-                    epic_id = epic['instrument']['epic']
-                    if not epic_id in self.markets:
-                        m = Market(epic_id,self,epic)
-                        for s in self.strategy.values():
-                            m.add_strategy(s)
-                        self.markets[epic_id] = m 
-                        
-                    else:
-                        self.markets[epic_id].last_status = self.markets[epic_id].market_status
-                        self.markets[epic_id].update_market(epic)
-            else:
-                return False, "Couldn't get market data: {} {}".format(auth_r.status_code,auth_r.content)
+                base_url = self.api_url + '/markets?epics=' + ','.join(chunk)
+                auth_r = requests.get(base_url, headers=self.authenticate())
+                if auth_r.ok:
+                    res = json.loads(auth_r.text)
+                    epics_data = res["marketDetails"]
+                    for epic in epics_data:
+                        epic_id = epic['instrument']['epic']
+                        if not epic_id in self.markets:
+                            m = Market(epic_id,self,epic)
+                            for s in self.strategy.values():
+                                m.add_strategy(s)
+                            self.markets[epic_id] = m 
+                            
+                        else:
+                            self.markets[epic_id].last_status = self.markets[epic_id].market_status
+                            self.markets[epic_id].update_market(epic)
+                else:
+                    return False, "Couldn't get market data: {} {}".format(auth_r.status_code,auth_r.content)
+                    
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("update market went wrong")
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
 
     def backtest(self, epic, start_date, end_date):
         """do a backtest - probs should have done this a while ago..."""

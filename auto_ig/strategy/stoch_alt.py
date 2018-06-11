@@ -81,7 +81,7 @@ class stoch_alt(Strategy):
         max_range = max(tr)
  
         
-        stop = (atr[-1]) + (market.spread*2)
+        stop = (atr[-1]*2) + (market.spread*2)
         limit = stop*2
  
         # limit = max(limit,4)
@@ -154,8 +154,7 @@ class stoch_alt(Strategy):
             ma_dir = close_ma[-1] - close_ma[-2]
             ema_dir = close_ema[-1] - close_ema[-2]
 
-            rsi = ta.rsi(14,prices)
-
+ 
             now = prices[-1]
 
             # if detect.crossover(close_ema,close_ma):
@@ -171,7 +170,7 @@ class stoch_alt(Strategy):
             if ma[-1] > trend[-1]:
                 # buy opportunity!
                 print("BUYING {} {}".format(stoch_k[-1],stoch_d[-1]))
-                if detect.crossover(stoch_k,stoch_d) and rsi[-1]>50:
+                if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<25:
                     print("STOCH CROSS")
                     sigs= self.get_signals(market,resolution,"CLOSE")
                     for s in sigs:
@@ -183,7 +182,7 @@ class stoch_alt(Strategy):
             elif ma[-1] < trend[-1]:
                 print("SELLING {} {}".format(stoch_k[-1],stoch_d[-1]))
                 # sell opportunity!
-                if detect.crossunder(stoch_k,stoch_d) and rsi[-1]<50:
+                if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>75:
                     print("STOCH CROSS") 
                     sigs= self.get_signals(market,resolution,"CLOSE")
                     for s in sigs:
