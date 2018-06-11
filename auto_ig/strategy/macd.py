@@ -82,7 +82,7 @@ class macd(Strategy):
  
         
         stop = (atr[-1]) + (market.spread*2)
-        limit = stop*2
+        limit = stop*3
  
         # limit = max(limit,4)
         # limit = min(7,limit)
@@ -147,14 +147,16 @@ class macd(Strategy):
             print("HEY YO")
             trend = ta.ema(100,prices)
             ma = ta.ma(20,prices)
-            stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
+
+            macd,histo = ta.macd(prices)
+            # stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
             close_ema = ta.ema(5,prices)
             close_ma = ta.ma(8,prices)
 
-            ma_dir = close_ma[-1] - close_ma[-2]
-            ema_dir = close_ema[-1] - close_ema[-2]
+            # ma_dir = close_ma[-1] - close_ma[-2]
+            # ema_dir = close_ema[-1] - close_ema[-2]
 
-            rsi = ta.rsi(14,prices)
+            # rsi = ta.rsi(14,prices)
 
             now = prices[-1]
 
@@ -170,25 +172,16 @@ class macd(Strategy):
 
             if ma[-1] > trend[-1]:
                 # buy opportunity!
-                print("BUYING {} {}".format(stoch_k[-1],stoch_d[-1]))
-                if detect.crossover(stoch_k,stoch_d) and rsi[-1]>50:
-                    print("STOCH CROSS")
-                    sigs= self.get_signals(market,resolution,"CLOSE")
-                    for s in sigs:
-                        self.signals.remove(s)
 
-                    sig = Sig(market,"OPEN",now['snapshotTime'],"BUY",4,resolution,comment="k crossed d",life=0)
+                if detect.crossover(macd,0):
+                    sig = Sig(market,"OPEN",now['snapshotTime'],"BUY",4,resolution,comment="macd 0 cross over",life=0)
                     super().add_signal(sig,market)
+
+
             
             elif ma[-1] < trend[-1]:
-                print("SELLING {} {}".format(stoch_k[-1],stoch_d[-1]))
-                # sell opportunity!
-                if detect.crossunder(stoch_k,stoch_d) and rsi[-1]<50:
-                    print("STOCH CROSS") 
-                    sigs= self.get_signals(market,resolution,"CLOSE")
-                    for s in sigs:
-                        self.signals.remove(s)
-                    sig = Sig(market,"OPEN",now['snapshotTime'],"SELL",4,resolution,comment="d crossed k",life=0)
+                if detect.crossunder(macd,0):
+                    sig = Sig(market,"OPEN",now['snapshotTime'],"SELL",4,resolution,comment="macd 0 cross under",life=0)
                     super().add_signal(sig,market)
 
             else:
