@@ -227,7 +227,7 @@ class macd(Strategy):
         if use_trail:
             percent_done = trade.pip_max / limit
             if percent_done > 0.25:
-                stop_val = limit*(percent_done-0.15)
+                stop_val = limit*(percent_done-0.20)
                 
             else:
                 use_trail = False

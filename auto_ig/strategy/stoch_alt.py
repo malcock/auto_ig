@@ -41,6 +41,7 @@ class stoch_alt(Strategy):
 
         self.resolutions['HOUR_4'] = self.h4
         self.resolutions['HOUR'] = self.h4
+        self.resolutions['MINUTE_5'] = self.fast
 
         self.atrs = {}
 
@@ -133,6 +134,54 @@ class stoch_alt(Strategy):
  
         return prediction_object
 
+    def fast(self,market,prices,resolution):
+        try:
+            if len(prices)<100:
+                logger.warning("{} {} need more data".format(market.epic,resolution))
+                return
+            if market.epic not in self.atrs:
+                self.atrs[market.epic] = {}
+            
+            self.atrs[market.epic][resolution],tr = ta.atr(14,prices)
+
+            trend = ta.ema(100,prices)
+            ma = ta.ma(20,prices)
+            stoch_k, stoch_d = ta.stochastic(prices,5,3,3)
+            close_ema = ta.ema(5,prices)
+
+            now = prices[-1]
+            
+            if self.good_spread(market):
+
+                if close_ema[-1] > ma[-1] > trend[-1]:
+                    # buy opportunity!
+                    print("BUYING {} {}".format(stoch_k[-1],stoch_d[-1]))
+                    if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<25:
+                        sig = Sig(market,"FAST OPEN",now['snapshotTime'],"BUY",4,resolution,comment="k crossed d FAST MODE",life=0)
+                        super().add_signal(sig,market)
+                
+                elif close_ema[-1] < ma[-1] < trend[-1]:
+                    print("SELLING {} {}".format(stoch_k[-1],stoch_d[-1]))
+                    # sell opportunity!
+                    if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>75:
+                        sig = Sig(market,"FAST OPEN",now['snapshotTime'],"SELL",4,resolution,comment="d crossed k FAST MODE",life=0)
+                        super().add_signal(sig,market)
+
+            else:
+                # unlikely - do nothing
+                pass
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            logger.info("{} live fail".format(market.epic))
+            logger.info(exc_type)
+            logger.info(fname)
+            logger.info(exc_tb.tb_lineno)
+            logger.info(exc_obj)
+            pass
+
+
+
 
     def h4(self,market,prices,resolution):
         try:
@@ -171,11 +220,6 @@ class stoch_alt(Strategy):
                 # buy opportunity!
                 print("BUYING {} {}".format(stoch_k[-1],stoch_d[-1]))
                 if detect.crossover(stoch_k,stoch_d) and min(stoch_k[-5:])<25:
-                    print("STOCH CROSS")
-                    sigs= self.get_signals(market,resolution,"CLOSE")
-                    for s in sigs:
-                        self.signals.remove(s)
-
                     sig = Sig(market,"OPEN",now['snapshotTime'],"BUY",4,resolution,comment="k crossed d",life=0)
                     super().add_signal(sig,market)
             
@@ -183,10 +227,6 @@ class stoch_alt(Strategy):
                 print("SELLING {} {}".format(stoch_k[-1],stoch_d[-1]))
                 # sell opportunity!
                 if detect.crossunder(stoch_k,stoch_d) and max(stoch_k[-5:])>75:
-                    print("STOCH CROSS") 
-                    sigs= self.get_signals(market,resolution,"CLOSE")
-                    for s in sigs:
-                        self.signals.remove(s)
                     sig = Sig(market,"OPEN",now['snapshotTime'],"SELL",4,resolution,comment="d crossed k",life=0)
                     super().add_signal(sig,market)
 
@@ -225,7 +265,7 @@ class stoch_alt(Strategy):
 
     def trailing_stop(self,trade):
         res = trade.prediction['signal']['resolution']
-        use_trail = True if res in ['HOUR_4','HOUR'] else False
+        use_trail = True if res in ['HOUR_4','HOUR','MINUTE_5'] else False
         limit = float(trade.prediction['limit_distance'])
         if limit<0:
             use_trail = False
@@ -233,7 +273,7 @@ class stoch_alt(Strategy):
         if use_trail:
             percent_done = trade.pip_max / limit
             if percent_done > 0.25:
-                stop_val = limit*(percent_done-0.15)
+                stop_val = limit*(percent_done-0.20)
                 
             else:
                 use_trail = False
