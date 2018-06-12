@@ -138,7 +138,7 @@ class Strategy:
         trade.close_trade()
 
     def good_spread(self,market):
-        EPICS: { 
+        EPICS = { 
             "CS.D.AUDUSD.TODAY.IP": { "minspread": 0.6 }, 
             "CS.D.EURCHF.TODAY.IP": { "minspread": 2.0 },
             "CS.D.EURGBP.TODAY.IP": { "minspread": 0.9 },
